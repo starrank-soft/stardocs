@@ -17,6 +17,7 @@
 | F2 | 虚拟项目视图 | 产品截图或界面合成图 | `assets`、`docs`、`compositions` 与真实编辑器的对应关系 | 待实机截图 |
 | F3 | 稳定路径与节点 ID | 前后对比图 | Clip 移动后 ID 不变，数组位置会变化 | 已完成 |
 | F4 | 底层节点模型 | 双向投影图 | VML 读取投影与语义写回如何共享同一节点图 | 已完成 SVG：`projection-roundtrip.svg` |
+| F4A | VML 验证管线 | 门禁流程图 | 结构解析、领域验证与权威状态修改的边界 | 已完成 SVG：`vml-validation-pipeline.svg` |
 | F5 | Search/Replace 边界 | 对比图 | 全量文档替换与语义节点编辑拥有不同写集合 | 已完成 |
 | F6 | RESTful-like Ops | 四象限协议卡 | PATCH、POST、PUT、DELETE 分别表达什么 | 待补 |
 | F7 | 流式协议 | 时间流程图 | 操作头、完整语义边界、领域验证与提交策略 | 已完成 |

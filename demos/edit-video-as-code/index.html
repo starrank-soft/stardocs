@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Edit Video as Code — Interactive Demos</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #07111f;
+        --panel: #101c2e;
+        --panel-2: #15172d;
+        --line: #304158;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --cyan: #22d3ee;
+        --blue: #38bdf8;
+        --violet: #8b5cf6;
+        --coral: #fb7185;
+        --amber: #f59e0b;
+        --green: #22c55e;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 15% 10%, rgba(34, 211, 238, 0.1), transparent 32%),
+          radial-gradient(circle at 85% 20%, rgba(139, 92, 246, 0.13), transparent 35%),
+          var(--bg);
+        color: var(--text);
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      button { font: inherit; }
+
+      .shell {
+        width: min(1320px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 42px 0 64px;
+      }
+
+      .eyebrow {
+        color: var(--cyan);
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 12px 0 8px;
+        font-size: clamp(34px, 5vw, 62px);
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        max-width: 780px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .notice {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 22px;
+        padding: 9px 13px;
+        border: 1px solid rgba(245, 158, 11, 0.45);
+        border-radius: 999px;
+        color: #fde68a;
+        background: rgba(245, 158, 11, 0.08);
+        font-size: 13px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 10px;
+        margin: 34px 0 18px;
+      }
+
+      .tab,
+      .button,
+      .choice {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--text);
+        background: rgba(16, 28, 46, 0.85);
+        cursor: pointer;
+        transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+      }
+
+      .tab { padding: 12px 18px; }
+      .tab:hover,
+      .button:hover,
+      .choice:hover { border-color: var(--cyan); }
+      .tab[aria-selected="true"] { border-color: var(--cyan); background: rgba(34, 211, 238, 0.12); }
+      .tab:active,
+      .button:active,
+      .choice:active { transform: translateY(1px); }
+
+      .demo { display: none; }
+      .demo.active { display: block; }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        overflow: hidden;
+        background: rgba(12, 22, 37, 0.9);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .card-header h2 { margin: 0; font-size: 20px; }
+      .card-header p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+      .controls { display: flex; flex-wrap: wrap; gap: 10px; }
+      .button { padding: 10px 15px; }
+      .button.primary { border-color: var(--cyan); background: linear-gradient(135deg, #0e7490, #6d28d9); }
+
+      .workflow-grid {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.4fr);
+        min-height: 520px;
+      }
+
+      .terminal {
+        padding: 22px;
+        border-right: 1px solid var(--line);
+        background: #07101d;
+      }
+
+      .terminal-title,
+      .editor-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .dots { display: flex; gap: 6px; }
+      .dot { width: 9px; height: 9px; border-radius: 50%; background: #475569; }
+      .dot:nth-child(1) { background: var(--coral); }
+      .dot:nth-child(2) { background: var(--amber); }
+      .dot:nth-child(3) { background: var(--green); }
+
+      .log {
+        min-height: 430px;
+        margin: 0;
+        white-space: pre-wrap;
+        color: #cbd5e1;
+        font: 15px/1.75 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .log .tool { color: var(--cyan); }
+      .log .result { color: #c4b5fd; }
+      .log .change { color: #fde68a; }
+      .log .done { color: #86efac; }
+
+      .editor {
+        display: flex;
+        flex-direction: column;
+        padding: 22px;
+        background: linear-gradient(180deg, #121a2d, #0c1424);
+      }
+
+      .preview {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: 250px;
+        overflow: hidden;
+        border: 1px solid #26364d;
+        border-radius: 16px;
+        background:
+          radial-gradient(circle at 65% 40%, rgba(245, 158, 11, 0.35), transparent 14%),
+          linear-gradient(145deg, #172554, #0f766e 62%, #1e293b);
+      }
+
+      .preview::before {
+        content: "";
+        position: absolute;
+        inset: auto -8% -30% -8%;
+        height: 62%;
+        border-radius: 50% 50% 0 0;
+        background: linear-gradient(180deg, #0f766e, #0f172a);
+      }
+
+      .product {
+        z-index: 1;
+        width: 92px;
+        height: 118px;
+        border: 3px solid rgba(255, 255, 255, 0.8);
+        border-radius: 18px 18px 28px 28px;
+        background: linear-gradient(145deg, #fb7185, #f59e0b);
+        box-shadow: 0 22px 52px rgba(245, 158, 11, 0.35);
+        transform: rotate(-8deg);
+      }
+
+      .preview-label {
+        position: absolute;
+        left: 14px;
+        bottom: 12px;
+        z-index: 2;
+        padding: 6px 9px;
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.72);
+        color: #e2e8f0;
+        font-size: 12px;
+      }
+
+      .timeline {
+        position: relative;
+        margin-top: 18px;
+        padding: 36px 16px 18px 88px;
+        border: 1px solid #26364d;
+        border-radius: 16px;
+        background: #080f1c;
+      }
+
+      .ruler {
+        position: absolute;
+        top: 12px;
+        left: 88px;
+        right: 16px;
+        height: 12px;
+        background: repeating-linear-gradient(90deg, #475569 0 1px, transparent 1px 10%);
+      }
+
+      .track {
+        position: relative;
+        height: 46px;
+        margin-bottom: 10px;
+        border-radius: 9px;
+        background: #132137;
+      }
+
+      .track-label {
+        position: absolute;
+        right: calc(100% + 14px);
+        top: 14px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .clip {
+        position: absolute;
+        top: 6px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        overflow: hidden;
+        border-radius: 7px;
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        transition: left 500ms ease, width 500ms ease, opacity 350ms ease, transform 500ms ease;
+      }
+
+      .product-clip { left: 0; width: 58%; background: linear-gradient(90deg, #0ea5e9, #8b5cf6); }
+      .poster-clip { left: 59%; width: 0; opacity: 0; transform: scaleX(0.2); transform-origin: left; background: linear-gradient(90deg, #f59e0b, #fb7185); }
+      .outro-clip { left: 78%; width: 20%; background: #475569; }
+      .audio-clip { left: 0; width: 98%; background: linear-gradient(90deg, #15803d, #22c55e); }
+      .editor.applied .product-clip { width: 43%; }
+      .editor.applied .poster-clip { left: 44%; width: 32%; opacity: 1; transform: scaleX(1); }
+
+      .playhead {
+        position: absolute;
+        top: 28px;
+        bottom: 10px;
+        left: 49%;
+        width: 2px;
+        background: var(--cyan);
+        box-shadow: 0 0 14px var(--cyan);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .step {
+        padding: 11px 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 12px;
+        transition: all 220ms ease;
+      }
+
+      .step.active { border-color: var(--cyan); color: var(--text); background: rgba(34, 211, 238, 0.1); }
+      .step.complete { border-color: rgba(34, 197, 94, 0.55); color: #86efac; }
+
+      .cut-layout {
+        display: grid;
+        grid-template-columns: minmax(420px, 1.4fr) minmax(280px, 0.7fr);
+        gap: 20px;
+        padding: 22px;
+      }
+
+      .canvas-wrap {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #050b14;
+      }
+
+      canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
+
+      .cut-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .choice {
+        width: 100%;
+        padding: 15px 16px;
+        text-align: left;
+      }
+
+      .choice strong { display: block; margin-bottom: 4px; }
+      .choice span { color: var(--muted); font-size: 13px; }
+      .choice.active[data-cut="early"] { border-color: var(--cyan); background: rgba(34, 211, 238, 0.1); }
+      .choice.active[data-cut="action"] { border-color: var(--amber); background: rgba(245, 158, 11, 0.1); }
+      .choice.active[data-cut="late"] { border-color: var(--coral); background: rgba(251, 113, 133, 0.1); }
+
+      .meter {
+        margin-top: 2px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #0b1422;
+      }
+
+      .meter svg { width: 100%; height: auto; overflow: visible; }
+      #cut-marker { transition: x1 240ms ease, x2 240ms ease, stroke 240ms ease; }
+
+      .cut-status {
+        min-height: 80px;
+        padding: 14px;
+        border-radius: 14px;
+        background: #111827;
+        color: #cbd5e1;
+        line-height: 1.6;
+        font-size: 14px;
+      }
+
+      @media (max-width: 900px) {
+        .workflow-grid,
+        .cut-layout { grid-template-columns: 1fr; }
+        .terminal { border-right: 0; border-bottom: 1px solid var(--line); }
+        .steps { grid-template-columns: 1fr 1fr; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <div class="eyebrow">Open technical demo</div>
+      <h1>Edit Video as Code</h1>
+      <p class="subtitle">两个可交互的原理演示：一个展示 Coding Agent 如何定位并局部修改视频工程；另一个展示为什么三个结构合法的剪点会产生完全不同的运动感受。</p>
+      <div class="notice">原理演示，不是 StarCut 产品界面或性能数据</div>
+
+      <div class="tabs" role="tablist" aria-label="演示选择">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="workflow-demo" id="workflow-tab">Agent 剪辑闭环</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="cut-demo" id="cut-tab">剪早 / 剪准 / 剪晚</button>
+      </div>
+
+      <section class="demo active" id="workflow-demo" role="tabpanel" aria-labelledby="workflow-tab">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>从自然语言任务到局部时间线修改</h2>
+              <p>发现 → 定位 → 局部读取 → 语义编辑 → 验证</p>
+            </div>
+            <div class="controls">
+              <button class="button" id="workflow-reset">重置</button>
+              <button class="button primary" id="workflow-play">播放演示</button>
+            </div>
+          </div>
+          <div class="workflow-grid">
+            <div class="terminal">
+              <div class="terminal-title"><span>Agent tool trace</span><span class="dots"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span></div>
+              <pre class="log" id="workflow-log">用户：找到产品演示镜头，把它缩短到三秒，并在后面增加一张产品海报。
+
+等待开始…</pre>
+            </div>
+            <div class="editor" id="workflow-editor">
+              <div class="editor-title"><span>Authoritative project timeline</span><span id="editor-state">未修改</span></div>
+              <div class="preview">
+                <div class="product" aria-hidden="true"></div>
+                <span class="preview-label" id="preview-label">product-demo.mp4 · 5.0s</span>
+              </div>
+              <div class="timeline">
+                <div class="ruler"></div>
+                <div class="track"><span class="track-label">Video 1</span><span class="clip product-clip">#clip_product · 5.0s</span><span class="clip poster-clip">product-shot.png · 2.0s</span><span class="clip outro-clip">outro</span></div>
+                <div class="track"><span class="track-label">Audio 1</span><span class="clip audio-clip">narration.mp3</span></div>
+                <div class="playhead"></div>
+              </div>
+              <div class="steps" id="workflow-steps">
+                <div class="step">glob / head</div>
+                <div class="step">grep</div>
+                <div class="step">read #track</div>
+                <div class="step">PATCH / POST</div>
+                <div class="step">validate</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="demo" id="cut-demo" role="tabpanel" aria-labelledby="cut-tab">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <h2>同一个动作，剪点相差几帧</h2>
+              <p>三个版本在结构上都合法，但运动相位、停顿和能量不同。</p>
+            </div>
+            <div class="controls"><button class="button primary" id="cut-play">重新播放</button></div>
+          </div>
+          <div class="cut-layout">
+            <div>
+              <div class="canvas-wrap"><canvas id="cut-canvas" aria-label="动作剪点动画"></canvas></div>
+              <div class="meter">
+                <svg viewBox="0 0 720 160" role="img" aria-label="动作强度曲线与剪点">
+                  <line x1="30" y1="132" x2="690" y2="132" stroke="#475569" />
+                  <path d="M30 126 C180 126 220 112 300 78 C380 44 430 20 510 30 C590 40 620 96 690 118" fill="none" stroke="url(#motion-gradient)" stroke-width="8" stroke-linecap="round" />
+                  <defs><linearGradient id="motion-gradient"><stop stop-color="#22d3ee"/><stop offset="0.62" stop-color="#f59e0b"/><stop offset="1" stop-color="#fb7185"/></linearGradient></defs>
+                  <line id="cut-marker" x1="290" y1="10" x2="290" y2="142" stroke="#22d3ee" stroke-width="4" stroke-dasharray="8 6" />
+                  <text x="30" y="154" fill="#94a3b8" font-size="13">动作开始</text>
+                  <text x="650" y="154" fill="#94a3b8" font-size="13">动作收势</text>
+                </svg>
+              </div>
+            </div>
+            <aside class="cut-sidebar">
+              <button class="choice active" data-cut="early"><strong>剪早</strong><span>动作尚未兑现，切换显得抢。</span></button>
+              <button class="choice" data-cut="action"><strong>动作点</strong><span>在速度与能量最高处衔接。</span></button>
+              <button class="choice" data-cut="late"><strong>剪晚</strong><span>动作已经完成，切换显得拖。</span></button>
+              <div class="cut-status" id="cut-status">当前：剪早。DSL 可以准确写入这个时间码，但是否合适仍依赖连续观看与候选比较。</div>
+            </aside>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const tabs = document.querySelectorAll(".tab");
+      const demos = document.querySelectorAll(".demo");
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((item) => item.setAttribute("aria-selected", String(item === tab)));
+          demos.forEach((demo) => demo.classList.toggle("active", demo.id === tab.getAttribute("aria-controls")));
+        });
+      });
+
+      const workflowLog = document.querySelector("#workflow-log");
+      const workflowEditor = document.querySelector("#workflow-editor");
+      const workflowSteps = [...document.querySelectorAll("#workflow-steps .step")];
+      const editorState = document.querySelector("#editor-state");
+      const previewLabel = document.querySelector("#preview-label");
+      const workflowPlay = document.querySelector("#workflow-play");
+      const workflowReset = document.querySelector("#workflow-reset");
+      let workflowRun = 0;
+
+      const workflowFrames = [
+        `<span class="tool">glob</span>("compositions/**/*.vml")\n<span class="result">→ compositions/main.vml</span>\n<span class="tool">head</span>("assets/product-shot.png")\n<span class="result">→ image · 1600×1200 · ready</span>`,
+        `<span class="tool">grep</span>("assets/product-demo.mp4")\n<span class="result">→ compositions/main.vml#clip_product</span>`,
+        `<span class="tool">read</span>("compositions/main.vml#track_main")\n<span class="result">→ #clip_product duration=5000000\n→ next: #clip_outro</span>`,
+        `<span class="change">PATCH #clip_product\nduration="3000000"\nsourceDuration="3000000"\n\nPOST #track_main\nbefore: #clip_outro\n&lt;ImageClip source="assets/product-shot.png"\n  start="3000000" duration="2000000" /&gt;</span>`,
+        `<span class="done">✓ schema valid\n✓ asset reference valid\n✓ timeline updated in the authoritative project</span>`
+      ];
+
+      function resetWorkflow() {
+        workflowRun += 1;
+        workflowLog.innerHTML = `用户：找到产品演示镜头，把它缩短到三秒，并在后面增加一张产品海报。\n\n等待开始…`;
+        workflowEditor.classList.remove("applied");
+        workflowSteps.forEach((step) => step.className = "step");
+        editorState.textContent = "未修改";
+        previewLabel.textContent = "product-demo.mp4 · 5.0s";
+        workflowPlay.disabled = false;
+      }
+
+      async function playWorkflow() {
+        resetWorkflow();
+        workflowPlay.disabled = true;
+        const run = workflowRun;
+        workflowLog.innerHTML = `用户：找到产品演示镜头，把它缩短到三秒，并在后面增加一张产品海报。`;
+
+        for (let index = 0; index < workflowFrames.length; index += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 850));
+          if (run !== workflowRun) return;
+          workflowSteps.forEach((step, stepIndex) => {
+            step.classList.toggle("active", stepIndex === index);
+            step.classList.toggle("complete", stepIndex < index);
+          });
+          workflowLog.innerHTML += `\n\n${workflowFrames[index]}`;
+          if (index === 3) {
+            workflowEditor.classList.add("applied");
+            editorState.textContent = "正在应用语义操作";
+            previewLabel.textContent = "product-demo.mp4 · 3.0s + product-shot.png · 2.0s";
+          }
+          if (index === 4) editorState.textContent = "已写入同一项目";
+        }
+
+        workflowSteps.forEach((step) => step.className = "step complete");
+        workflowPlay.disabled = false;
+      }
+
+      workflowPlay.addEventListener("click", playWorkflow);
+      workflowReset.addEventListener("click", resetWorkflow);
+
+      const canvas = document.querySelector("#cut-canvas");
+      const context = canvas.getContext("2d");
+      const choices = [...document.querySelectorAll(".choice")];
+      const cutStatus = document.querySelector("#cut-status");
+      const cutMarker = document.querySelector("#cut-marker");
+      const cutPlay = document.querySelector("#cut-play");
+      const cutOptions = {
+        early: { cut: 0.82, marker: 290, color: "#22d3ee", label: "剪早", detail: "动作尚未兑现，画面切换会抢走期待。" },
+        action: { cut: 1.15, marker: 430, color: "#f59e0b", label: "动作点", detail: "在动作能量最高处切换，两侧运动更容易连起来。" },
+        late: { cut: 1.5, marker: 548, color: "#fb7185", label: "剪晚", detail: "动作已经收住，画面切换会显得迟缓。" }
+      };
+      let selectedCut = "early";
+      let animationStart = performance.now();
+      let cutAnimationFrame = 0;
+
+      function resizeCanvas() {
+        const bounds = canvas.getBoundingClientRect();
+        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(bounds.width * ratio);
+        canvas.height = Math.round(bounds.width * 9 / 16 * ratio);
+        context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+
+      function easeInOut(value) {
+        return value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
+      }
+
+      function drawFrame(now) {
+        const width = canvas.clientWidth;
+        const height = width * 9 / 16;
+        const duration = 2.35;
+        const time = ((now - animationStart) / 1000) % duration;
+        const progress = Math.min(time / 1.8, 1);
+        const motion = easeInOut(progress);
+        const option = cutOptions[selectedCut];
+        const secondShot = time >= option.cut;
+
+        context.clearRect(0, 0, width, height);
+        const gradient = context.createLinearGradient(0, 0, width, height);
+        gradient.addColorStop(0, secondShot ? "#3b1d2c" : "#0b3450");
+        gradient.addColorStop(1, secondShot ? "#6b3a18" : "#0f172a");
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, width, height);
+
+        context.fillStyle = secondShot ? "rgba(245, 158, 11, 0.16)" : "rgba(34, 211, 238, 0.12)";
+        context.beginPath();
+        context.arc(width * 0.78, height * 0.24, secondShot ? height * 0.24 : height * 0.11, 0, Math.PI * 2);
+        context.fill();
+
+        context.fillStyle = secondShot ? "#2b1721" : "#07111f";
+        context.fillRect(0, height * 0.72, width, height * 0.28);
+
+        const x = width * (0.12 + 0.7 * motion);
+        const y = height * (0.68 - 0.38 * Math.sin(Math.PI * motion));
+        const radius = secondShot ? Math.max(38, width * 0.075) : Math.max(18, width * 0.033);
+
+        context.save();
+        if (secondShot) {
+          context.translate(width * 0.5 - x, height * 0.5 - y);
+          context.scale(1.55, 1.55);
+        }
+        const orbGradient = context.createRadialGradient(x - radius * 0.3, y - radius * 0.35, radius * 0.15, x, y, radius);
+        orbGradient.addColorStop(0, "#fff7d6");
+        orbGradient.addColorStop(0.35, "#fbbf24");
+        orbGradient.addColorStop(1, "#f97316");
+        context.fillStyle = orbGradient;
+        context.shadowColor = "rgba(245, 158, 11, 0.6)";
+        context.shadowBlur = 28;
+        context.beginPath();
+        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+
+        context.shadowBlur = 0;
+        context.fillStyle = "rgba(2, 6, 23, 0.72)";
+        context.fillRect(14, 14, 170, 34);
+        context.fillStyle = "#f8fafc";
+        context.font = "600 14px Inter, PingFang SC, sans-serif";
+        context.fillText(secondShot ? "SHOT B · CLOSE" : "SHOT A · WIDE", 26, 36);
+
+        if (Math.abs(time - option.cut) < 0.08) {
+          context.fillStyle = option.color;
+          context.fillRect(0, 0, width, 4);
+          context.fillStyle = "#f8fafc";
+          context.font = "700 18px Inter, PingFang SC, sans-serif";
+          context.fillText("CUT", width - 58, 34);
+        }
+
+        cutAnimationFrame = requestAnimationFrame(drawFrame);
+      }
+
+      function selectCut(name) {
+        selectedCut = name;
+        const option = cutOptions[name];
+        choices.forEach((choice) => choice.classList.toggle("active", choice.dataset.cut === name));
+        cutMarker.setAttribute("x1", String(option.marker));
+        cutMarker.setAttribute("x2", String(option.marker));
+        cutMarker.setAttribute("stroke", option.color);
+        cutStatus.textContent = `当前：${option.label}。${option.detail} DSL 可以准确写入这个时间码，但是否合适仍依赖连续观看与候选比较。`;
+        animationStart = performance.now();
+      }
+
+      choices.forEach((choice) => choice.addEventListener("click", () => selectCut(choice.dataset.cut)));
+      cutPlay.addEventListener("click", () => { animationStart = performance.now(); });
+      window.addEventListener("resize", resizeCanvas);
+      resizeCanvas();
+      cancelAnimationFrame(cutAnimationFrame);
+      cutAnimationFrame = requestAnimationFrame(drawFrame);
+    </script>
+  </body>
+</html>

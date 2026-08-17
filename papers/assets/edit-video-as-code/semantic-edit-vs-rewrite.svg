@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">全量重写与语义编辑的写集合对比</title>
+  <desc id="desc">全量重写需要重新匹配或重建大量节点，语义编辑只修改目标节点属性。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a1324"/><stop offset="1" stop-color="#181126"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity="0.35"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="800" y="72" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700" font-family="Inter, PingFang SC, sans-serif">同样只改 opacity，写集合完全不同</text>
+  <text x="800" y="112" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">问题不在文本能不能改，而在修改意图是否被直接表达</text>
+
+  <g filter="url(#shadow)" font-family="Inter, PingFang SC, sans-serif">
+    <rect x="70" y="160" width="690" height="620" rx="30" fill="#241622" stroke="#fb7185" stroke-width="2"/>
+    <text x="115" y="215" fill="#fda4af" font-size="28" font-weight="700">完整文档替换</text>
+    <text x="115" y="252" fill="#cbd5e1" font-size="19">解析新旧文本 → 匹配身份 → 计算结构差异</text>
+    <rect x="115" y="286" width="600" height="162" rx="16" fill="#140e17"/>
+    <text x="145" y="326" fill="#f8fafc" font-size="18">&lt;Composition&gt;</text>
+    <text x="175" y="362" fill="#fecdd3" font-size="18">&lt;Track&gt;</text>
+    <text x="205" y="398" fill="#fda4af" font-size="18">&lt;Clip opacity="0.8" /&gt;</text>
+    <text x="175" y="430" fill="#fecdd3" font-size="18">&lt;/Track&gt; … &lt;/Composition&gt;</text>
+    <text x="115" y="500" fill="#fda4af" font-size="20" font-weight="700">可能触及的节点</text>
+    <g fill="#fb7185" opacity="0.82">
+      <rect x="118" y="530" width="70" height="54" rx="9"/><rect x="200" y="530" width="70" height="54" rx="9"/><rect x="282" y="530" width="70" height="54" rx="9"/><rect x="364" y="530" width="70" height="54" rx="9"/><rect x="446" y="530" width="70" height="54" rx="9"/><rect x="528" y="530" width="70" height="54" rx="9"/><rect x="610" y="530" width="70" height="54" rx="9"/>
+      <rect x="159" y="598" width="70" height="54" rx="9"/><rect x="241" y="598" width="70" height="54" rx="9"/><rect x="323" y="598" width="70" height="54" rx="9"/><rect x="405" y="598" width="70" height="54" rx="9"/><rect x="487" y="598" width="70" height="54" rx="9"/><rect x="569" y="598" width="70" height="54" rx="9"/>
+    </g>
+    <rect x="115" y="688" width="600" height="52" rx="14" fill="#3b1722"/>
+    <text x="415" y="722" text-anchor="middle" fill="#fecdd3" font-size="19">写入范围容易大于用户意图</text>
+
+    <rect x="840" y="160" width="690" height="620" rx="30" fill="#102329" stroke="#22d3ee" stroke-width="2"/>
+    <text x="885" y="215" fill="#67e8f9" font-size="28" font-weight="700">语义节点编辑</text>
+    <text x="885" y="252" fill="#cbd5e1" font-size="19">节点 ID 直接定位资源，操作直接表达意图</text>
+    <rect x="885" y="286" width="600" height="162" rx="16" fill="#0b171b"/>
+    <text x="925" y="340" fill="#a5f3fc" font-size="23" font-weight="700">PATCH #clip_product</text>
+    <text x="925" y="390" fill="#e0f2fe" font-size="23">opacity="0.8"</text>
+    <text x="885" y="500" fill="#67e8f9" font-size="20" font-weight="700">实际写集合</text>
+    <g fill="#1e3a43">
+      <rect x="888" y="530" width="70" height="54" rx="9"/><rect x="970" y="530" width="70" height="54" rx="9"/><rect x="1052" y="530" width="70" height="54" rx="9"/><rect x="1134" y="530" width="70" height="54" rx="9"/><rect x="1216" y="530" width="70" height="54" rx="9"/><rect x="1298" y="530" width="70" height="54" rx="9"/><rect x="1380" y="530" width="70" height="54" rx="9"/>
+      <rect x="929" y="598" width="70" height="54" rx="9"/><rect x="1011" y="598" width="70" height="54" rx="9"/><rect x="1093" y="598" width="70" height="54" rx="9"/><rect x="1175" y="598" width="70" height="54" rx="9"/><rect x="1257" y="598" width="70" height="54" rx="9"/><rect x="1339" y="598" width="70" height="54" rx="9"/>
+    </g>
+    <rect x="1175" y="598" width="70" height="54" rx="9" fill="#22d3ee"/>
+    <circle cx="1210" cy="625" r="8" fill="#fff"/>
+    <rect x="885" y="688" width="600" height="52" rx="14" fill="#12353a"/>
+    <text x="1185" y="722" text-anchor="middle" fill="#cffafe" font-size="19">写入范围与用户意图对齐</text>
+  </g>
+</svg>

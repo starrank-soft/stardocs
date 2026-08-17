@@ -1,5 +1,7 @@
 # Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图
 
+![Edit Video as Code 封面：虚拟文件视图与专业时间线连接到同一权威项目模型](../assets/edit-video-as-code/cover.png)
+
 > 面向视频、AI Agent 与创作工具工程师的中文技术文章
 >
 > 核心命题：不是让 AI 模拟人类点击剪辑软件，也不是让 AI 重写整个工程，而是把已经建模的视频运行态映射成一套 AI 可以像代码仓库一样发现、读取、定位、局部修改和验证的虚拟文件视图。
@@ -25,6 +27,10 @@
 我们提出 **Edit Video as Code**：不要求视频工程本身变成代码，而是在视频运行态之上建立一套面向 AI 的虚拟文件视图，让 Coding Agent 可以像操作代码仓库一样操作视频项目。
 
 它看到文件，使用文件工具，但修改的仍然是专业视频编辑器中的同一份权威工程。
+
+![一份视频工程面向 Coding Agent 和人类编辑器呈现两种工作界面](../assets/edit-video-as-code/project-views-architecture.svg)
+
+*Agent 使用虚拟文件接口，人类使用时间线界面；两者修改的是同一份权威项目模型。*
 
 ## 一、首先要区分三件容易混淆的事
 
@@ -179,6 +185,10 @@ compositions/main.vml#clip_product
 
 数组下标是序列化布局，不是语义身份。一旦其他用户在前面插入一条轨道，整条路径的含义就会变化。
 
+![Clip 移动前后保持同一稳定节点 ID，而数组路径随位置变化](../assets/edit-video-as-code/stable-id-move.svg)
+
+*移动一个 Clip 应当改变归属和顺序，而不是删除旧节点再创建新节点。*
+
 文件路径和节点 ID 的组合同时解决了两个问题：
 
 - AI 可以先像浏览仓库一样发现文件；
@@ -206,15 +216,9 @@ compositions/main.vml#clip_product
 
 在 StarCut 当前实现中，这张协同节点图由 Yjs 的 Y.Doc 承载，并使用扁平节点集合、原子父级归属和分数排序。它是运行时实现选择，不是 Edit Video as Code 要求 Agent 理解的接口。
 
-```mermaid
-flowchart LR
-    AI["Coding Agent"] --> Files["虚拟文件接口"]
-    Files --> Protocol["状态 DSL 与编辑协议"]
-    Protocol --> Validation["领域模式与引用验证"]
-    Validation --> Model["权威项目模型"]
-    Model --> Editor["时间线 / 预览 / 属性面板"]
-    Model --> Files
-```
+![读取时将权威节点图投影为 VML，写入时把 VML 编辑解析为经过验证的语义操作](../assets/edit-video-as-code/projection-roundtrip.svg)
+
+*VML 是节点图的双向投影：读路径生成可理解的树，写路径修改原节点的属性、归属或顺序。*
 
 图里的往返关系不表示复制数据。虚拟文件视图和人类编辑界面只是同一权威状态面向不同使用者的投影。
 
@@ -372,6 +376,10 @@ Summer Launch
 
 > 文本源使用文本编辑；结构化投影使用语义结构编辑；结构节点内部的文本属性可以在节点边界内使用精确文本编辑。
 
+![完整文档替换与语义节点编辑的写集合对比](../assets/edit-video-as-code/semantic-edit-vs-rewrite.svg)
+
+*两种方案都能修改文本；差异在于系统是否直接获得目标身份和操作意图。*
+
 ## 七、RESTful-like Ops：像修改资源一样修改视频节点
 
 为了让 AI 能够局部编辑 VML，我们使用四类短操作。`RESTful-like` 描述的是“以资源为中心、用短动词表达意图”的设计直觉，并不声称这套协议符合 HTTP REST，也不表示它是 JSON Patch 的变体。
@@ -468,6 +476,10 @@ RESTful-like Ops 的优势，是语法中存在连续、可识别的语义完成
 ```
 
 这里必须避免一个过度承诺：**最终完整输入不是数据库意义上的原子提交点。** 前面的合法操作可能已经进入项目；后面的操作如果验证失败，不应被描述为自动回滚整次编辑。编辑器可以把一次 Agent 调用组织成一个便于撤销的用户动作，但传输取消、解析失败和事务回滚仍然是三个不同概念。
+
+![RESTful-like 编辑协议消费连续前缀并在完整语义边界执行](../assets/edit-video-as-code/streaming-edit-flow.svg)
+
+*流式执行缩短首个有效修改的延迟，但不会绕过领域验证，也不等同于原子事务。*
 
 ## 九、AI 使用的基本工具
 
@@ -578,33 +590,19 @@ before: #clip_outro
 
 这与成熟 Coding Agent 的行为一致：先定位、再读取必要上下文、局部修改、使用适合任务的验证，而不是每次遍历整个项目。
 
-## 十一、架构上如何保证 AI 和人类编辑的是同一个项目
+## 十一、写入时序：一次 Agent 修改如何被人类立即接管
 
-虚拟文件视图不能形成新的业务状态。完整写链路如下：
+前文已经说明静态架构：虚拟文件视图和人类时间线是同一权威项目模型的两种投影。这里不再重复那张架构图，只跟踪一次修改从 Agent 发出，到人类可以继续编辑的完整时序。
 
-```mermaid
-sequenceDiagram
-    participant A as AI Agent
-    participant F as Virtual File Interface
-    participant P as Projection and Edit Protocol
-    participant M as Authoritative Project Model
-    participant U as Human Editor
+![Agent 的文件式修改经过类型路由和领域验证进入权威项目模型，人类编辑器立即观察到同一状态](../assets/edit-video-as-code/shared-project-write-sequence.svg)
 
-    A->>F: edit(path, changes)
-    F->>P: route by resource type
-    P->>M: validate and apply semantic operations
-    M-->>U: update timeline, preview and properties
-    M-->>F: return result, node ID or diagnostic
-    F-->>A: structured tool result
-```
+*人类看到更新，不是因为系统把一份“AI 工程”同步回来了，而是因为双方始终读写同一份权威状态。*
 
-这里有几个关键点。
+### 1. 工具层不持有第二份项目状态
 
-### 1. Agent 工具不直接维护项目副本
+`glob`、`grep`、`read` 和 `head` 都从当前权威状态生成结果；`edit` 和 `write` 通过当前项目的编辑入口写回。工具层可以缓存一次调用所需的解析上下文，却不能维护一份等待事后合并的业务副本。
 
-`glob`、`grep`、`read` 和 `head` 都从当前权威状态生成结果；`edit` 和 `write` 通过当前项目的编辑入口写回。工具层不缓存一份等待事后合并的“AI 工程”。
-
-### 2. 文件类型共享入口，但不共享错误的写入语义
+### 2. 统一的是 Agent 入口，不是底层写入语义
 
 ```text
 .vml        -> 结构化节点操作
@@ -612,21 +610,19 @@ sequenceDiagram
 .svg / .mg  -> 可编辑素材源
 ```
 
-同名 `edit` 工具只统一 Agent 的交互入口，具体执行语义仍由资源类型决定。
+同名 `edit` 工具让 Agent 保持类似 Coding 的工作方式，但资源类型仍决定真正的修改语义。对 VML，读写两条投影路径应由同一领域模式驱动：同一份定义负责标签、属性、引用、父子约束和节点位置，避免解析、验证和运行时各自维护一套规则。
 
-### 3. VML 的正向和反向投影由同一领域模式驱动
+### 3. 修改沿既有状态观察链路传播
 
-读路径把领域节点转换为公共 VML；写路径把 VML 编辑操作转换回领域节点修改。标签、属性、引用和子节点位置不应在解析、验证与界面层各自维护一份定义。
+协议解析出的操作经过验证后直接修改权威项目模型。人类界面继续沿原有的状态观察和视图投影链路更新，不需要 Agent 额外发送“请刷新界面”，也不需要界面在任务结束后重读旁路 JSON。
 
-### 4. 协同模型仍然是权威状态
+这也划清了职责边界：协同、事务和 Undo 能力由权威模型及其编辑入口提供；虚拟文件接口的责任，是把 Agent 的意图可靠地送入这条既有链路，而不是重新实现一套协同系统。
 
-AI 修改进入权威模型后，人类界面沿原有的状态观察与视图投影链路更新。AI 不需要发送额外的“请刷新界面”消息，界面也不需要在 Agent 完成后重读一份旁路 JSON。
+### 4. 统一项目空间不等于统一物理存储
 
-### 5. 大型媒体与结构状态各自保持合理的权威边界
+大二进制媒体和可编辑图形源由素材资源系统管理，Composition 只保存稳定引用；结构状态仍由适合协同编辑的模型管理。虚拟文件视图把它们组织成一棵可发现的项目树，却不会为了目录形式而把媒体内容硬塞进节点图。
 
-大二进制媒体和可编辑图形内容由素材资源系统管理；Composition 只保存稳定引用。虚拟文件视图把两者组织到同一项目空间，但不会为了目录形式而把媒体内容硬塞进协同节点图。
-
-这让协同结构状态与媒体存储各自在合理层级保持权威，又能为 AI 呈现一棵统一项目树。
+因此，人类接管的不是 Agent 导出的结果，而是 Agent 刚刚修改过的同一个工程：原节点身份仍在，时间线、预览和属性面板已经更新，后续手工调整继续走同一套编辑入口。
 
 ## 十二、为什么不把每个剪辑动作都做成一个工具
 
@@ -698,6 +694,10 @@ Edit Video as Code 让 AI 能够准确找到一个 Clip，把入点移动 12 帧
 | 结果评价 | 判断是否完成指令、结构是否合法 | 判断一个合法版本是否自然、准确、有力，是否服务整段叙事 |
 | 迭代方式 | 修改结构后读取状态，按需查看少量画面 | 反复播放、拖动、逐帧比较，在上下文中微调几个帧 |
 
+![三个结构上都合法的剪点落在动作的不同相位，只有一个更符合连续运动](../assets/edit-video-as-code/ai-human-cut.svg)
+
+*DSL 能准确执行剪点；主动观看、候选比较和偏好判断决定剪点是否合适。*
+
 这里所说的“感受”不是不可研究的直觉。人类剪辑师是在高带宽地综合连续画面和声音：主体速度与加速度、镜头运动、姿态和视线变化、语音重音与停顿、音乐节拍与瞬态，以及前后镜头建立的预期。经验把这些信号压缩成了快速判断，所以剪辑师常常先“觉得不对”，再把原因解释出来。
 
 已有研究也说明，剪点并非完全没有统计规律。[Learning Where to Cut from Edited Videos](https://openaccess.thecvf.com/content/ICCV2021W/CVEU/html/Huang_Learning_Where_To_Cut_From_Edited_Videos_ICCVW_2021_paper.html) 通过用户研究验证了人们对部分好坏剪点存在共识，并学习未剪素材中的合适剪切区域；[Learning to Cut by Watching Movies](https://openaccess.thecvf.com/content/ICCV2021/html/Pardo_Learning_To_Cut_by_Watching_Movies_ICCV_2021_paper.html) 则从专业成片中学习跨镜头的视听模式，对剪点合理性进行排序。[VEU-Bench](https://openaccess.thecvf.com/content/CVPR2025/html/Li_VEU-Bench_Towards_Comprehensive_Understanding_of_Video_Editing_CVPR_2025_paper.html) 进一步把视频编辑理解拆成识别、推理和判断任务，并显示当前视频语言模型在这些任务上仍面临明显困难。这些工作表明“剪在哪里”可以学习，但也揭示了它不同于结构合法性检查：它需要连续视听证据、候选比较和人的偏好评价。
@@ -710,14 +710,9 @@ Edit Video as Code 让 AI 能够准确找到一个 Clip，把入点移动 12 帧
 
 Edit Video as Code 主要完成第一层，并为后两层提供可执行的工程基础。下一步突破，不是继续增加更多 `set_xxx` 工具，而是建立感知—编辑—评价闭环：
 
-```mermaid
-flowchart LR
-    Observe["按需播放、seek、scrub 与局部取样"] --> Represent["时间对齐的运动、声音、语义表征"]
-    Represent --> Propose["生成多个候选剪点与时间线版本"]
-    Propose --> Judge["局部 A/B 播放、多模态评价与人的偏好"]
-    Judge --> Edit["通过语义协议写回权威工程"]
-    Edit --> Observe
-```
+![Agent 通过主动观察、时间对齐表征、候选生成、局部比较和语义写回形成感知编辑闭环](../assets/edit-video-as-code/perception-edit-loop.svg)
+
+*结构协议提供可执行的“手”；连续播放与比较提供“眼睛和耳朵”；评价与反馈让判断逐轮改进。*
 
 这个闭环至少需要四类能力。
 

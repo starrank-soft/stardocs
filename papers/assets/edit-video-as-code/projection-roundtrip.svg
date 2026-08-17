@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">VML 与权威节点图之间的双向投影</title>
+  <desc id="desc">读取时将权威节点图投影为可读 VML，写入时将 VML 编辑解析为经过领域验证的语义操作并写回原节点图。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071827"/>
+      <stop offset="1" stop-color="#17122a"/>
+    </linearGradient>
+    <linearGradient id="read" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="write" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#fb7185"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <marker id="arrowCyan" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#67e8f9"/></marker>
+    <marker id="arrowWarm" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#fb7185"/></marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity=".32"/></filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="800" y="72" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700" font-family="Inter, PingFang SC, sans-serif">VML 是节点图的双向投影</text>
+  <text x="800" y="114" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">文件提供可读结构；稳定身份与领域约束仍属于权威模型</text>
+
+  <g filter="url(#shadow)" font-family="Inter, PingFang SC, sans-serif">
+    <rect x="80" y="190" width="500" height="500" rx="28" fill="#0c2032" stroke="#38bdf8" stroke-opacity=".7" stroke-width="2"/>
+    <text x="122" y="242" fill="#67e8f9" font-size="24" font-weight="700">AI 可读的 VML</text>
+    <rect x="122" y="278" width="416" height="330" rx="18" fill="#071422" stroke="#27445c"/>
+    <g fill="#dbeafe" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">
+      <text x="154" y="330">&lt;VideoTrack id="track_main"&gt;</text>
+      <text x="180" y="378">&lt;VideoClip</text>
+      <text x="206" y="420" fill="#c4b5fd">id="clip_product"</text>
+      <text x="206" y="462" fill="#fda4af">duration="3s"</text>
+      <text x="206" y="504" fill="#fcd34d">source="assets/demo.mp4"</text>
+      <text x="180" y="546">/&gt;</text>
+      <text x="154" y="588">&lt;/VideoTrack&gt;</text>
+    </g>
+    <text x="122" y="652" fill="#94a3b8" font-size="19">树形展示 · 项目路径 · 公共属性</text>
+
+    <rect x="1020" y="190" width="500" height="500" rx="28" fill="#23182e" stroke="#fb7185" stroke-opacity=".7" stroke-width="2"/>
+    <text x="1062" y="242" fill="#fda4af" font-size="24" font-weight="700">权威节点图</text>
+    <g stroke-width="3" font-family="Inter, PingFang SC, sans-serif">
+      <line x1="1270" y1="330" x2="1145" y2="438" stroke="#8b5cf6"/>
+      <line x1="1270" y1="330" x2="1395" y2="438" stroke="#8b5cf6"/>
+      <line x1="1145" y1="438" x2="1145" y2="562" stroke="#fb7185"/>
+      <circle cx="1270" cy="320" r="64" fill="#31245a" stroke="#a78bfa"/>
+      <circle cx="1145" cy="448" r="64" fill="#19334d" stroke="#38bdf8"/>
+      <circle cx="1395" cy="448" r="64" fill="#19334d" stroke="#38bdf8"/>
+      <circle cx="1145" cy="572" r="64" fill="#3a1d2e" stroke="#fb7185"/>
+      <text x="1270" y="327" text-anchor="middle" fill="#ede9fe" font-size="20">Composition</text>
+      <text x="1145" y="455" text-anchor="middle" fill="#dbeafe" font-size="20">Track</text>
+      <text x="1395" y="455" text-anchor="middle" fill="#dbeafe" font-size="20">Track</text>
+      <text x="1145" y="579" text-anchor="middle" fill="#ffe4e6" font-size="20">Clip</text>
+    </g>
+    <text x="1062" y="652" fill="#cbd5e1" font-size="19">稳定 ID · 父级归属 · 相对顺序 · 领域类型</text>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <path d="M990 315H618" fill="none" stroke="url(#read)" stroke-width="7" marker-end="url(#arrowCyan)"/>
+    <rect x="690" y="258" width="230" height="74" rx="18" fill="#14253d" stroke="#38bdf8"/>
+    <text x="805" y="288" text-anchor="middle" fill="#67e8f9" font-size="19" font-weight="700">READ · 正向投影</text>
+    <text x="805" y="316" text-anchor="middle" fill="#cbd5e1" font-size="16">节点 → 标签与属性</text>
+
+    <path d="M618 520H990" fill="none" stroke="url(#write)" stroke-width="7" marker-end="url(#arrowWarm)"/>
+    <rect x="660" y="466" width="290" height="108" rx="18" fill="#321d2b" stroke="#fb7185"/>
+    <text x="805" y="498" text-anchor="middle" fill="#fda4af" font-size="19" font-weight="700">WRITE · 反向投影</text>
+    <text x="805" y="528" text-anchor="middle" fill="#fecdd3" font-size="16">解析为语义操作</text>
+    <text x="805" y="554" text-anchor="middle" fill="#fde68a" font-size="16">领域模式与引用验证</text>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <rect x="230" y="748" width="1140" height="92" rx="24" fill="#111827" stroke="#334155"/>
+    <circle cx="286" cy="794" r="10" fill="#22d3ee"/>
+    <text x="316" y="802" fill="#e2e8f0" font-size="21">读取不会复制项目；写入也不会覆盖一份 XML 文本，而是修改原节点的属性、归属或顺序。</text>
+  </g>
+</svg>

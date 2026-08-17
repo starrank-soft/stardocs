@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">路径用于发现，ID 用于保持身份</title>
+  <desc id="desc">片段从 A 轨移动到 B 轨后数组位置发生变化，但稳定节点 ID 保持不变。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071525"/><stop offset="1" stop-color="#16132b"/></linearGradient>
+    <linearGradient id="clip" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#22d3ee"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#000" flood-opacity="0.35"/></filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto"><path d="M0 0L14 7L0 14Z" fill="#f59e0b"/></marker>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="800" y="72" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700" font-family="Inter, PingFang SC, sans-serif">路径用于发现，ID 用于保持身份</text>
+  <text x="800" y="112" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">移动是归属变化，不是删除后重建</text>
+
+  <g filter="url(#shadow)" font-family="Inter, PingFang SC, sans-serif">
+    <rect x="80" y="170" width="610" height="480" rx="28" fill="#101d32" stroke="#334155"/>
+    <rect x="910" y="170" width="610" height="480" rx="28" fill="#101d32" stroke="#334155"/>
+    <text x="385" y="220" text-anchor="middle" fill="#cbd5e1" font-size="24" font-weight="700">移动前</text>
+    <text x="1215" y="220" text-anchor="middle" fill="#cbd5e1" font-size="24" font-weight="700">移动后</text>
+
+    <text x="120" y="298" fill="#7dd3fc" font-size="20">Track A</text>
+    <rect x="220" y="258" width="420" height="64" rx="12" fill="#17263d"/>
+    <rect x="250" y="270" width="230" height="40" rx="10" fill="url(#clip)"/>
+    <text x="365" y="297" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">#clip_product</text>
+    <text x="120" y="420" fill="#fda4af" font-size="20">Track B</text>
+    <rect x="220" y="380" width="420" height="64" rx="12" fill="#17263d"/>
+    <rect x="250" y="392" width="120" height="40" rx="10" fill="#fb7185" opacity="0.65"/>
+
+    <text x="950" y="298" fill="#7dd3fc" font-size="20">Track A</text>
+    <rect x="1050" y="258" width="420" height="64" rx="12" fill="#17263d"/>
+    <text x="950" y="420" fill="#fda4af" font-size="20">Track B</text>
+    <rect x="1050" y="380" width="420" height="64" rx="12" fill="#17263d"/>
+    <rect x="1080" y="392" width="120" height="40" rx="10" fill="#fb7185" opacity="0.65"/>
+    <rect x="1216" y="392" width="230" height="40" rx="10" fill="url(#clip)"/>
+    <text x="1331" y="419" text-anchor="middle" fill="#fff" font-size="18" font-weight="700">#clip_product</text>
+
+    <path d="M500 334 C690 280 800 280 1030 370" fill="none" stroke="#f59e0b" stroke-width="5" stroke-dasharray="12 10" marker-end="url(#arrow)"/>
+    <rect x="698" y="248" width="204" height="54" rx="27" fill="#3b2714" stroke="#f59e0b"/>
+    <text x="800" y="282" text-anchor="middle" fill="#fcd34d" font-size="19" font-weight="700">PUT：移动节点</text>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <rect x="160" y="700" width="560" height="104" rx="20" fill="#331b28" stroke="#fb7185"/>
+    <text x="190" y="742" fill="#fda4af" font-size="20">易变数组路径</text>
+    <text x="190" y="778" fill="#fecdd3" font-size="18">/tracks/0/clips/0  →  /tracks/1/clips/1</text>
+    <rect x="880" y="700" width="560" height="104" rx="20" fill="#102f32" stroke="#22d3ee"/>
+    <text x="910" y="742" fill="#67e8f9" font-size="20">稳定语义地址</text>
+    <text x="910" y="778" fill="#cffafe" font-size="18">compositions/main.vml#clip_product</text>
+  </g>
+</svg>

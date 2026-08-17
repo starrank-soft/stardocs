@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Agent 修改进入同一工程的写入时序</title>
+  <desc id="desc">Agent 发出文件式编辑请求，虚拟文件接口按资源类型路由，编辑协议验证并修改权威项目模型，人类编辑器立即看到同一状态，结构化结果返回 Agent。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071827"/><stop offset="1" stop-color="#17122a"/></linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#22d3ee"/><stop offset=".52" stop-color="#8b5cf6"/><stop offset="1" stop-color="#fb7185"/></linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#a78bfa"/></marker>
+    <marker id="arrowBack" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12Z" fill="#67e8f9"/></marker>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="800" y="70" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700" font-family="Inter, PingFang SC, sans-serif">一次 Agent 修改如何进入同一工程</text>
+  <text x="800" y="112" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">这是一条写入时序，不是第二套项目同步机制</text>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <g fill="#111c2d" stroke-width="2">
+      <rect x="70" y="160" width="250" height="86" rx="20" stroke="#38bdf8"/>
+      <rect x="370" y="160" width="260" height="86" rx="20" stroke="#38bdf8"/>
+      <rect x="680" y="160" width="260" height="86" rx="20" stroke="#8b5cf6"/>
+      <rect x="990" y="160" width="260" height="86" rx="20" stroke="#fb7185"/>
+      <rect x="1300" y="160" width="230" height="86" rx="20" stroke="#f59e0b"/>
+    </g>
+    <text x="195" y="212" text-anchor="middle" fill="#67e8f9" font-size="22" font-weight="700">AI Agent</text>
+    <text x="500" y="200" text-anchor="middle" fill="#7dd3fc" font-size="20" font-weight="700">虚拟文件接口</text>
+    <text x="500" y="228" text-anchor="middle" fill="#94a3b8" font-size="16">统一工具入口</text>
+    <text x="810" y="200" text-anchor="middle" fill="#c4b5fd" font-size="20" font-weight="700">投影与编辑协议</text>
+    <text x="810" y="228" text-anchor="middle" fill="#94a3b8" font-size="16">类型路由与领域验证</text>
+    <text x="1120" y="200" text-anchor="middle" fill="#fda4af" font-size="20" font-weight="700">权威项目模型</text>
+    <text x="1120" y="228" text-anchor="middle" fill="#94a3b8" font-size="16">唯一业务状态</text>
+    <text x="1415" y="212" text-anchor="middle" fill="#fcd34d" font-size="21" font-weight="700">人类编辑器</text>
+  </g>
+
+  <g stroke="#334155" stroke-width="3" stroke-dasharray="10 12">
+    <line x1="195" y1="260" x2="195" y2="765"/>
+    <line x1="500" y1="260" x2="500" y2="765"/>
+    <line x1="810" y1="260" x2="810" y2="765"/>
+    <line x1="1120" y1="260" x2="1120" y2="765"/>
+    <line x1="1415" y1="260" x2="1415" y2="765"/>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif" font-size="18">
+    <path d="M210 320H480" stroke="#67e8f9" stroke-width="5" marker-end="url(#arrowBack)"/>
+    <circle cx="196" cy="320" r="20" fill="#0e7490"/><text x="196" y="327" text-anchor="middle" fill="#fff" font-weight="700">1</text>
+    <text x="345" y="304" text-anchor="middle" fill="#dbeafe">edit(path, changes)</text>
+
+    <path d="M515 410H790" stroke="#7dd3fc" stroke-width="5" marker-end="url(#arrow)"/>
+    <circle cx="500" cy="410" r="20" fill="#0369a1"/><text x="500" y="417" text-anchor="middle" fill="#fff" font-weight="700">2</text>
+    <text x="650" y="394" text-anchor="middle" fill="#dbeafe">按 .vml / .md / .svg 路由</text>
+
+    <path d="M825 500H1100" stroke="#a78bfa" stroke-width="5" marker-end="url(#arrow)"/>
+    <circle cx="810" cy="500" r="20" fill="#7c3aed"/><text x="810" y="507" text-anchor="middle" fill="#fff" font-weight="700">3</text>
+    <text x="960" y="484" text-anchor="middle" fill="#ede9fe">解析、验证、应用语义操作</text>
+
+    <path d="M1135 590H1395" stroke="#fb7185" stroke-width="5" marker-end="url(#arrow)"/>
+    <circle cx="1120" cy="590" r="20" fill="#e11d48"/><text x="1120" y="597" text-anchor="middle" fill="#fff" font-weight="700">4</text>
+    <text x="1268" y="574" text-anchor="middle" fill="#ffe4e6">时间线、预览与属性面板更新</text>
+
+    <path d="M1100 685H215" stroke="url(#flow)" stroke-width="5" marker-end="url(#arrowBack)"/>
+    <circle cx="1120" cy="685" r="20" fill="#f59e0b"/><text x="1120" y="692" text-anchor="middle" fill="#fff" font-weight="700">5</text>
+    <text x="660" y="669" text-anchor="middle" fill="#e2e8f0">返回创建 ID、修改结果或可定位诊断</text>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <rect x="250" y="790" width="1100" height="70" rx="22" fill="#111827" stroke="#334155"/>
+    <text x="800" y="833" text-anchor="middle" fill="#cbd5e1" font-size="20">人类看到更新，不是因为 Agent 同步了副本；而是因为双方观察同一权威模型。</text>
+  </g>
+</svg>

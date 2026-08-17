@@ -239,6 +239,12 @@ Remotion、FFmpeg 脚本、Blender 脚本及其他代码生成方案可以用程
 
 > **[待补 E-L1：代码式视频系统综述]** 系统比较 Remotion、FFmpeg/MLT、Blender scripting、Lottie/动画代码生成和 NLE 插件脚本接口，避免把“代码生成视频”描述成空白领域。
 
+### 7.4 计算剪辑与剪点判断
+
+[Learning Where to Cut from Edited Videos](https://openaccess.thecvf.com/content/ICCV2021W/CVEU/html/Huang_Learning_Where_To_Cut_From_Edited_Videos_ICCVW_2021_paper.html) 从既有编辑视频中学习未剪素材的合适剪切区域，并通过用户研究验证部分剪点偏好具有共识。[Learning to Cut by Watching Movies](https://openaccess.thecvf.com/content/ICCV2021/html/Pardo_Learning_To_Cut_by_Watching_Movies_ICCV_2021_paper.html) 从专业成片中学习跨镜头视听模式，对剪点合理性进行排序。[VEU-Bench](https://openaccess.thecvf.com/content/CVPR2025/html/Li_VEU-Bench_Towards_Comprehensive_Understanding_of_Video_Editing_CVPR_2025_paper.html) 则系统评估视频模型对编辑元素的识别、推理和判断能力。
+
+这些工作研究“哪里适合剪”和“模型能否理解剪辑”，本文研究“Agent 如何持续、精确地修改一个可由人类接管的视频工程”。两者不是替代关系：Edit-as-Code 提供工程操作接口，剪点模型、视频理解模型和审美评价器可以成为其感知与验证模块。论文不能把接口层的成功表述成完整剪辑判断能力。
+
 ## 8. 贡献与创新性评估
 
 建议把贡献写成：
@@ -299,7 +305,9 @@ Remotion、FFmpeg 脚本、Blender 脚本及其他代码生成方案可以用程
 - Agent 与人类使用不同状态副本；
 - 禁止 Agent 在修改后读取结果。
 
-## 10. 研发阶段必须补的数据
+## 10. 研发阶段必须补齐的证据与工程边界
+
+### 10.1 实验数据
 
 > **[待补 E-T1]** 每轮记录 Agent 实际读取了哪些文件、节点与字节，建立“项目总量—读取量—任务规模”关系。
 
@@ -312,6 +320,8 @@ Remotion、FFmpeg 脚本、Blender 脚本及其他代码生成方案可以用程
 > **[待补 E-T5]** 建立截图/关键帧与结构状态配对数据，后续才能研究视觉验证是否真的提升成功率。
 
 > **[待补 E-T6]** 收集人类在 Agent 结果上继续编辑的时间与步骤；“可接管”是本范式的重要价值，不能只测一次性自动完成。
+
+### 10.2 实现与评估边界
 
 > **[待补 EVC-1：多步读取与协同版本]** AI 在 `read` 之后、`edit` 之前，其他协作者可能已经修改目标节点。需要评估是否为读结果和编辑操作增加 revision、precondition 或更明确的冲突诊断，而不是只依赖最终 schema 验证。
 
@@ -331,7 +341,7 @@ Remotion、FFmpeg 脚本、Blender 脚本及其他代码生成方案可以用程
 
 > **[待补 EVC-9：权限与代码安全]** 文件路径不是授权边界。工具执行仍需验证项目权限、读写能力和客户端执行租约。特别是 `.mg` 属于可执行代码，可信项目与公共第三方资源必须使用不同安全模型。
 
-## 11. 中文技术文章母稿
+## 11. 技术文章与独立短稿
 
 完整技术文章见 [《Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图》](./article-edit-video-as-code.md)。该文面向技术同学，不是公众传播稿。下面保留论文内可独立阅读的短稿。
 
@@ -367,3 +377,6 @@ AI 写代码时拥有一个非常好的工作台。它可以搜索仓库、打�
 4. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
 5. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
 6. REST-Edit 本项目论文母稿，见 `02-rest-edit.md`。
+7. Y. Huang et al., [Learning Where to Cut from Edited Videos](https://openaccess.thecvf.com/content/ICCV2021W/CVEU/html/Huang_Learning_Where_To_Cut_From_Edited_Videos_ICCVW_2021_paper.html), ICCV Workshops 2021.
+8. A. Pardo et al., [Learning to Cut by Watching Movies](https://openaccess.thecvf.com/content/ICCV2021/html/Pardo_Learning_To_Cut_by_Watching_Movies_ICCV_2021_paper.html), ICCV 2021.
+9. B. Li et al., [VEU-Bench: Towards Comprehensive Understanding of Video Editing](https://openaccess.thecvf.com/content/CVPR2025/html/Li_VEU-Bench_Towards_Comprehensive_Understanding_of_Video_Editing_CVPR_2025_paper.html), CVPR 2025.

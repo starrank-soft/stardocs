@@ -1,6 +1,6 @@
 # Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图
 
-> 面向技术同学的中文技术文章完整稿
+> 面向视频、AI Agent 与创作工具工程师的中文技术文章
 >
 > 核心命题：不是让 AI 模拟人类点击剪辑软件，也不是让 AI 重写整个工程，而是把已经建模的视频运行态映射成一套 AI 可以像代码仓库一样发现、读取、定位、局部修改和验证的虚拟文件视图。
 
@@ -41,14 +41,14 @@ Edit Video as Code 的目标不同：
 
 ### 2. 虚拟文件视图不是把数据库复制到临时目录
 
-我们不会把 Y.Doc、数据库和对象存储复制成一棵临时文件树，再建立一套双向同步逻辑。
+我们不会把协同状态、项目数据库和对象存储复制成一棵临时文件树，再建立一套双向同步逻辑。
 
 虚拟文件视图是一层**实时投影**：
 
-- `glob` 时，从当前 Project、Document 和 Artifact 状态计算文件列表；
+- `glob` 时，从当前项目、文档和素材资源计算文件列表；
 - `read` 时，从当前权威模型生成对应的文件内容；
 - `edit` 时，把文件式操作反向解析成领域操作；
-- 写入仍落到原来的 Y.Doc、Artifact 或项目元数据模型。
+- 写入仍落到原来的权威项目模型、素材资源或项目元数据。
 
 文件视图本身不拥有第二份状态。
 
@@ -108,7 +108,7 @@ compositions/
 
 ### `assets/*`：项目资源
 
-图片、视频、音频和文档是二进制 Artifact；SVG 和 MG 则是可编辑文本 Artifact。
+图片、视频、音频和文档是二进制素材资源（Artifact）；SVG 和 MG 则是可编辑文本资源。
 
 AI 通过路径引用资源：
 
@@ -116,7 +116,7 @@ AI 通过路径引用资源：
 assets/product-demo.mp4
 ```
 
-路径负责可发现和可读，内部 Artifact ID 负责稳定身份，内容哈希负责版本和缓存。AI 不需要知道数据库记录、OSS key 或 CDN 存储细节。
+路径负责可发现和可读，内部资源 ID 负责稳定身份，内容哈希负责版本和缓存。AI 不需要知道数据库记录、对象存储 key 或 CDN 存储细节。
 
 ### `compositions/*.vml`：视频时间线
 
@@ -145,7 +145,7 @@ Composition 使用 VML，也就是面向视频编辑领域的 XML-based DSL：
 </Composition>
 ```
 
-AI 看到的是 Composition、Track、Clip 和 Effect，而不是 Y.Map、数据库字段、React component 或解码器对象。
+AI 看到的是 Composition、Track、Clip 和 Effect，而不是协同存储容器、数据库字段、界面组件或解码器对象。
 
 所有时间使用微秒，是为了避免浮点秒数在编辑、序列化和帧边界计算中产生不必要歧义。
 
@@ -184,45 +184,39 @@ compositions/main.vml#clip_product
 - AI 可以先像浏览仓库一样发现文件；
 - 找到目标以后，可以像使用符号引用一样精确操作节点。
 
-## 四、底层不是文件树，而是适合运行态和协同的节点模型
+## 四、权威状态不是文件树，而是具有稳定身份的节点图
 
-虚拟视图之所以叫“映射”，是因为底层数据并不按照展示出来的 XML 嵌套存储。
-
-当前项目的结构化状态保存在一张扁平的 `Y.Map("nodes")` 中。每个节点具有：
+虚拟视图之所以叫“映射”，是因为底层权威状态并不按照展示出来的 XML 文件树存储。抽象上，它是一张结构化节点图；每个节点保存：
 
 ```text
-id          稳定身份
-nodeType    领域类型
-properties  领域属性
-owner       { id, prop }，原子化父级归属
-order       同一 Members 字段内的 fractional order
+稳定 ID      节点在移动和重排后仍保持同一身份
+领域类型     Composition、Track、Clip、Effect 等
+领域属性     时间、素材引用、变换、样式等
+父级归属     节点属于哪个父节点的哪个成员字段
+相对顺序     节点在同一成员集合中的位置
 ```
 
-Children 列表由 `owner` 和 `order` 计算，而不是在父节点里保存一份可冲突的嵌套数组。
-
-这种模型主要服务三个要求：
+子节点列表由父级归属和相对顺序计算，而不是把整棵嵌套数组作为一个整体反复覆盖。这种模型同时服务三个要求：
 
 1. **运行态稳定身份**：移动节点不需要删除再创建；
-2. **协同编辑**：父级归属是一个原子值，排序使用 fractional indexing；
-3. **统一领域验证**：父节点 schema 决定可以接受哪些子节点和属性。
+2. **协同编辑**：一次局部修改只触及对应节点的属性、归属或顺序；
+3. **统一领域验证**：父节点的领域模式决定可以接受哪些子节点和属性。
 
-读取 VML 时，Document projection 沿 `owner` 关系恢复树形结构，把内部属性转换为公共 VML 属性，并把内部 Artifact ID 转换成 AI 可以理解的项目路径。
+读取 VML 时，正向投影把节点图恢复为树形结构，将内部属性转换为公共 VML 属性，并把内部资源引用转换成 AI 可以理解的项目路径。写入时，反向投影把标签、属性、父节点和相对位置解析为领域操作，验证后修改同一份权威节点图。
 
-写入 VML 时，系统执行反向投影：公共 tag、attribute、父节点和 sibling 被解析为 canonical Node 操作，再写入同一张 Y.Doc 节点表。
+在 StarCut 当前实现中，这张协同节点图由 Yjs 的 Y.Doc 承载，并使用扁平节点集合、原子父级归属和分数排序。它是运行时实现选择，不是 Edit Video as Code 要求 Agent 理解的接口。
 
 ```mermaid
 flowchart LR
-    AI["AI Coding Agent"] --> Tools["glob / grep / read / head / write / edit"]
-    Tools --> View["Virtual Project File View"]
-    View --> VML["VML / Markdown / Artifact projection"]
-    VML --> Domain["Schema and reference validation"]
-    Domain --> YDoc["Y.Doc flat node store"]
-    Domain --> Artifact["Artifact catalog and immutable content"]
-    YDoc --> Editor["Timeline / Preview / Properties"]
-    Artifact --> Editor
+    AI["Coding Agent"] --> Files["虚拟文件接口"]
+    Files --> Protocol["状态 DSL 与编辑协议"]
+    Protocol --> Validation["领域模式与引用验证"]
+    Validation --> Model["权威项目模型"]
+    Model --> Editor["时间线 / 预览 / 属性面板"]
+    Model --> Files
 ```
 
-图里的箭头不是一条数据复制流水线。Virtual View、Timeline UI 和 Preview 都是同一权威状态的不同投影。
+图里的往返关系不表示复制数据。虚拟文件视图和人类编辑界面只是同一权威状态面向不同使用者的投影。
 
 ## 五、DSL 设计：让 AI 看到领域，而不是存储结构
 
@@ -237,7 +231,7 @@ flowchart LR
 - 大模型对 XML/HTML 结构已经非常熟悉；
 - 完整元素具有清晰的流式完成边界。
 
-但 VML 不是为了映射任意 XML。每个 tag、attribute 和父子关系都来自领域 schema。
+但 VML 不是为了映射任意 XML。每个标签、属性和父子关系都来自领域模式（schema）。
 
 例如：
 
@@ -248,7 +242,7 @@ flowchart LR
 - 同一轨道中的 Clip 不能违反时间线规则；
 - 未注册的 Effect tag 或属性会被拒绝。
 
-DSL 提供的是一个公开、稳定、可验证的领域表面，而不是内部 TypeScript object 的文本 dump。
+DSL 提供的是一个公开、稳定、可验证的领域表面，而不是内部运行时对象的文本转储。
 
 ### 2. 读取时显示 ID，创建时不允许模型生成 ID
 
@@ -268,20 +262,29 @@ DSL 提供的是一个公开、稳定、可验证的领域表面，而不是内�
 
 ID 由系统生成并在结果中返回。这样可以避免模型猜测、复用或制造重复 ID。
 
-### 3. DSL 负责表达，schema 负责判定
+### 3. DSL 负责表达，领域模式负责判定
 
 不能因为模型输出了看起来合理的 XML 就直接写入运行态。每个操作必须经过：
 
 ```text
-public VML syntax
-  -> public tag/attribute resolution
-  -> canonical node schema
-  -> parent/child validation
-  -> reference validation
-  -> Y.Doc mutation
+公共 VML 语法
+  -> 标签与属性解析
+  -> 领域节点模式
+  -> 父子关系验证
+  -> 素材引用验证
+  -> 权威项目模型修改
 ```
 
-这相当于 AI Coding 中的 parser、type checker 和 compiler boundary。
+这相当于 AI Coding 中解析器、类型检查器与编译边界的组合。
+
+### 4. 状态 DSL 与编辑协议是两层设计
+
+这里需要明确区分两个经常被混在一起的概念：
+
+- **VML 是状态 DSL**：它回答“这个视频工程现在是什么样”；
+- **RESTful-like Edit Ops 是编辑协议**：它回答“要对现有状态做什么修改”。
+
+创建节点时，编辑协议可以复用一段 VML 作为新子树的载荷，但这不意味着两者是同一种语言。前者负责可读的领域表示，后者负责可定位、可执行的状态变化。分开以后，读取格式可以保持完整和稳定，修改格式则可以保持局部和轻量。
 
 ## 六、为什么结构化时间线不能只用 Search/Replace
 
@@ -308,11 +311,13 @@ public VML syntax
 - 创建一个新节点；
 - 还是替换整份文档。
 
-Search/Replace 没有表达这些语义。
+Search/Replace 本身没有表达这些语义。
+
+这并不表示字符串替换在理论上无法实现结构编辑。系统可以解析替换前后的 VML、匹配节点身份、计算结构差异，再执行领域验证。但做到这一步，实际上已经重新实现了一层语义编辑器。让 Agent 直接表达目标节点和操作意图，边界会更清楚。
 
 ### 2. 重写文本会破坏稳定身份
 
-如果把替换后的 VML 当成完整新文档重新导入，最简单的实现是保留根 ID、重建所有 descendants。
+如果把替换后的 VML 当成完整新文档重新导入，最直接的实现是保留根 ID、重建所有后代节点。
 
 这会让一次“修改 opacity”变成：
 
@@ -332,7 +337,7 @@ Search/Replace 没有表达这些语义。
 
 ### 4. Search/Replace 的匹配对象不稳定
 
-虚拟 VML 可能因为 canonical formatting、属性顺序、引用路径投影或其他协同修改而变化。模型必须先持有一段完全一致的旧字符串，替换才可能成功。
+虚拟 VML 可能因为规范化格式、属性顺序、引用路径投影或其他协同修改而变化。模型必须先持有一段完全一致的旧字符串，替换才可能成功。
 
 这对于真正的文本源是合理的乐观并发条件，但对于结构化运行态，它把语义修改错误地绑定到了序列化格式。
 
@@ -369,7 +374,7 @@ Summer Launch
 
 ## 七、RESTful-like Ops：像修改资源一样修改视频节点
 
-为了让 AI 能够局部编辑 VML，我们使用四类短操作。它们借用了 REST 的资源操作直觉，但不是 HTTP REST，也不是 JSON Patch。
+为了让 AI 能够局部编辑 VML，我们使用四类短操作。`RESTful-like` 描述的是“以资源为中心、用短动词表达意图”的设计直觉，并不声称这套协议符合 HTTP REST，也不表示它是 JSON Patch 的变体。
 
 ### PATCH：修改属性或节点文本
 
@@ -380,7 +385,7 @@ duration="4000000"
 opacity="0.8"
 ```
 
-目标是稳定节点 ID，每个属性行都能独立解析和验证。
+目标是稳定节点 ID，属性行提供清楚的增量解析边界。
 
 ### POST：在目标父节点下创建子树
 
@@ -412,7 +417,7 @@ PUT 保留节点身份，只改变它的语义位置。
 DELETE #effect_vignette
 ```
 
-删除仍需经过引用、必需结构和父节点模式验证。
+删除仍需经过引用、必需结构和父节点领域模式验证。
 
 ### 为什么没有长路径
 
@@ -432,15 +437,15 @@ DELETE #effect_vignette
 
 ## 八、为什么这套协议适合模型流式输出
 
-大模型从左到右生成 token。如果必须等待一个深层 JSON 对象全部闭合，编辑器只能在工具参数完整以后开始工作。
+大模型从左到右生成 token。如果一种编辑格式只有在整个深层对象闭合后才具备意义，编辑器就只能等工具参数全部生成完再开始工作。
 
-RESTful-like Ops 的局部完成边界更清楚：
+RESTful-like Ops 的优势，是语法中存在连续、可识别的语义完成边界：
 
 - 完整的 `PATCH #id` 行确定目标；
 - 完整的属性行确定一次属性写；
-- 完整的 `DELETE #id` 行确定删除；
-- PUT block 结束确定移动；
-- POST 中 XML 开始标签闭合后，节点类型和属性已经明确。
+- 完整的 `DELETE #id` 操作确定删除；
+- 完整的 `PUT` 操作确定移动；
+- `POST` 中一个完整节点或子树闭合后，创建语义成立。
 
 工具的外层仍然是标准结构：
 
@@ -451,97 +456,49 @@ RESTful-like Ops 的局部完成边界更清楚：
 }
 ```
 
-`path` 必须先输出。客户端一旦得到路径，就创建正确的文件处理器；`changes` 中连续到达的字符串片段被送入同一个 `IFileCall.feed`。
+外层参数先给出文件路径，系统随后对 `changes` 的连续输入前缀做渐进解析。只有已经形成完整语义的操作才会执行；如果实时传输出现缺口，解析器会停止消费后续片段，避免在缺失上下文的情况下继续写入。
 
-实时通道可能断线或丢失中间 delta，因此每个片段携带原始输入 offset。客户端只消费连续前缀：
+最终完整输入到达时，它承担的是**补齐缺失后缀并闭合解析器**的作用，而不是从头重放整次调用。已经执行的连续前缀不会重复执行。
 
-```text
-delta.offset == expectedOffset  -> feed
-delta.offset != expectedOffset  -> stop live tail
-```
-
-最终提交输入到达后，同一个 `IFileCall.apply` 只补齐未消费的后缀并完成 parser。它不是把完整工具调用重新执行一遍。
-
-于是低延迟和权威提交形成同一条写路径：
+于是低延迟执行和最终输入闭合共享同一条写路径：
 
 ```text
-live contiguous prefix ─┐
-                        ├─> one IFileCall -> schema projection -> Y.Doc
-committed missing suffix ┘
+连续且语义完整的前缀 ─> 渐进解析与执行
+最终完整输入         ─> 补齐缺失后缀并完成解析
 ```
+
+这里必须避免一个过度承诺：**最终完整输入不是数据库意义上的原子提交点。** 前面的合法操作可能已经进入项目；后面的操作如果验证失败，不应被描述为自动回滚整次编辑。编辑器可以把一次 Agent 调用组织成一个便于撤销的用户动作，但传输取消、解析失败和事务回滚仍然是三个不同概念。
 
 ## 九、AI 使用的基本工具
 
-Edit Video as Code 刻意把基础工具收敛到 Coding Agent 熟悉的几类。
+Edit Video as Code 刻意把基础入口收敛到 Coding Agent 熟悉的几类，但“工具名像文件工具”不意味着底层按普通磁盘文件执行。
 
-### `glob`：发现项目文件
+| 工具 | 作用 | 关键边界 |
+|---|---|---|
+| `glob` | 按模式发现 Composition、文档和素材路径 | 返回真实存在的项目资源，Agent 不应猜路径 |
+| `grep` | 查找文本、标签、属性和素材引用 | 结构化结果同时返回文件路径与节点 ID |
+| `read` | 读取文件或 `path#id` 指向的 VML 子树 | 局部任务不必读取整条时间线 |
+| `head` | 读取素材类型、时长、尺寸、哈希和状态 | 语义接近 HTTP `HEAD`，不是读取文本文件的前几行 |
+| `write` | 从零创建完整 Composition 或文本资源 | 已有 VML 的完整覆盖会扩大写入范围，不是局部编辑的默认方式 |
+| `edit` | 修改已有文件 | VML 使用语义操作，真实文本源使用精确文本替换 |
 
-```text
-glob("compositions/**/*.vml")
-glob("assets/*.{mp4,mov,webm}")
-glob("docs/**/*.md")
-```
-
-它返回当前项目真实存在的路径和类型。AI 不应该猜测素材路径。
-
-### `grep`：查找内容、标签、属性或引用
-
-```text
-grep(
-  pattern="assets/product-demo.mp4",
-  path="compositions/**/*.vml"
-)
-```
-
-VML 搜索结果返回匹配文件和 Node ID；Markdown 返回文件和文本位置。对于已知目标，grep 的结果可能已经足够，不必机械地读取整个文件。
-
-当前 SVG/MG Artifact 源不参与全项目 grep；已知路径后使用 `read`。这是实现边界，不应在文章中暗示所有 Artifact 已建立全文索引。
-
-### `read`：读取文件或一个 VML 子树
+例如，Agent 可以读取完整 Composition，也可以只读取一个节点子树：
 
 ```text
 read("compositions/main.vml")
 read("compositions/main.vml#clip_product")
-read("docs/script.md")
-read("assets/lower-third.mg")
-```
-
-锚定读取非常关键。复杂项目可能包含数千个节点，AI 为修改一个 Clip 不需要读取整条时间线。
-
-### `head`：只读取元数据
-
-```text
 head("assets/product-demo.mp4")
 ```
 
-它可以返回素材类型、状态、时长、尺寸、hash、来源和生成任务信息，而不把二进制内容塞进模型上下文。
-
-对于 Coding Agent 来说，这类似先查看文件 metadata，而不是打开完整大文件。
-
-### `write`：创建完整文件
-
-```text
-write(
-  path="compositions/intro.vml",
-  content="<Composition ...>...</Composition>"
-)
-```
-
-`write` 适合从零创建 Composition、Markdown、SVG 或 MG。对于已经存在的 VML，除非用户明确要求完整替换，否则应使用 `edit`。
-
-完整替换虽然可以保留文件路径和根 ID，但会重建 descendants，因此它不是普通局部编辑的默认方式。
-
-### `edit`：局部修改已有文件
-
-同一个工具根据文件类型选择正确语义：
+`edit` 是统一的文件式入口，但不同文件类型拥有不同写入语义：
 
 - VML 使用 `PATCH`、`POST`、`PUT`、`DELETE`；
 - Markdown、SVG、MG 使用精确 Search/Replace；
-- TextClip/CaptionClip 在 `PATCH #id` 内修改其 Text Data。
+- TextClip 和 CaptionClip 可以在明确的节点边界内修改文本数据。
 
-这使模型只需要理解稳定的“文件编辑”入口，领域 handler 再决定如何安全执行。
+当前实现也有明确边界：SVG 和 MG 源文件在已知路径后可以读取，但尚未被描述为拥有完整的全项目全文索引。
 
-### `update_project`：更新系统拥有的项目元数据
+`update_project` 则不是通用文件工具，而是系统管理资源的专用写入口：
 
 ```json
 {
@@ -550,7 +507,7 @@ write(
 }
 ```
 
-它没有被强行塞进 VML 或全文 JSON 替换，因为项目元数据拥有不同的系统约束。
+它没有被强行塞进 VML 或全文 JSON 替换，因为项目元数据拥有不同的系统约束。这里追求的不是“所有东西必须共用一个工具”，而是让同类编辑收敛到稳定接口，同时保留必要的领域边界。
 
 ## 十、一次完整的 AI 剪辑过程
 
@@ -613,7 +570,7 @@ before: #clip_outro
            duration="2000000" />
 ```
 
-解析器按顺序执行操作。每次写入都经过 Track/Clip schema 和素材引用验证，最终结果进入同一个 Y.Doc，也立即反映到人类时间线界面。
+解析器按顺序执行操作。每次写入都经过 Track/Clip 领域模式和素材引用验证，最终结果进入同一份权威项目模型，也立即反映到人类时间线界面。
 
 ### 第六步：按需要验证
 
@@ -628,54 +585,50 @@ before: #clip_outro
 ```mermaid
 sequenceDiagram
     participant A as AI Agent
-    participant T as File-like Tools
-    participant H as Editor Tool Host
-    participant P as Projection and Schema
-    participant Y as Y.Doc
-    participant U as Human Editor UI
+    participant F as Virtual File Interface
+    participant P as Projection and Edit Protocol
+    participant M as Authoritative Project Model
+    participant U as Human Editor
 
-    A->>T: edit(path, changes)
-    T->>H: assign one client tool call
-    H->>P: DocumentEditing / StructuredEditing
-    P->>P: resolve tag, attribute, owner, order, reference
-    P->>Y: canonical transaction
-    Y-->>U: observe and update timeline/preview
-    Y-->>T: mutation result
-    T-->>A: success / nodeId / diagnostic
+    A->>F: edit(path, changes)
+    F->>P: route by resource type
+    P->>M: validate and apply semantic operations
+    M-->>U: update timeline, preview and properties
+    M-->>F: return result, node ID or diagnostic
+    F-->>A: structured tool result
 ```
 
 这里有几个关键点。
 
-### 1. Agent tools 不直接维护项目副本
+### 1. Agent 工具不直接维护项目副本
 
-`glob`、`grep`、`read` 和 `head` 都从当前 ProjectState 与 Artifact catalog 读取。`edit` 和 `write` 被路由到当前连接 Editor 的文件 handler。
+`glob`、`grep`、`read` 和 `head` 都从当前权威状态生成结果；`edit` 和 `write` 通过当前项目的编辑入口写回。工具层不缓存一份等待事后合并的“AI 工程”。
 
-### 2. 文件类型共享入口，拥有不同 handler
+### 2. 文件类型共享入口，但不共享错误的写入语义
 
 ```text
-.vml  -> StructuredEditing
-.md   -> DocumentEditing text path
-.svg  -> Artifact text editing
-.mg   -> Artifact text editing
+.vml        -> 结构化节点操作
+.md         -> 文本编辑
+.svg / .mg  -> 可编辑素材源
 ```
 
-同名 `edit` 工具不意味着所有文件共享同一种错误的字符串写法，而是共享文件式交互概念，具体语义由文件类型负责。
+同名 `edit` 工具只统一 Agent 的交互入口，具体执行语义仍由资源类型决定。
 
-### 3. VML 读写由同一 schema 驱动
+### 3. VML 的正向和反向投影由同一领域模式驱动
 
-读路径把 canonical Node 转换为 public VML；写路径把 public VML 操作转换回 canonical Node。tag、attribute、reference 和 child placement 不应在解析、验证和 UI 中各自维护一份定义。
+读路径把领域节点转换为公共 VML；写路径把 VML 编辑操作转换回领域节点修改。标签、属性、引用和子节点位置不应在解析、验证与界面层各自维护一份定义。
 
-### 4. Y.Doc 仍然是协同权威状态
+### 4. 协同模型仍然是权威状态
 
-AI 修改通过 Y.Doc 后，人类界面依靠原有 observe → model projection → reactive view 数据流更新。AI 不需要发送额外的“请刷新 UI”消息，UI 也不需要在 Agent 完成后重读一份旁路 JSON。
+AI 修改进入权威模型后，人类界面沿原有的状态观察与视图投影链路更新。AI 不需要发送额外的“请刷新界面”消息，界面也不需要在 Agent 完成后重读一份旁路 JSON。
 
-### 5. Artifact 不被硬塞进 Y.Doc
+### 5. 大型媒体与结构状态各自保持合理的权威边界
 
-大二进制媒体和可编辑图形内容由 Artifact 系统管理；ProjectState 把它们的路径与元数据合并进虚拟文件视图。Composition 只保存稳定引用。
+大二进制媒体和可编辑图形内容由素材资源系统管理；Composition 只保存稳定引用。虚拟文件视图把两者组织到同一项目空间，但不会为了目录形式而把媒体内容硬塞进协同节点图。
 
 这让协同结构状态与媒体存储各自在合理层级保持权威，又能为 AI 呈现一棵统一项目树。
 
-## 十二、它为什么比“大量视频工具”更容易扩展
+## 十二、为什么不把每个剪辑动作都做成一个工具
 
 如果每个领域动作都是顶层工具，加入一种新 Clip 或 Effect 时，通常还要增加新的创建、修改、查询工具和参数描述。
 
@@ -693,12 +646,12 @@ add_vignette_effect
 ...
 ```
 
-这条路线并非错误。专用工具具有清晰 schema，适合生成、转写、播放控制和外部服务等边界明确的能力。
+这条路线并非错误。专用工具具有明确的参数模式，适合生成、转写、播放控制和外部服务等边界清楚的能力。
 
 但对于已经进入项目模型的结构编辑，更收敛的方式是：
 
 - 顶层工具保持为文件发现、读取和编辑；
-- 新的节点类型和属性由 DSL schema 扩展；
+- 新的节点类型和属性由 DSL 的领域模式扩展；
 - `edit` 的公共操作保持稳定；
 - AI 通过技能或领域规范学习新 tag 和 attribute。
 
@@ -720,7 +673,7 @@ add_vignette_effect
 
 ### 4. 让 AI 复用 Coding Agent 已经形成的能力
 
-文件树、glob、grep、read、patch、schema error 和验证闭环，都是模型已经高度熟悉的交互结构。
+文件树、glob、grep、read、patch、领域校验错误和验证闭环，都是模型已经高度熟悉的交互结构。
 
 [SWE-agent](https://arxiv.org/abs/2405.15793) 的研究已经表明，Agent-Computer Interface 的设计会显著影响模型完成软件工程任务的能力。Edit Video as Code 把同一问题带到具有连续时间、媒体引用、视觉验收和协同状态的视频编辑领域。
 
@@ -728,73 +681,55 @@ add_vignette_effect
 
 AI 没有产出一个封闭的最终视频，而是在专业编辑工程中留下可见、可撤销、可继续修改的结构变化。
 
-## 十四、这套方法仍然缺什么
+## 十四、AI Cut 与 Human Cut：接口解决“怎么改”，还没有解决“为什么这样剪”
 
-虚拟文件视图已经解决“AI 怎样理解和修改工程”的主要接口问题，但它不是终点。
+这里必须正视这套方法的能力边界：**可编辑不等于会剪辑。**
 
-### 【研发关注 EVC-1】多步读取与协同版本
+Edit Video as Code 让 AI 能够准确找到一个 Clip，把入点移动 12 帧，或者把一组镜头按计划排到时间线上。它解决的是动作接口和工程状态问题。但“为什么应该在这一帧切”“这个镜头再多留半秒是否更有力量”，并不会因为操作变得精确而自然得到答案。
 
-AI 在 `read` 之后、`edit` 之前，其他协作者可能已经修改目标节点。需要评估是否为读结果和编辑操作增加 revision、precondition 或更明确的冲突诊断，而不是只依赖最终 schema 验证。
+当前 AI Cut 与有经验的 Human Cut，主要差在对连续时间的观察和判断方式：
 
-### 【研发关注 EVC-2】大工程中的搜索索引
+| 维度 | 当前 AI Cut 更擅长的方式 | Human Cut 的典型判断 |
+|---|---|---|
+| 工程理解 | 读取时间码、字幕、标签、素材元数据和结构关系 | 同时理解工程结构、画面内容与创作意图 |
+| 剪点选择 | 根据语义边界、规则、镜头检测结果或离散采样帧选点 | 感知动作的预备、发生与收势，在连续运动相位中选点 |
+| 节奏控制 | 依据时长、语速、节拍点和模板调整 | 判断停顿、呼吸、期待、释放以及段落之间的能量变化 |
+| 连贯性 | 检查素材引用、时间关系和显式约束 | 同时判断视线、构图、运动方向、声音和有意或无意的跳跃 |
+| 结果评价 | 判断是否完成指令、结构是否合法 | 判断一个合法版本是否自然、准确、有力，是否服务整段叙事 |
+| 迭代方式 | 修改结构后读取状态，按需查看少量画面 | 反复播放、拖动、逐帧比较，在上下文中微调几个帧 |
 
-当前 `grep` 可以遍历虚拟文档并搜索生成后的内容。工程增长后，需要测量完整投影和扫描成本，并决定是否建立由 Node change 驱动的增量语义索引。
+这里所说的“感受”不是不可研究的直觉。人类剪辑师是在高带宽地综合连续画面和声音：主体速度与加速度、镜头运动、姿态和视线变化、语音重音与停顿、音乐节拍与瞬态，以及前后镜头建立的预期。经验把这些信号压缩成了快速判断，所以剪辑师常常先“觉得不对”，再把原因解释出来。
 
-### 【研发关注 EVC-3】大 VML 的局部读取与分页
+已有研究也说明，剪点并非完全没有统计规律。[Learning Where to Cut from Edited Videos](https://openaccess.thecvf.com/content/ICCV2021W/CVEU/html/Huang_Learning_Where_To_Cut_From_Edited_Videos_ICCVW_2021_paper.html) 通过用户研究验证了人们对部分好坏剪点存在共识，并学习未剪素材中的合适剪切区域；[Learning to Cut by Watching Movies](https://openaccess.thecvf.com/content/ICCV2021/html/Pardo_Learning_To_Cut_by_Watching_Movies_ICCV_2021_paper.html) 则从专业成片中学习跨镜头的视听模式，对剪点合理性进行排序。[VEU-Bench](https://openaccess.thecvf.com/content/CVPR2025/html/Li_VEU-Bench_Towards_Comprehensive_Understanding_of_Video_Editing_CVPR_2025_paper.html) 进一步把视频编辑理解拆成识别、推理和判断任务，并显示当前视频语言模型在这些任务上仍面临明显困难。这些工作表明“剪在哪里”可以学习，但也揭示了它不同于结构合法性检查：它需要连续视听证据、候选比较和人的偏好评价。
 
-`path#id` 已能读取子树，但仍需记录真实项目中的子树 token 分布。超大 Track、字幕或批量片段可能需要范围读取、摘要或分页协议。
+因此，这篇文章不能把结构编辑协议的价值夸大成完整的剪辑智能。更准确的分层是：
 
-### 【研发关注 EVC-4】编辑诊断
+1. **工程接口**解决状态如何被发现、寻址和修改；
+2. **感知接口**解决 Agent 如何按需观看、聆听和比较连续时间片段；
+3. **剪辑判断**解决多个合法方案中，哪一个更符合运动、节奏、情绪和叙事目标。
 
-错误需要包含文件、操作、目标 ID、字段、schema 原因和可修复建议。只返回“invalid document”无法支持 Agent 自我修正。
+Edit Video as Code 主要完成第一层，并为后两层提供可执行的工程基础。下一步突破，不是继续增加更多 `set_xxx` 工具，而是建立感知—编辑—评价闭环：
 
-### 【研发关注 EVC-5】虚拟视图的一致性测试
-
-需要建立 round-trip/property tests：
-
-```text
-canonical model
-  -> VML projection
-  -> semantic operation
-  -> canonical model
+```mermaid
+flowchart LR
+    Observe["按需播放、seek、scrub 与局部取样"] --> Represent["时间对齐的运动、声音、语义表征"]
+    Represent --> Propose["生成多个候选剪点与时间线版本"]
+    Propose --> Judge["局部 A/B 播放、多模态评价与人的偏好"]
+    Judge --> Edit["通过语义协议写回权威工程"]
+    Edit --> Observe
 ```
 
-并覆盖节点移动、重命名、引用、协同合并、文本 CDATA、VFR 时间和各种 Effect placement。
+这个闭环至少需要四类能力。
 
-### 【研发关注 EVC-6】AI 操作 trace
+第一，Agent 需要**主动观察**，而不是一次性吞下整条视频。它应当能围绕候选剪点快速播放前后窗口、逐帧拖动、比较两个版本，并在发现问题后扩大观察范围。浏览器端的播放、seek、scrub 调度和缩略图获取因此不只是性能优化，也是在建设 AI 的时间感知接口；这与[班车式解码和 GOP Flight 调度](./01-gop-shuttle.md)是同一条技术路线的上下两层。
 
-必须保存：
+第二，系统需要**时间对齐的感知表征**。镜头边界、光流、主体轨迹、相机运动、姿态、视线、显著区域、语音韵律、音乐节拍和声音事件，都可以成为观察证据。但这些特征不能被简单堆成一份巨大的 Prompt；它们应当按任务、时间窗口和不确定性被检索。
 
-- 用户原始任务；
-- `glob/grep/read/head` 的调用与返回规模；
-- 模型输出的完整 edit script；
-- 首个有效流式操作时间；
-- 修改节点数和无关节点数；
-- schema 错误与重试；
-- 人类 Undo 或后续修正。
+第三，评价方式需要从“是否完成指令”推进到**候选排序与偏好判断**。一个剪点很少只有合法或非法两种状态。系统应生成附近多个候选，播放局部结果，再根据连贯性、动作相位、节奏和用户意图排序。视觉语言模型或专用剪辑评价器可以提供意见，但不应被包装成绝对审美分数。
 
-没有这些数据，就无法证明虚拟文件视图比 GUI、完整重写或多工具方案更有效。
+第四，需要学习真正的**编辑过程数据**。只有最终成片，通常看不到剪辑师舍弃了哪些素材、在哪些位置来回 scrub、比较过哪些版本，以及为什么把剪点向前或向后移动几帧。若能在获得授权和保护隐私的前提下记录“源素材—候选操作—局部预览—最终选择—后续修正”，就能把人的判断过程变成更有价值的训练与评测信号。
 
-### 【研发关注 EVC-7】对照实验
-
-至少比较：
-
-1. 完整 VML/JSON 重写；
-2. 全文 Search/Replace；
-3. 一个动作一个工具；
-4. 虚拟文件视图 + 非流式 RESTful-like edit；
-5. 虚拟文件视图 + 流式 edit；
-6. GUI 多模态 Agent。
-
-指标包括任务成功率、工具步数、输入/输出 token、首个有效修改延迟、无关写入、失败恢复和人工接管成本。
-
-### 【研发关注 EVC-8】Artifact 文本编辑并发
-
-`.svg` 和 `.mg` 是不可变内容哈希之上的可编辑源。需要明确基于旧 hash 编辑时的冲突语义，避免两个并发编辑互相覆盖 Artifact 当前 revision。
-
-### 【研发关注 EVC-9】权限与代码安全
-
-文件路径不是授权边界。工具执行仍需验证项目权限、读写能力和客户端执行租约。特别是 `.mg` 属于可执行代码，可信项目与公共第三方资源必须使用不同安全模型。
+所以 AI Cut 的下一步，不只是“把时间线排得更完整”，而是让 Agent 获得一种可选择地观看连续时间、形成候选、感受差异并用结果修正自己的能力。DSL 和编辑协议提供手，播放与 scrub 调度提供眼睛和耳朵，剪辑评价与人类反馈才逐步形成判断。
 
 ## 结语：不是把视频变成代码，而是给 AI 一套像代码一样可工作的界面
 
@@ -810,17 +745,20 @@ Edit Video as Code 的关键，是在专业运行态和 Coding Agent 之间建�
   -> 文件式发现和读取
   -> DSL 语义表达
   -> 局部结构操作
-  -> schema 验证
+  -> 领域模式验证
   -> 回到同一视频运行态
 ```
 
-AI 看到的是文件，但文件不是另一份数据；AI 输出的是文本，但执行的不是盲目字符串替换；AI 使用的是 Coding 工作流，但完成的仍然是真正的视频剪辑。
+AI 看到的是文件，但文件不是另一份数据；AI 输出的是文本，但执行的不是盲目字符串替换；AI 使用的是 Coding 工作流，但修改的仍然是真实、可继续编辑的视频工程。
 
-当项目可发现、状态可寻址、修改可局部化、错误可验证、人类可接管时，AI 才不只是“会调用几个剪辑工具”，而是真正获得了像 Coding 一样持续理解和修改视频工程的能力。
+当项目可发现、状态可寻址、修改可局部化、错误可验证、人类可接管时，AI 才不只是“会调用几个剪辑工具”，而是获得了像 Coding 一样持续操作视频工程的工作界面。这解决了剪辑智能的手和工程记忆；眼睛、耳朵与判断力，还需要连续时间感知和评价闭环继续补上。
 
 ## 相关资料
 
 1. J. Yang et al., [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793), 2024.
 2. B. Wang et al., [LAVE: LLM-Powered Agent Assistance and Language Augmentation for Video Editing](https://arxiv.org/abs/2402.10294), IUI 2024.
 3. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
-4. P. Bryan and M. Nottingham, [RFC 6902: JSON Patch](https://www.rfc-editor.org/rfc/rfc6902), 2013. JSON Patch 是相邻的通用结构化编辑标准，不是本文 DSL 的来源或别名。
+4. P. Bryan and M. Nottingham, [RFC 6902: JSON Patch](https://www.rfc-editor.org/rfc/rfc6902), 2013. RFC 6902 是面向通用 JSON 文档的路径式补丁标准。这里列出它是为了界定结构化编辑的问题空间；本文协议以稳定领域节点为目标，语法与执行模型均不同。
+5. Y. Huang et al., [Learning Where to Cut from Edited Videos](https://openaccess.thecvf.com/content/ICCV2021W/CVEU/html/Huang_Learning_Where_To_Cut_From_Edited_Videos_ICCVW_2021_paper.html), ICCV Workshops 2021.
+6. A. Pardo et al., [Learning to Cut by Watching Movies](https://openaccess.thecvf.com/content/ICCV2021/html/Pardo_Learning_To_Cut_by_Watching_Movies_ICCV_2021_paper.html), ICCV 2021.
+7. B. Li et al., [VEU-Bench: Towards Comprehensive Understanding of Video Editing](https://openaccess.thecvf.com/content/CVPR2025/html/Li_VEU-Bench_Towards_Comprehensive_Understanding_of_Video_Editing_CVPR_2025_paper.html), CVPR 2025.

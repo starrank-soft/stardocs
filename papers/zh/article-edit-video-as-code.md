@@ -325,7 +325,9 @@ Summer Launch
 
 ## 七、RESTful-like Ops：像修改资源一样修改视频节点
 
-VML 描述当前状态，RESTful-like Ops 描述针对稳定资源的局部变化。`RESTful-like` 指“以资源为中心、用短动词表达意图”的设计直觉；它既不要求符合 HTTP REST，也不是 JSON Patch 的变体。
+VML 描述当前状态，RESTful-like Ops 描述针对稳定资源的局部变化。`RESTful-like` 指“以资源为中心、用短动词表达意图”的设计直觉，并不要求协议符合 HTTP REST。
+
+[RFC 6902 JSON Patch](https://www.rfc-editor.org/rfc/rfc6902) 是一个有意义的相邻基线：它同样避免全量重写，但以 JSON 文档、JSON Pointer 路径和一组通用操作为抽象。这里的 RESTful-like Ops 以稳定领域资源为目标，用短操作表达视频编辑意图，并为流式解析保留清楚的语义边界。两者都处理局部结构变化，但协议格式、寻址对象和抽象层不同，不存在兼容或派生关系。
 
 ### PATCH：修改属性或节点文本
 
@@ -457,11 +459,13 @@ edit  compositions/main.vml
 
 一次 Agent 修改从文件式请求开始，经过资源类型路由、领域解析和验证，最终进入项目原有的状态更新链路。
 
-![Agent 的文件式修改经过类型路由和领域验证进入权威项目状态，人类编辑器立即观察到同一结果](../assets/edit-video-as-code/shared-project-write-sequence.svg)
+![Agent 写入经验证进入权威项目状态，人类接管后继续编辑，Agent 再次读取最新投影](../assets/edit-video-as-code/shared-project-write-sequence.svg)
 
 *人类看到更新，不是因为系统把一份“AI 工程”同步回来了，而是因为双方始终读写同一份权威状态。*
 
-读取操作从当前项目状态生成视图，写入操作进入项目既有的编辑入口；结构节点、素材资源和项目元数据即使由不同系统承载，也共同组成一份权威项目状态。修改完成后，人类界面沿原有的观察链路更新，后续手工调整继续作用于同一节点和同一工程。协同、事务与撤销由项目状态和执行环境提供，虚拟文件接口只负责把 Agent 的意图准确送入这条链路。
+验证失败时，可定位诊断沿原路径返回，权威状态不发生变化；验证通过后，语义操作在项目原有的事务边界内提交，结构化结果返回 Agent，同时人类界面沿既有观察链路更新。人类随后对同一节点进行的手工调整会直接写回同一状态，Agent 下一次读取时得到的是包含这些调整的最新投影。
+
+结构节点、素材资源和项目元数据即使由不同系统承载，也共同组成一份权威项目状态。协同、事务与撤销由项目状态和执行环境提供，虚拟文件接口只负责把 Agent 的意图准确送入这条链路。
 
 ## 十二、为什么不把每个剪辑动作都做成一个工具
 
@@ -502,6 +506,8 @@ add_vignette_effect
 - 文件发现、搜索、局部编辑、错误反馈和验证闭环可以复用 Coding Agent 已经形成的能力。
 
 [SWE-agent](https://arxiv.org/abs/2405.15793) 的研究已经表明，Agent-Computer Interface 的设计会显著影响模型完成软件工程任务的能力。Edit Video as Code 把同一问题带到具有连续时间、媒体引用、视觉验收和协同状态的视频编辑领域。
+
+视频编辑领域也已有直接相关的工作。[LAVE](https://arxiv.org/abs/2402.10294) 展示了语言增强的编辑界面、Agent 执行动作与人类手工调整可以共存；[AgenticVBench](https://arxiv.org/abs/2605.27705) 则把真实后期制作任务用于评估 Agent，并观察到执行框架会显著影响工具使用和失败方式。这些工作说明“模型能力”不能脱离编辑环境和操作界面单独讨论。Edit Video as Code 进一步聚焦其中的工程接口问题：如何让 Agent 与人类持续操作同一份可编辑项目状态。
 
 ## 十四、AI Cut 与 Human Cut：从“能剪”到节奏、美感和网感
 
@@ -575,7 +581,7 @@ AI 看到的是文件，但文件不是另一份数据；AI 输出的是文本�
 1. J. Yang et al., [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793), 2024.
 2. B. Wang et al., [LAVE: LLM-Powered Agent Assistance and Language Augmentation for Video Editing](https://arxiv.org/abs/2402.10294), IUI 2024.
 3. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
-4. P. Bryan and M. Nottingham, [RFC 6902: JSON Patch](https://www.rfc-editor.org/rfc/rfc6902), 2013.
+4. P. Bryan and M. Nottingham, eds., [RFC 6902: JavaScript Object Notation (JSON) Patch](https://www.rfc-editor.org/rfc/rfc6902), IETF Proposed Standard, 2013.
 5. Y. Huang et al., [Learning Where to Cut from Edited Videos](https://openaccess.thecvf.com/content/ICCV2021W/CVEU/html/Huang_Learning_Where_To_Cut_From_Edited_Videos_ICCVW_2021_paper.html), ICCV Workshops 2021.
 6. A. Pardo et al., [Learning to Cut by Watching Movies](https://openaccess.thecvf.com/content/ICCV2021/html/Pardo_Learning_To_Cut_by_Watching_Movies_ICCV_2021_paper.html), ICCV 2021.
 7. B. Li et al., [VEU-Bench: Towards Comprehensive Understanding of Video Editing](https://openaccess.thecvf.com/content/CVPR2025/html/Li_VEU-Bench_Towards_Comprehensive_Understanding_of_Video_Editing_CVPR_2025_paper.html), CVPR 2025.

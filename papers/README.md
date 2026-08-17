@@ -6,7 +6,7 @@
 - [01 — 班车式解码与 GOP Flight](./zh/01-gop-shuttle.md)
 - [02 — REST-Edit 协议](./zh/02-rest-edit.md)
 - [03 — Edit-as-Code](./zh/03-edit-as-code.md)
-- [Article — 为什么 AI 会写代码，却还不太会剪视频](./zh/article-edit-video-as-code.md)
+- [Article — Edit Video as Code](./zh/article-edit-video-as-code.md)
 - [04 — 单时钟 Motion Graphics](./zh/04-single-clock-motion-graphics.md)
 - [05 — Durable Two-Loop Agent](./zh/05-durable-two-loop-agent.md)
 

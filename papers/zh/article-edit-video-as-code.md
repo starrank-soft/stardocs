@@ -1,4 +1,4 @@
-# Edit Video as Code：通过映射虚拟文件视图让视频剪辑可以被 AI Coding
+# Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图
 
 > 中文技术文章完整稿
 >
@@ -824,4 +824,3 @@ AI 看到的是文件，但文件不是另一份数据；AI 输出的是文本�
 2. B. Wang et al., [LAVE: LLM-Powered Agent Assistance and Language Augmentation for Video Editing](https://arxiv.org/abs/2402.10294), IUI 2024.
 3. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
 4. P. Bryan and M. Nottingham, [RFC 6902: JSON Patch](https://www.rfc-editor.org/rfc/rfc6902), 2013. JSON Patch 是相邻的通用结构化编辑标准，不是本文 DSL 的来源或别名。
-

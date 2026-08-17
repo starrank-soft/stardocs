@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">一个项目，两种工作界面</title>
-  <desc id="desc">Coding Agent 通过虚拟文件接口，人类通过时间线界面，共同操作同一权威项目模型。</desc>
+  <desc id="desc">Coding Agent 通过虚拟文件接口，人类通过时间线界面，共同操作同一权威项目状态。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#091426"/>
@@ -75,7 +75,7 @@
 
   <g filter="url(#shadow)" font-family="Inter, PingFang SC, sans-serif">
     <rect x="510" y="680" width="580" height="150" rx="30" fill="#151b35" stroke="url(#cyan)" stroke-width="3"/>
-    <text x="800" y="730" text-anchor="middle" fill="#f8fafc" font-size="28" font-weight="700">权威项目模型</text>
+    <text x="800" y="730" text-anchor="middle" fill="#f8fafc" font-size="28" font-weight="700">权威项目状态</text>
     <text x="800" y="770" text-anchor="middle" fill="#cbd5e1" font-size="20">稳定节点身份 · 领域约束 · 协同状态 · 素材引用</text>
     <rect x="650" y="792" width="300" height="18" rx="9" fill="url(#cyan)" opacity="0.9"/>
   </g>

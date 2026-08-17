@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">Agent 修改进入同一工程的写入时序</title>
-  <desc id="desc">Agent 发出文件式编辑请求，虚拟文件接口按资源类型路由，编辑协议验证并修改权威项目模型，人类编辑器立即看到同一状态，结构化结果返回 Agent。</desc>
+  <desc id="desc">Agent 发出文件式编辑请求，虚拟文件接口按资源类型路由，编辑协议验证并修改权威项目状态，人类编辑器立即看到同一结果，结构化结果返回 Agent。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071827"/><stop offset="1" stop-color="#17122a"/></linearGradient>
     <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#22d3ee"/><stop offset=".52" stop-color="#8b5cf6"/><stop offset="1" stop-color="#fb7185"/></linearGradient>
@@ -24,7 +24,7 @@
     <text x="500" y="228" text-anchor="middle" fill="#94a3b8" font-size="16">统一工具入口</text>
     <text x="810" y="200" text-anchor="middle" fill="#c4b5fd" font-size="20" font-weight="700">投影与编辑协议</text>
     <text x="810" y="228" text-anchor="middle" fill="#94a3b8" font-size="16">类型路由与领域验证</text>
-    <text x="1120" y="200" text-anchor="middle" fill="#fda4af" font-size="20" font-weight="700">权威项目模型</text>
+    <text x="1120" y="200" text-anchor="middle" fill="#fda4af" font-size="20" font-weight="700">权威项目状态</text>
     <text x="1120" y="228" text-anchor="middle" fill="#94a3b8" font-size="16">唯一业务状态</text>
     <text x="1415" y="212" text-anchor="middle" fill="#fcd34d" font-size="21" font-weight="700">人类编辑器</text>
   </g>
@@ -61,6 +61,6 @@
 
   <g font-family="Inter, PingFang SC, sans-serif">
     <rect x="250" y="790" width="1100" height="70" rx="22" fill="#111827" stroke="#334155"/>
-    <text x="800" y="833" text-anchor="middle" fill="#cbd5e1" font-size="20">人类看到更新，不是因为 Agent 同步了副本；而是因为双方观察同一权威模型。</text>
+    <text x="800" y="833" text-anchor="middle" fill="#cbd5e1" font-size="20">人类看到更新，不是因为 Agent 同步了副本；而是因为双方观察同一项目状态。</text>
   </g>
 </svg>

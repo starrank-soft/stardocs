@@ -21,7 +21,7 @@
 
   <rect width="1600" height="900" fill="url(#bg)"/>
   <text x="800" y="72" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700" font-family="Inter, PingFang SC, sans-serif">VML 是节点图的双向投影</text>
-  <text x="800" y="114" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">文件提供可读结构；稳定身份与领域约束仍属于权威模型</text>
+  <text x="800" y="114" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">文件提供可读结构；稳定身份与领域约束仍属于结构状态</text>
 
   <g filter="url(#shadow)" font-family="Inter, PingFang SC, sans-serif">
     <rect x="80" y="190" width="500" height="500" rx="28" fill="#0c2032" stroke="#38bdf8" stroke-opacity=".7" stroke-width="2"/>

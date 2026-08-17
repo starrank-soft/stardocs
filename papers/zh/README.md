@@ -10,7 +10,7 @@
 |---|---|---|---|
 | 01 | [班车式解码：统一时序需求与 GOP Flight 调度](./01-gop-shuttle.md) | 为什么视频编辑器的解码器应该像班车，而不是像出租车 | 多媒体系统与调度优化 |
 | 02 | [REST-Edit：面向 AI 的轻量级、流式、语义化精确编辑协议](./02-rest-edit.md) | 让 AI 像改代码一样精确剪视频 | 协议与 Agent 接口优化 |
-| 03 | [Edit-as-Code：让 AI 像 Coding Agent 一样完成视频剪辑](./03-edit-as-code.md) | [Edit Video as Code：通过映射虚拟文件视图让视频剪辑可以被 AI Coding](./article-edit-video-as-code.md) | Agent-Computer Interface 与创作系统 |
+| 03 | [Edit-as-Code：让 AI 像 Coding Agent 一样完成视频剪辑](./03-edit-as-code.md) | [为什么 AI 会写代码，却还不太会剪视频](./article-edit-video-as-code.md) | Agent-Computer Interface 与创作系统 |
 | 04 | [单时钟可寻址 Motion Graphics](./04-single-clock-motion-graphics.md) | 让同一份 MG 同时服务实时预览、缩略图和最终导出 | 浏览器图形运行时 |
 | 05 | [双环 Agent：Inbox、WaitPort、Monitor 与 MCP Canvas](./05-durable-two-loop-agent.md) | Agent 为什么只需要两个业务循环 | Agent 运行时与系统设计 |
 

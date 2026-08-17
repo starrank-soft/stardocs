@@ -9,7 +9,7 @@ Git so every meaningful revision has an explicit commit and a reviewable diff.
 ## Contents
 
 - [Paper and article roadmap](./papers/zh/README.md)
-- [Edit Video as Code](./papers/zh/article-edit-video-as-code.md)
+- [为什么 AI 会写代码，却还不太会剪视频](./papers/zh/article-edit-video-as-code.md)
 - [GOP Flight decoding](./papers/zh/01-gop-shuttle.md)
 - [REST-Edit protocol](./papers/zh/02-rest-edit.md)
 - [Edit-as-Code paper draft](./papers/zh/03-edit-as-code.md)

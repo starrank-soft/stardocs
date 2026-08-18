@@ -15,6 +15,7 @@ Git so every meaningful revision has an explicit commit and a reviewable diff.
 - [Edit-as-Code paper draft](./papers/zh/03-edit-as-code.md)
 - [Single-clock Motion Graphics](./papers/zh/04-single-clock-motion-graphics.md)
 - [Durable Two-Loop Agent](./papers/zh/05-durable-two-loop-agent.md)
+- [Video Agent Loop](./papers/zh/article-agent-loop.md)
 
 Earlier English working drafts are retained under [`papers/`](./papers/).
 The Chinese drafts are currently authoritative.
@@ -34,4 +35,3 @@ August 17, 2026. Subsequent changes are recorded directly in this repository.
 Except where otherwise noted, the articles, paper drafts, diagrams, and other
 content in this repository are licensed under the
 [Creative Commons Attribution 4.0 International License](./LICENSE.md).
-

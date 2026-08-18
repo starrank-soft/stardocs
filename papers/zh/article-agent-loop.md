@@ -1,42 +1,103 @@
-# Video Agent Loop：让 AI 在视频剪辑中持续感知与行动
+# Video Agent Loop：StarCut 的硬核实践，DeepSeek Harness 能否满足视频场景？
 
 ![Agent Loop 封面：短暂内循环围绕唯一创作项目工作，持久外循环跨越消息、异步任务、休眠与人的接管](../assets/agent-loop/cover.png)
 
-> 内循环完成当下的推理与工具调用，外循环让 Agent 跨越等待、断线、重启和人的介入继续工作；Monitor 构成观察面，MCP Canvas 构成行动面。
+> 我们从视频创作出发，实现了双环、统一 Inbox、Monitor 与 MCP Canvas。DeepSeek Harness 为相同问题提供了另一套公开实现：哪些设计彼此印证，哪些边界并不相同，换用它是否真的更简单？
 
 ## 引言：会调用工具，不等于能够持续工作
 
-一个 AI 可以调用十几个工具，并不意味着它已经成为一个可靠的 Agent。
+DeepSeek Harness 最近让更多人开始讨论 Harness。这个讨论很重要：模型只是 Agent 的一部分，上下文怎样组织、工具怎样执行、Session 怎样恢复，以及新消息怎样进入正在运行的 Agent，同样决定了它能不能完成工作。
 
-在一次模型响应里，AI 可以读取项目、修改内容、查看结果，再继续修改。这类“思考—行动—观察”已经是今天 Agent 的常见工作方式。真正困难的是：如果素材要十分钟后才能生成，用户在等待期间补充了要求，浏览器断线又重连，执行进程刚好在发布时被替换，Agent 还能不能知道自己在等什么，并从正确的位置继续？
+我们设计并实现这套 Video Agent Loop 时，并没有以 DeepSeek Harness 为蓝本。现在把两套独立实现放在一起，可以看到它们解决了一部分相同的问题，也在关键位置选择了不同的边界。这不是“通用方案先进、垂直方案落后”的关系。
 
-创作软件把这个问题放大了。它不仅有对话，还有长期存在的项目状态、只能由客户端完成的操作、持续变化的生成任务，以及随时可能接手的创作者。一个 Agent 若只在模型调用期间“活着”，就无法覆盖完整的创作过程；如果为了让它一直活着而保留一个永久进程，又会把恢复、并发和资源占用变成新的问题。
+这篇文章以我们的实现为主线。每遇到一个核心问题，我们先说明 Video Agent Loop 怎么做，再对照 DeepSeek Harness 会怎么处理，并追问一个更实际的问题：**如果换成 DeepSeek Harness，系统真的会更简单吗？**
 
-我们采用一种**双环 Agent**模型：
+## 一、我们为什么把 Agent 分成两个循环
 
-- **内循环**负责完成当前这一步：观察上下文、决定动作、调用工具、检查结果；
-- **外循环**负责跨越时间：接收后来发生的事实，在需要时启动新的内循环，并从持久状态继续。
+一个 AI 可以连续调用十几个工具，并不意味着它已经成为一个可靠的视频 Agent。
 
-在这两个循环之间，Monitor 把高频任务变化压缩成值得 Agent 注意的进展，MCP Canvas 则让外部 Agent 通过语义操作进入真实创作项目。四者不是彼此独立的功能，而是一套完整的运行结构。
+在一次模型响应里，AI 可以读取项目、修改内容、查看结果，再继续修改。这类“思考—行动—观察”适合处理当前几秒钟内能够完成的工作。真正困难的是：如果素材要十分钟后才能生成，用户在等待期间补充了要求，浏览器断线又重连，执行进程刚好在发布时被替换，Agent 还能不能知道自己在等什么，并从正确的位置继续？
+
+我们把这个过程划分为两个业务循环：
+
+- **内循环**负责完成当前这一步：读取上下文、调用工具、检查结果，直到完成或进入等待；
+- **外循环**负责跨越时间：接收后来发生的事实，在需要时启动一次新的内循环，并从持久状态继续。
+
+网络监听、重连、租约续期和遗漏扫描不是新的业务循环，它们只是交付与恢复机制。Monitor 虽然持续观察任务，也不是第三个会思考的 Agent。这样划分的目的，是避免每个基础设施组件都保存一份“Agent 现在做到哪里”的状态。
 
 ![双环 Agent 总体架构：外循环承接持久事件，内循环完成当前推理，Monitor 负责观察，MCP Canvas 负责行动](../assets/agent-loop/two-loop-architecture.svg)
 
 *内循环是短暂计算，外循环由持久事实驱动；观察面和行动面最终汇入同一份项目状态。*
 
-## 一、先把“循环”这个词说清楚
+DeepSeek Harness 对当前模型—工具执行的划分与我们基本一致：一个 Turn 可以包含多个 Step，Agent 在 Step 之间接收新的输入，执行结束后 Session 仍然可以恢复。[Agent Loop 设计](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/core/agent-loop/README.md)
 
-Agent 系统里，很多持续运行的东西都会被叫作 Loop：模型不断调用工具是 Loop，消息监听是 Loop，任务轮询是 Loop，断线重连和定时扫描也像 Loop。若按代码里有没有 `while` 来划分，系统很快就会出现五六个“循环”，却没人能说明哪一个拥有业务状态。
+区别在于我们从一开始就把外部世界作为 Loop 的组成部分：媒体 Task、浏览器 Editor、外部 MCP Agent 和人类操作都可能决定下一次执行何时发生。双环不是对 DeepSeek Harness 的补充说明，而是我们从视频创作生命周期出发形成的总体模型。
 
-更有用的划分标准是：**它是否推进了 Agent 的工作阶段。**
+## 二、我们的内循环：一次可以被替换的 Session Run
 
-按这个标准，系统只有两个业务循环：
+每次内循环都是一个有边界的 Session Run。它启动时从权威存储恢复历史，领取当前 Inbox 输入，把消息、上下文或工具结果折叠进历史，然后运行模型与工具的多步迭代。执行中的增量结果可以实时显示，但只有完整消息和工具检查点会成为可恢复事实。
 
-1. 当前执行过程中的模型—工具迭代，也就是内循环；
-2. 外部事实到达后，决定何时开始或继续一次执行，也就是外循环。
+```text
+恢复 Session 历史
+  → 领取 Inbox 输入
+  → 投影当前项目上下文
+  → 模型与工具多步执行
+  → 持久化完整结果
+  → 确认 Inbox 输入
+  → 结束本次 Run
+```
 
-网络监听、重连、租约续期和遗漏扫描只是消息交付与恢复机制。Monitor 虽然持续观察任务，也不是第三个会思考的 Agent。这个边界非常重要：一旦每个基础设施组件都拥有自己的任务状态和推进逻辑，系统就会出现多份真相。
+这里有一个刻意的顺序：Inbox 输入先被领取到处理中区域，只有当结果成功持久化后才确认删除。如果进程在两者之间退出，下一次 Run 会重新领取同一批输入；折叠过程按消息身份保持幂等，因此不会因为恢复而生成重复对话。
 
-## 二、为什么一个永久循环并不能解决问题
+这个设计允许 Process 结束、迁移或被部署替换。Agent 的连续性保存在 Session 历史和 Inbox 中，不绑定某个 JavaScript 对象或内存 Promise。
+
+上下文压缩和记忆也被分成两个问题：压缩负责把一段 Session 历史投影成可继续推理的摘要；记忆负责保存跨 Session 仍然成立的用户偏好、当日信息和项目约定。二者都以已经提交的消息作为来源，并通过来源边界避免较晚完成的后台维护覆盖较新的状态。
+
+### 对照 DeepSeek Harness
+
+DeepSeek Harness 也拥有完整的内循环、追加式 Session 事件日志、工具执行管线、取消和恢复机制。它进一步把压缩记录为 Session 事件，并把 Agent Loop 周围的能力做成插件。[Session 设计](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md)、[Compaction 设计](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/compaction.md)
+
+如果只看模型与工具迭代，换用 DeepSeek Harness 可能减少我们维护 Loop、工具政策和上下文压缩的工作。但我们的内循环已经和项目上下文投影、客户端工具检查点、流式 UI Message 以及现有模型 SDK 紧密衔接。替换并不是删掉一段 Loop，而是把这些边界重新适配到 DSH 的 Session Event 和 Tool Runtime。
+
+所以这一部分的结论不是“DSH 更好”，而是：**两种实现解决了相同问题。DSH 把插件与事件边界表达得很清楚；我们的实现把分布式恢复、视频项目上下文和客户端工具执行接进了同一个 Run。是否更简单，要由适配成本而不是代码行数决定。**
+
+## 三、我们的统一 Inbox：不只接收对话消息
+
+Video Agent Loop 的核心不是有一条消息队列，而是把所有能够推进 Session 的外部事实收敛到同一种持久入站协议。Inbox 目前可以承载四类输入：
+
+- 用户可见的消息；
+- 只进入模型上下文的隐藏信息；
+- 客户端或服务端返回的 Tool Result；
+- 长时 Task 的版本化状态更新。
+
+Tool 发起跨边界工作时，会先打开一个 WaitPort，记录这次调用正在等待什么。客户端执行结果、Task 完成、超时和恢复扫描最终都通过这个 WaitPort 回到同一 Inbox。生产者不需要决定“结果应该送给当前 Promise，还是送给下一次 Agent Run”：如果原 Run 仍在等待，它可以领取结果继续当前 Step；如果 Run 已经结束，结果会留在 Inbox，由外循环启动下一次 Run。
+
+Monitor 也不维护第二条结果队列。Task 的原始状态更新已经在 Inbox 中，Monitor 只把属于同一批任务的高频更新原子地压缩成一条隐藏上下文，再放回同一个 Inbox。
+
+统一还发生在外部 MCP 调用上。我们的 Session Channel 和 Project Channel 共享同一套 Message Stream、Inbox、WaitPort 与 Tool Result 语义：
+
+- Session Channel 拥有对话生命周期，会触发 Agent Run；
+- Project Channel 只承载项目级 Tool Call，不会伪装成一个对话 Session。
+
+因此，内置 Agent 调用编辑工具和外部 Agent 通过 MCP 调用编辑器，不需要各自实现一套结果等待、客户端路由与恢复逻辑。它们使用相同的运输和执行语义，但保留不同的地址与生命周期。
+
+![DeepSeek Harness 在 Session 内统一消息与工具；Video Agent Loop 让 Session 与 Project Channel 共享同一套 Inbox 和执行运输](../assets/agent-loop/dsh-video-runtime-boundary.svg)
+
+*我们统一的不是所有业务语义，而是跨边界调用的运输、关联、恢复和结果协议。*
+
+### 对照 DeepSeek Harness
+
+DeepSeek Harness 已经完成了两种相邻的统一：人的补充、Job 通知和定时提醒可以通过 `followup`、`steer` 或 `inject` 进入 Agent Inbox；MCP Tool 则会被注册进与内部 Tool 相同的 Tool Runtime。[Background Job Controller](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/jobs/tool-jobs/README.md)、[MCP Client](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/mcp/mcp-client/README.md)
+
+但 DSH 的 Inbox 主要承载模型可消费的消息，当前 Step 的 Tool Result 由 Tool Runtime 直接写入 Session。它的 MCP 方向也是 Client——让 DSH 内部 Agent 使用外部 MCP Tool，而不是让外部 Agent 通过 MCP 进入一个浏览器编辑器。
+
+如果换成 DSH，我们可以直接获得它成熟的消息 Inbox 和 Tool Runtime；但仍要实现 Project Channel、WaitPort、外部 MCP Server、客户端执行路由以及版本化 Task Update。把这些状态简单包装成普通用户消息会失去结果关联、幂等领取和超时竞争的语义；更合理的做法仍然是扩展 DSH 的事件与插件边界。
+
+因此，在统一 Inbox 这一点上，我们的实现不是 DSH 的简化版，覆盖范围反而更贴近跨进程、跨客户端的视频工作流。
+
+<!-- [研发待补 A-D1] 用同一组任务对比两种映射：保留 StarCut typed Inbox/WaitPort，或将其实现为 DSH Session Event 插件；记录适配代码、恢复窗口和状态重复数量。 -->
+
+## 四、我们的外循环：Run Lease、运行提示与恢复扫描
 
 最直观的 Agent 实现，是从收到用户消息开始，让一个进程一直运行，直到整件事结束。短任务中它很简单；一旦进入真实创作流程，问题会迅速出现。
 
@@ -52,33 +113,7 @@ Agent 系统里，很多持续运行的东西都会被叫作 Loop：模型不断
 
 可靠性的关键不是“让那个进程永远不死”，而是反过来：**允许执行过程随时结束，但让继续工作所需的事实不会消失。**
 
-## 三、内循环：把当前一步做完
-
-内循环处理的是局部且有边界的问题：在已经得到的上下文中，下一步应该做什么？
-
-```text
-观察当前状态
-  → 形成判断
-  → 调用一个或多个工具
-  → 接收工具结果
-  → 验证结果并修正
-  → 完成，或进入等待
-```
-
-[ReAct](https://arxiv.org/abs/2210.03629) 展示了推理与行动交错的基本范式：模型通过行动获取外部反馈，再用反馈更新后续判断。今天常见的 Coding Agent 也采用相似结构——搜索文件、编辑局部内容、运行测试、根据错误继续修正。
-
-在创作软件中，内循环同样适合完成一段紧凑工作。例如：读取脚本和素材信息，找到目标 Composition，插入两个片段，渲染预览帧，然后检查标题是否遮挡主体。
-
-但内循环不应该承担两件事：
-
-- 它不负责在内存里保存 Session 的永久生命；
-- 它不应该为了等待远期事件而无限占据一次执行。
-
-当当前目标已经完成，或下一步依赖尚未发生的外部事实时，这次内循环就可以结束。执行过程是可替换的，消息、项目和任务状态才是可恢复的。
-
-## 四、外循环：让新的事实重新成为上下文
-
-外循环处理的不是“模型下一步想什么”，而是“世界发生了什么，是否值得让 Agent 再次工作”。
+我们的 Gateway 收到新事实后先写入 Inbox，再发出运行提示。Worker 获得提示后，必须先取得这个 Session 的 Run Lease，才能创建一次新的 Agent Process。Lease 有明确的所有者和期限，运行期间持续续约；失去 Lease 的旧执行不能继续提交结果。
 
 这些事实可能来自不同方向：
 
@@ -89,7 +124,7 @@ Agent 系统里，很多持续运行的东西都会被叫作 Loop：模型不断
 - 客户端重新连接并报告执行结果；
 - 项目状态发生了需要 Agent 响应的变化。
 
-它们应该先进入一个**持久事件入口**，再通知运行系统。通知的作用只是降低延迟，不是保存唯一事实。即使通知重复或丢失，系统仍可从持久状态判断哪些事件尚未被处理。
+这些事实先进入持久 Inbox，再通知运行系统。通知的作用只是降低延迟，不是保存唯一事实。即使通知重复或丢失，系统仍可从 Inbox 判断哪些事件尚未被处理。
 
 ```text
 外部事实发生
@@ -101,15 +136,25 @@ Agent 系统里，很多持续运行的东西都会被叫作 Loop：模型不断
 
 “先保存，后唤醒”看似只是顺序问题，实际决定了系统能否恢复。若先发通知、后写状态，Worker 可能在事实落盘之前醒来，发现无事可做并退出；随后写入的事实便失去触发机会。
 
-外循环还需要保证同一个 Session 同时至多有一个活跃执行过程。否则两个 Worker 可能读取相同上下文，分别调用生成服务或同时修改项目。这个约束不必让 Agent 永久绑定某台机器，只需要让执行权具有明确的所有者和期限：旧执行失效后，新执行可以从持久事实恢复；正常情况下，多个运行提示也不会产生多个并行“自我”。
+Run 结束时，系统不会先判断 Inbox 为空、再单独释放 Lease，因为新输入可能刚好落在这两个动作之间。我们把“确认 Inbox 为空并释放 Lease”作为一个原子边界：如果已经有迟到输入，本次 Run 只返回 pending，由外循环继续调度，而不是在内部悄悄再创建一个永久循环。
+
+通知仍可能丢失，Worker 也可能在取得 Lease 后崩溃。因此每个 Host 都可以运行恢复扫描：处理到期的 Clock、WaitPort 超时、Task 状态对账、Monitor 压缩，并重新调度 Inbox 非空但已无有效 Lease 的 Session。扫描可以重复，真正的互斥仍由 Lease 获取保证。
 
 ![一段 Agent 工作跨越多次短执行、异步等待、用户介入和进程重启](../assets/agent-loop/inner-outer-timeline.svg)
 
 *Session 持续存在，但执行它的 Process 可以结束、迁移和重建。*
 
+### 对照 DeepSeek Harness
+
+DeepSeek Harness 同样保证一个已准备的 Session 只能由一个具体 Driver 推进，也处理运行中消息、取消与恢复。它的 Job 完成通知能够唤醒空闲 Agent，Schedule 也可以把提醒送入后续 Turn。[Jobs 设计](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/jobs.md)、[Schedule 设计](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/schedule.md)
+
+但 DSH 当前公开的 Job Contract 是进程内边界；Schedule 要求原 Session 处于运行状态，也明确不提供冷 Session 调度器。对于单 Host Agent，这套生命周期更轻；对于可能跨越多个 Worker、部署重启和长时间媒体生成的系统，仍然需要分布式 Lease、持久 Task 对账和冷 Session 恢复。
+
+如果把我们的内循环换成 DSH，外循环不会因此消失。较现实的方案是保留现有 Inbox、Run Lease 和 Sweep，让它们在取得执行权后驱动一个 DSH Agent；或者为 DSH 实现相应的分布式 Session Provider。前者适配更直接，后者架构更统一，但都不是零成本替换。
+
 ## 五、双环如何衔接：等待不是挂起一个进程
 
-外循环要恢复工作，必须知道某个异步结果属于谁。这里需要的不是另一条结果队列，而是一份持久的**等待关系**：
+外循环要恢复工作，必须知道某个异步结果属于谁。我们的 WaitPort 就是这份持久的**等待关系**，而不是另一条结果队列：
 
 ```text
 当前工作正在等待什么？
@@ -117,7 +162,7 @@ Agent 系统里，很多持续运行的东西都会被叫作 Loop：模型不断
 完成、失败或超时后应该怎样继续？
 ```
 
-当内循环提交一个长任务，它可以记录这份等待关系，然后结束。任务结果到来后仍写入统一事件入口，外循环根据关联信息把它放回正确上下文，再启动下一次内循环。
+当内循环提交一个长任务，它先打开 WaitPort，然后可以结束。任务结果到来后仍写入统一 Inbox；WaitPort 根据调用当前所处阶段，把结果交给仍在等待的 Tool，或者留给下一次内循环。
 
 这种设计把两个问题分开了：
 
@@ -154,6 +199,12 @@ Monitor 的职责不是接管任务，而是完成两种压缩：
 - 用户主动要求检查当前进展。
 
 因此，Monitor 更像 Agent 的观察面和信息编译器，而不是另一个 Agent，也不是第二套任务平台。
+
+### 对照 DeepSeek Harness
+
+DeepSeek Harness 的 Job Controller 已经避免了忙轮询：Job 完成后，忙碌 Agent 在下一 Step 收到通知，空闲 Agent 可以被唤醒；连续自动唤醒还有明确上限。这解决了“后台工作完成后怎样让模型知道”的通用问题。
+
+我们的 Monitor 进一步处理版本化媒体 Task 和任务组。它不只发送“某个 Job 已结束”，还要把一组任务的大量中间状态压缩成少数几次有决策价值的上下文，并在事件通知丢失后从权威 Task 状态重新对账。换成 DSH 后，这一层仍需作为视频 Task Provider 和 Monitor 插件存在，不会由通用 Job 通知自动替代。
 
 <!-- [研发待补 A-M1] 固定 Monitor 的 cohort、版本合并、关闭条件与唤醒策略；记录原始 task update 数、聚合 context 数、模型 wake-up 数及 token，用于计算压缩率和成本。 -->
 
@@ -205,10 +256,42 @@ MCP Canvas 应暴露稳定的语义对象与领域动作：
 
 短小的画布修改可以直接返回结果。视频生成、转写或大规模导出等长操作，则适合返回持久任务句柄，由调用方查询或订阅其状态。MCP 的 [Tasks 扩展](https://modelcontextprotocol.io/extensions/tasks/overview) 为这类工作提供了协议框架，但内部任务状态仍不应因此复制一份；协议中的 Task 应是权威任务的外部投影。
 
+### 对照 DeepSeek Harness
+
+DeepSeek Harness 的 MCP Client 把远端 MCP Tool 映射成内部 Tool，这对“让内置 Agent 使用外部能力”很方便。我们的 MCP Canvas 解决的是另一个方向：让外部 Agent 进入 StarCut，并与内置 Agent 共用 Client Lease、WaitPort、Tool Result 和领域写路径。
+
+如果内循环换成 DSH，它可以继续作为 MCP Client 使用其他服务，但 StarCut 对外的 MCP Server、项目句柄、在线 Editor 选择和多窗口执行仲裁仍由我们的项目运行时承担。这不是重复实现 MCP，而是协议两端承担的职责不同。
+
 <!-- [研发待补 A-C1] 明确哪些 Canvas 工具必须由连接 Editor 执行，哪些可以服务端直接完成；固定无在线 Editor、执行中断线、结果已提交但响应丢失时的语义。 -->
 <!-- [研发待补 A-C2] 固定内部任务与 MCP Tasks 的状态、版本、取消、超时和输出映射，避免形成两套任务生命周期。 -->
 
-## 九、一次完整的创作任务如何运行
+## 九、为什么同时保留 SSE 与 WebSocket
+
+Agent 的输出看起来像一条聊天流，但视频编辑器并不只有“服务端往页面发文字”这一种通信。
+
+我们让 SSE 和 WebSocket 承载同一组有序的 Session Stream 事件。SSE 适合持续读取消息提交、运行状态和模型增量：连接简单，断开后可以从持久游标继续。WebSocket 除了读取同一条流，还负责双向的客户端执行：服务端授予 Client Lease、派发 Editor Tool，客户端确认执行权并返回 Tool Result。
+
+```text
+SSE
+  服务端 → 浏览器
+  Session 消息、运行状态、模型增量
+
+WebSocket
+  服务端 ↔ 浏览器
+  同一事件流 + Lease + Tool Assignment + Tool Result
+```
+
+双 Transport 不代表两套业务协议。完整消息仍来自同一提交记录，实时 Delta 只是低延迟投影；客户端返回的结果仍进入统一 Inbox。无论页面选择 SSE 还是 WebSocket 观察 Session，都不能产生不同的对话真相。
+
+### 对照 DeepSeek Harness
+
+DeepSeek Harness 提供 Host/Client 远程调用与连接抽象，可以减少普通控制 API 的手工协议代码；但其公开 API Gateway 文档也把流式数据和实体子流留给独立协议处理。[API Gateway](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/api-gateway.md)
+
+因此，换用 DSH 不会替我们决定 SSE 还是 WebSocket，也不会消除浏览器 Tool 执行所需的双向通道。它可能简化 Agent Host 的控制接口，而我们的双 Transport、持久游标与 Client Lease 仍有独立价值。
+
+<!-- [研发待补 A-T1] 在同一事件源上测量 SSE 与 WebSocket 的重连恢复时间、游标重复率、Delta 丢失后的收敛时间，以及 Client Tool 在断线窗口中的结果归属。 -->
+
+## 十、一次完整的创作任务如何运行
 
 把前面的机制放在一起，可以看到一个跨越数十分钟的任务并不需要任何永久运行的 Agent 进程。
 
@@ -222,7 +305,7 @@ MCP Canvas 应暴露稳定的语义对象与领域动作：
 
 整个过程中，Agent 的“连续性”来自可恢复事实之间的关联，不来自某个永远不退出的线程。
 
-## 十、人类接管不是异常，而是默认路径
+## 十一、人类接管不是异常，而是默认路径
 
 创作任务很少能在开始时完全定义。人会观察中间结果、改变想法、直接修改项目，再让 AI 继续。一个只会独占执行到最终答案的 Agent，天然不适合这种协作。
 
@@ -235,7 +318,7 @@ MCP Canvas 应暴露稳定的语义对象与领域动作：
 
 这和 Coding Agent 的协作方式很接近：人可以在两次 Agent 执行之间改代码，Agent 随后重新读取仓库并继续。但创作软件还多了一层连续视觉结果，因此 Agent 不仅要读取结构，还需要在关键阶段重新观察预览，确认人的修改是否改变了原先判断。
 
-## 十一、系统可靠性与创作判断是两类问题
+## 十二、系统可靠性与创作判断是两类问题
 
 双环、Monitor 和 MCP Canvas 主要解决的是 Agent 的**系统能力**：
 
@@ -248,7 +331,7 @@ MCP Canvas 应暴露稳定的语义对象与领域动作：
 
 它们不会自动让模型拥有审美，也不会保证每次规划都正确。一个运行可靠的 Agent 仍可能做出平庸的创作选择；一个语义清楚的 Canvas 工具也不能替代视觉理解。可靠运行时解决的是“它能否持续、准确地行动”，感知和评价解决的是“它是否知道该做什么”。两类问题需要配合，但不应混写成一个贡献。
 
-## 十二、如何判断这个设计是否真的有效
+## 十三、如何判断这个设计是否真的有效
 
 架构图只能说明意图，不能证明可靠性。双环 Agent 最重要的证据应来自故障、并发和真实任务，而不只是一个顺利完成的演示。
 
@@ -279,7 +362,30 @@ MCP Canvas 应暴露稳定的语义对象与领域动作：
 <!-- [研发待补 A-E2] 冻结双环与常驻 Process、多事件直启 Process、任务主动轮询等基线；至少记录完成率、恢复延迟、重复副作用、模型调用数和资源占用。 -->
 <!-- [研发待补 A-E3] 建立 MCP 语义操作、像素 GUI 操作与服务端影子状态三组基线，使用同一批真实创作任务和同一模型评估。 -->
 
-## 十三、与已有工作的关系
+## 十四、如果换成 DeepSeek Harness，会更简单吗？
+
+答案不是简单的“会”或“不会”，而是取决于替换哪一层。
+
+| 层次 | 换成 DSH 可能省掉什么 | 仍然需要保留或重做什么 | 当前判断 |
+|---|---|---|---|
+| 模型—工具内循环 | Loop、工具管线、取消、插件事件 | AI SDK UI Message、项目上下文与客户端工具适配 | 可能简化，但需要实测 |
+| Session 与压缩 | 追加式事件日志、可恢复压缩 | 现有历史迁移、产品消息投影、项目记忆 | DSH 值得重点对照 |
+| 消息调度 | next-step / next-turn Inbox | Typed Inbox、WaitPort、Task Update | 不能直接替换 |
+| 长时媒体任务 | 通用 Job 接口与完成通知 | 跨进程 Task、版本对账、Monitor、冷恢复 | 我们的实现更完整 |
+| 外部 MCP 与 Editor | MCP Client Tool 接入 | MCP Server、Project Channel、Client Lease、浏览器执行 | 仍以我们的运行时为主 |
+| 浏览器通信 | Host/Client 控制抽象 | SSE/WS 事件流、工具派发和断线恢复 | 只能局部复用 |
+
+所以，完整替换目前不会让 Video Agent Loop 自动变简单。视频场景最难的部分——持久媒体任务、统一 Inbox/WaitPort、分布式 Run Lease、Monitor、Project Channel 和在线 Editor 仲裁——仍然存在，再加上一层 DSH 适配，整体概念甚至可能更多。
+
+更值得验证的是一个清楚的替换边界：保留我们的外循环、Inbox、Task 和 Editor Runtime，只把一次 Session Run 的模型—工具内核替换为 DSH。这样既能检验它的插件系统、Session Event 和 Compaction 是否带来真实收益，也不会牺牲已经跑通的视频业务语义。
+
+这不是因为我们的实现只能守成。相反，现有架构已经把通用 Session 执行和产品级工具、Task、Editor 调度分开，才使替换内核成为可能。DSH 的价值，是提供一套质量很高的独立实现来检验这个边界，而不是证明我们原来的方向错误。
+
+还有一个现实因素：DeepSeek Harness 官方目前仍将项目标记为 Developer Preview，并提示接口可能快速变化。它适合进入替换实验和架构验证，但在证明收益之前，不适合仅凭热度成为视频生产链路的新核心依赖。[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)
+
+<!-- [研发待补 A-D2] 做一个可切换的 Session Run 实验：相同模型、相同工具和相同 Inbox 输入，分别驱动现有内核与 DSH；比较适配复杂度、恢复正确性、工具调用成本、上下文 token 和端到端完成率。 -->
+
+## 十五、与已有工作的关系
 
 这套设计并不是从零发明“循环”“消息”或“持久执行”。它把几类已经成熟但经常在 Agent 产品中混在一起的问题，重新放到创作软件的运行边界中。
 
@@ -290,6 +396,8 @@ MCP Canvas 应暴露稳定的语义对象与领域动作：
 [SWE-agent](https://arxiv.org/abs/2405.15793) 强调 Agent-Computer Interface 会显著影响软件工程 Agent 的行为；[OSWorld](https://arxiv.org/abs/2404.07972) 揭示了通用 GUI Agent 在真实计算机环境中的视觉定位和操作困难；面向真实后期制作任务的 [AgenticVBench](https://arxiv.org/abs/2605.27705) 也表明执行框架会影响工具使用和失败方式。这些工作共同支持一个判断：Agent 能力不能只看模型，还要看系统向它提供了怎样的观察与行动界面。
 
 与 [Reflexion](https://arxiv.org/abs/2303.11366) 一类跨尝试反思方法相比，本文的外循环不是新的推理策略。它不规定模型如何自我批评，而是确保无论采用哪种推理方法，新的外部事实都能被可靠保存、路由和恢复。
+
+DeepSeek Harness 则提供了最直接的工程对照：它把 Agent Loop、Session、Tool Runtime、Compaction、Job 和 MCP Client 组织成可组合插件；我们的实现把相似能力放入分布式 Session、持久媒体 Task 和浏览器 Editor 的生命周期。相同设计说明双方面对的是通用 Agent Runtime 问题，不同边界则来自产品运行环境，而不是简单的先进与落后。
 
 ## 结语：Agent 的连续性来自状态，而不是线程
 
@@ -307,6 +415,8 @@ MCP Canvas 负责表达行动
 
 当执行过程可以结束、事实不会丢失；当高频更新可以被看见，却不会无意义地占用模型注意力；当外部 Agent、内置 Agent 和人类编辑器通过不同入口操作同一项目，Agent 才从“会调用工具的模型”变成能够长期参与真实创作的软件角色。
 
+DeepSeek Harness 的可取之处，是让通用 Agent Runtime 的插件边界、事件日志和上下文治理更加完整；它当前不足以直接替代的，是我们已经实现的跨进程外循环、统一 Inbox/WaitPort、媒体 Task Monitor 和项目级客户端执行。对照的结果不是推翻其中一方，而是让下一步实验有了更明确的替换边界。
+
 ## 相关资料
 
 1. S. Yao et al., [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629), 2022/2023.
@@ -319,3 +429,5 @@ MCP Canvas 负责表达行动
 8. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
 9. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
 10. N. Shinn et al., [Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366), 2023.
+11. DeepSeek AI, [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), developer preview, 2026.
+12. DeepSeek AI, [DeepSeek Harness Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md), 2026.

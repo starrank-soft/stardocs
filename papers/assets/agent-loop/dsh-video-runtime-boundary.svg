@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">DeepSeek Harness 与 Video Agent Loop 的调度边界对照</title>
+  <desc id="desc">左侧展示 DeepSeek Harness 将消息汇入 Agent Inbox、将内部工具和 MCP 工具汇入统一 Tool Runtime；右侧展示 Video Agent Loop 让 Session 与 Project Channel 共享 Inbox、WaitPort 和 Tool Result 运输，再将需要客户端执行的操作交给唯一在线 Editor。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071424"/>
+      <stop offset="1" stop-color="#17142b"/>
+    </linearGradient>
+    <linearGradient id="common" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="project" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#000" flood-opacity="0.34"/>
+    </filter>
+    <marker id="arrowCyan" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#67e8f9"/>
+    </marker>
+    <marker id="arrowViolet" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#c084fc"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="800" y="62" text-anchor="middle" fill="#f8fafc" font-size="39" font-weight="700" font-family="Inter, PingFang SC, sans-serif">相同问题，不同调度边界</text>
+  <text x="800" y="103" text-anchor="middle" fill="#94a3b8" font-size="21" font-family="Inter, PingFang SC, sans-serif">DeepSeek Harness 与 Video Agent Loop 的独立实现对照</text>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <rect x="55" y="145" width="700" height="655" rx="36" fill="#0d1c30" stroke="url(#common)" stroke-width="3" filter="url(#shadow)"/>
+    <text x="95" y="194" fill="#a5f3fc" font-size="26" font-weight="700">DeepSeek Harness · Session Runtime</text>
+    <text x="95" y="226" fill="#94a3b8" font-size="17">已经完成的两种统一</text>
+
+    <g filter="url(#shadow)">
+      <rect x="95" y="275" width="170" height="58" rx="17" fill="#11324a" stroke="#38bdf8"/>
+      <rect x="95" y="350" width="170" height="58" rx="17" fill="#11324a" stroke="#38bdf8"/>
+      <rect x="95" y="425" width="170" height="58" rx="17" fill="#11324a" stroke="#38bdf8"/>
+    </g>
+    <text x="180" y="311" text-anchor="middle" fill="#e0f2fe" font-size="18">用户消息</text>
+    <text x="180" y="386" text-anchor="middle" fill="#e0f2fe" font-size="18">Job 完成</text>
+    <text x="180" y="461" text-anchor="middle" fill="#e0f2fe" font-size="18">Schedule</text>
+
+    <rect x="340" y="300" width="330" height="155" rx="28" fill="#172440" stroke="#67e8f9" stroke-width="2" filter="url(#shadow)"/>
+    <text x="505" y="350" text-anchor="middle" fill="#67e8f9" font-size="25" font-weight="700">Agent Inbox</text>
+    <text x="505" y="388" text-anchor="middle" fill="#cbd5e1" font-size="18">Next Step · Next Turn</text>
+    <text x="505" y="420" text-anchor="middle" fill="#94a3b8" font-size="16">决定 Agent 何时继续思考</text>
+
+    <path d="M265 304 C300 304 310 330 340 350" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+    <path d="M265 379 L340 379" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+    <path d="M265 454 C300 454 310 425 340 407" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+
+    <rect x="340" y="515" width="330" height="170" rx="28" fill="#211b3c" stroke="#a78bfa" stroke-width="2" filter="url(#shadow)"/>
+    <text x="505" y="563" text-anchor="middle" fill="#ddd6fe" font-size="25" font-weight="700">Unified Tool Runtime</text>
+    <rect x="378" y="600" width="115" height="48" rx="15" fill="#173044"/>
+    <rect x="517" y="600" width="115" height="48" rx="15" fill="#31245a"/>
+    <text x="435" y="631" text-anchor="middle" fill="#e0f2fe" font-size="17">Native Tool</text>
+    <text x="575" y="631" text-anchor="middle" fill="#ede9fe" font-size="17">MCP Tool</text>
+    <path d="M505 455 L505 500" fill="none" stroke="#a78bfa" stroke-width="4" marker-end="url(#arrowViolet)"/>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <rect x="845" y="145" width="700" height="655" rx="36" fill="#17172d" stroke="url(#project)" stroke-width="3" filter="url(#shadow)"/>
+    <text x="885" y="194" fill="#f5d0fe" font-size="26" font-weight="700">StarCut Video Agent Loop · Project Runtime</text>
+    <text x="885" y="226" fill="#94a3b8" font-size="17">同一运输，两类地址与生命周期</text>
+
+    <g filter="url(#shadow)">
+      <rect x="885" y="275" width="185" height="58" rx="17" fill="#2e2351" stroke="#a78bfa"/>
+      <rect x="885" y="350" width="185" height="58" rx="17" fill="#2e2351" stroke="#a78bfa"/>
+      <rect x="885" y="425" width="185" height="58" rx="17" fill="#2e2351" stroke="#a78bfa"/>
+    </g>
+    <text x="977" y="311" text-anchor="middle" fill="#ede9fe" font-size="18">内置 Agent</text>
+    <text x="977" y="386" text-anchor="middle" fill="#ede9fe" font-size="18">外部 MCP</text>
+    <text x="977" y="461" text-anchor="middle" fill="#ede9fe" font-size="18">CLI / 自动化</text>
+
+    <rect x="1145" y="300" width="330" height="180" rx="28" fill="#2a1d43" stroke="#c084fc" stroke-width="2" filter="url(#shadow)"/>
+    <text x="1310" y="348" text-anchor="middle" fill="#f5d0fe" font-size="24" font-weight="700">Shared Inbox Transport</text>
+    <text x="1310" y="387" text-anchor="middle" fill="#cbd5e1" font-size="18">Session Channel · Project Channel</text>
+    <text x="1310" y="420" text-anchor="middle" fill="#94a3b8" font-size="16">WaitPort · Tool Result · Recovery</text>
+    <text x="1310" y="448" text-anchor="middle" fill="#94a3b8" font-size="16">地址不同，运输与结果语义相同</text>
+
+    <path d="M1070 304 C1105 304 1115 330 1145 350" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
+    <path d="M1070 379 L1145 379" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
+    <path d="M1070 454 C1105 454 1115 430 1145 415" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
+
+    <rect x="945" y="555" width="230" height="105" rx="24" fill="#18243b" stroke="#a78bfa" stroke-width="2" filter="url(#shadow)"/>
+    <text x="1060" y="598" text-anchor="middle" fill="#ddd6fe" font-size="22" font-weight="700">连接 Editor</text>
+    <text x="1060" y="631" text-anchor="middle" fill="#94a3b8" font-size="16">唯一有效执行者</text>
+
+    <rect x="1245" y="555" width="230" height="105" rx="24" fill="#10342f" stroke="#34d399" stroke-width="2" filter="url(#shadow)"/>
+    <text x="1360" y="598" text-anchor="middle" fill="#a7f3d0" font-size="22" font-weight="700">权威项目状态</text>
+    <text x="1360" y="631" text-anchor="middle" fill="#94a3b8" font-size="16">协同 · 撤销 · 渲染</text>
+
+    <path d="M1310 480 C1300 520 1135 510 1080 545" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
+    <path d="M1175 607 L1230 607" fill="none" stroke="#34d399" stroke-width="5" marker-end="url(#arrowGreen)"/>
+  </g>
+
+  <line x1="800" y1="180" x2="800" y2="775" stroke="#64748b" stroke-width="2" stroke-dasharray="9 10" opacity="0.65"/>
+  <rect x="758" y="430" width="84" height="42" rx="21" fill="#1e293b" stroke="#94a3b8"/>
+  <text x="800" y="457" text-anchor="middle" fill="#e2e8f0" font-size="17" font-weight="700" font-family="Inter, PingFang SC, sans-serif">对照</text>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <rect x="290" y="830" width="1020" height="48" rx="24" fill="#111d31" stroke="url(#common)" stroke-width="2"/>
+    <text x="800" y="861" text-anchor="middle" fill="#e2e8f0" font-size="19" font-weight="700">DSH：Session 内统一 · 我们：Session / Project 共用调用运输</text>
+  </g>
+</svg>

@@ -4,7 +4,11 @@
 
 ## 引言
 
-在视频编辑器里，同一项创作会同时跨越几种时间尺度。修改标题几乎立刻完成，生成一张图片可能要等十几秒，一段视频则要等上几分钟。等待期间，创作者还会整理时间线、替换镜头，或者在另一个窗口打开同一项目。等素材回来，Agent 要辨认它属于哪项任务，重新读取已经变化的工程，再决定下一步。一次模型与工具的循环由此延伸到整个创作过程。
+AI Coding 的成效已经有目共睹。它从代码补全走到 Coding Agent，模型开始读取整个仓库、修改文件、运行命令和测试，再根据结果继续工作。代码仓库也给 Agent 提供了一套成熟的工作环境：源文件表达工程状态，文件与终端提供稳定入口，编译器和测试反馈执行结果，人可以随时检查并接管同一份工程。
+
+创作软件正在出现相似的变化。[ChatCut](https://chatcut.io/docs/what-is-chatcut) 已经把自然语言、素材分析、粗剪、字幕、Motion Graphics 和生成式媒体放进一个带完整时间线的网页编辑器；[Runway Agent](https://help.runwayml.com/hc/en-us/articles/51601639579667-Creating-with-Runway-Agent) 使用对话组织生成与时间线编辑；[Premiere AI Assistant](https://helpx.adobe.com/premiere/desktop/premiere-ai-assistant/overview.html) 也开始通过自然语言整理素材和生成初剪。它们说明，创作领域的 Agent 已经开始从“生成一个结果”走向“参与一个可继续编辑的项目”。
+
+StarCut 在实现这条路径时，遇到了一组视频创作特有的运行问题：一张图片可能十几秒后返回，一段视频可能需要几分钟；等待期间用户仍在修改时间线；部分工具必须交给当前打开项目的浏览器；同一项目还可能同时出现在多个窗口。一次模型与工具的调用只覆盖其中一段，生成结果、人的修改和客户端执行还要在后续回到 Agent。
 
 近期 DeepSeek Harness 的讨论让 Agent Harness 再次受到关注。在这之前，StarCut 已经围绕媒体生成、项目协同、分布式调度和浏览器执行形成了一套完整的 Video Agent Loop。现成的业务链路正好提供了一组检验题：DeepSeek Harness 是否有解决我们的问题，插件化设计能否减少系统复杂度。
 
@@ -264,3 +268,6 @@ StarCut 的 Video Agent Loop 将这些问题放进同一条视频创作链路：
 12. J. Yang et al., [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793), 2024.
 13. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
 14. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
+15. ChatCut, [What is ChatCut?](https://chatcut.io/docs/what-is-chatcut).
+16. Runway, [Creating with Runway Agent](https://help.runwayml.com/hc/en-us/articles/51601639579667-Creating-with-Runway-Agent).
+17. Adobe, [Premiere AI Assistant overview](https://helpx.adobe.com/premiere/desktop/premiere-ai-assistant/overview.html).

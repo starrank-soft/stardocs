@@ -12,7 +12,7 @@ AI Coding 的成效已经有目共睹。它从代码补全走到 Coding Agent，
 
 这种工作方式也带来了一组新的问题。图片和视频生成需要十几秒到几分钟，生成完成后，Agent 如何感知结果并继续创作？等待期间用户可能已经调整过时间线，返回的素材又该怎样进入当前项目？除了 StarCut 内置 Agent，Codex、Claude Code 等外部 Agent 也可能操作同一个工程，不同入口如何共享项目状态并协调行动？浏览器掌握编辑现场，服务端负责模型调用和媒体任务，回答、指令与执行结果如何在两端之间持续传递？
 
-围绕这些问题，StarCut 已经在媒体生成、项目协同、分布式调度和浏览器执行之间形成了一套完整的 Video Agent Loop。近期 DeepSeek Harness 的讨论让 Agent Harness 再次受到关注。本文将从具体的视频业务问题出发，说明 StarCut 如何组织这套运行机制，并进一步考察 DeepSeek Harness 是否解决了同样的问题，其插件化设计能否减少系统复杂度。
+围绕这些问题，StarCut 已经在媒体生成、项目协同、分布式调度和浏览器执行之间形成了一套完整的 Video Agent Loop。近期 DeepSeek Harness 的讨论让 Agent Harness 再次受到关注。这套现成的业务链路正好提供了一组检验题：DeepSeek Harness 是否解决了这些问题，插件化设计能否减少系统复杂度。
 
 ## 一、Video Agent Loop 的整体架构
 

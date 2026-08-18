@@ -6,9 +6,13 @@
 
 AI Coding 的成效已经有目共睹。它从代码补全走到 Coding Agent，模型开始读取整个仓库、修改文件、运行命令和测试，再根据结果继续工作。代码仓库也给 Agent 提供了一套成熟的工作环境：源文件表达工程状态，文件与终端提供稳定入口，编译器和测试反馈执行结果，人可以随时检查并接管同一份工程。
 
-创作软件正在出现相似的变化。[ChatCut](https://chatcut.io/docs/what-is-chatcut) 已经把自然语言、素材分析、粗剪、字幕、Motion Graphics 和生成式媒体放进一个带完整时间线的网页编辑器；[Runway Agent](https://help.runwayml.com/hc/en-us/articles/51601639579667-Creating-with-Runway-Agent) 使用对话组织生成与时间线编辑；[Premiere AI Assistant](https://helpx.adobe.com/premiere/desktop/premiere-ai-assistant/overview.html) 也开始通过自然语言整理素材和生成初剪。它们说明，创作领域的 Agent 已经开始从“生成一个结果”走向“参与一个可继续编辑的项目”。
+创作软件正在经历相似的变化。[Descript](https://www.descript.com/underlord) 从文本化视频编辑发展出能够理解项目并代为执行操作的 AI co-editor；[ChatCut](https://chatcut.io/docs/what-is-chatcut) 把自然语言、素材分析、粗剪、字幕、Motion Graphics 和生成式媒体放进带有完整时间线的网页编辑器。Agent 正在参与一个会被反复修改、继续加工和最终交付的创作工程。
 
-StarCut 在实现这条路径时，遇到了一组视频创作特有的运行问题：一张图片可能十几秒后返回，一段视频可能需要几分钟；等待期间用户仍在修改时间线；部分工具必须交给当前打开项目的浏览器；同一项目还可能同时出现在多个窗口。一次模型与工具的调用只覆盖其中一段，生成结果、人的修改和客户端执行还要在后续回到 Agent。
+早期的视频剪辑通常从一批已经拍好的素材开始，主要工作是挑选、裁切、排列和包装。今天的创作过程还会随时产生新的素材：一条产品视频做到一半，可能发现缺少合适的产品特写，于是临时生成图片，再把图片扩展为几秒钟的动态镜头；旁白、音乐、字幕和 Motion Graphics 也会陆续补充。视频项目由剪辑、理解和生成共同推进，素材集合与时间线都在持续变化。
+
+这种工作方式对创作工具提出了新的运行要求。图片和视频生成需要十几秒到几分钟，返回时用户可能已经调整过时间线；StarCut 内置 Agent 与 Codex、Claude Code 等外部 Agent 都可能操作同一个项目；浏览器掌握当前编辑现场，服务端负责模型调用、媒体任务和运行调度，两端需要围绕同一份项目状态持续协作。一次模型与工具的调用只能覆盖其中一小段，后续结果、人的修改和来自不同入口的指令仍要回到 Agent 的工作过程。
+
+StarCut 从 Agent-native 的前提出发设计这套创作环境：项目结构可以被 Agent 准确读取，编辑能力通过语义化操作开放，异步结果能够回到原来的创作任务，人和不同 Agent 共同维护同一份工程。Video Agent Loop 承担的，就是把这些分布在不同时间、不同端和不同执行者之间的工作组织起来。
 
 近期 DeepSeek Harness 的讨论让 Agent Harness 再次受到关注。在这之前，StarCut 已经围绕媒体生成、项目协同、分布式调度和浏览器执行形成了一套完整的 Video Agent Loop。现成的业务链路正好提供了一组检验题：DeepSeek Harness 是否有解决我们的问题，插件化设计能否减少系统复杂度。
 
@@ -268,6 +272,5 @@ StarCut 的 Video Agent Loop 将这些问题放进同一条视频创作链路：
 12. J. Yang et al., [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793), 2024.
 13. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
 14. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
-15. ChatCut, [What is ChatCut?](https://chatcut.io/docs/what-is-chatcut).
-16. Runway, [Creating with Runway Agent](https://help.runwayml.com/hc/en-us/articles/51601639579667-Creating-with-Runway-Agent).
-17. Adobe, [Premiere AI Assistant overview](https://helpx.adobe.com/premiere/desktop/premiere-ai-assistant/overview.html).
+15. Descript, [Underlord: Your AI Video & Podcast Editing Assistant](https://www.descript.com/underlord).
+16. ChatCut, [What is ChatCut?](https://chatcut.io/docs/what-is-chatcut).

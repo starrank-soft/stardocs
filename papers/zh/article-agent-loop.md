@@ -6,7 +6,7 @@
 
 在视频编辑器里，同一项创作会同时跨越几种时间尺度。修改标题几乎立刻完成，生成一张图片可能要等十几秒，一段视频则要等上几分钟。等待期间，创作者还会整理时间线、替换镜头，或者在另一个窗口打开同一项目。等素材回来，Agent 要辨认它属于哪项任务，重新读取已经变化的工程，再决定下一步。一次模型与工具的循环由此延伸到整个创作过程。
 
-近期 DeepSeek Harness 的讨论让 Agent Harness 再次受到关注。在这之前，StarCut 的 Video Agent Loop 已经围绕媒体生成、项目协同和浏览器执行形成了一套实现。把 DeepSeek Harness 放进这些具体场景中，也能更清楚地看到它可以为视频创作提供哪些能力。
+近期 DeepSeek Harness 的讨论让 Agent Harness 再次受到关注。在这之前，StarCut 已经围绕媒体生成、项目协同、分布式调度和浏览器执行形成了一套完整的 Video Agent Loop。现成的业务链路正好提供了一组检验题：DeepSeek Harness 能覆盖其中哪些部分，引入以后能否减少系统复杂度，又会在哪些视频运行时边界停下来。
 
 ## 一、Video Agent Loop 的整体架构
 
@@ -57,7 +57,7 @@ WaitPort 保存“某个结果属于哪次工具调用”的关系；Monitor 把
 
 这里有三份需要始终分清的状态：Session 保存对话和工具执行历史，Task 保存媒体工作的权威状态，项目模型保存当前视频工程。它们通过身份和版本建立关系，各自维护自己的事实。
 
-DeepSeek Harness 也能覆盖模型与工具的通用循环，并进一步提供 Session、插件和上下文压缩等 Runtime 能力。它如果进入 StarCut，最适合先从内循环做替换实验；视频创作的外循环仍要与现有项目和任务系统连接。
+按 StarCut 的现有架构拆开看，DeepSeek Harness 可以对应模型—工具内循环，并提供 Session、插件和上下文压缩等 Runtime 能力。若做接入实验，边界会先放在一次 Session Run 内，验证它能否在保持现有行为的同时减少系统概念和适配代码。媒体 Task、Monitor、项目状态和客户端调度继续由外循环承接。
 
 ## 二、视频、图片生成完成后，Agent 如何感知
 
@@ -185,7 +185,7 @@ Session 持续变长以后，完整历史需要保存，模型每一步实际读
 
 压缩不会删除原始历史，它生成一个新的模型读取视图。记忆也采用完整快照，并携带来源边界；后台生成期间如果源内容已经变化，较旧结果不能覆盖新的状态。当前 Editor 状态只投影到模型输入，不会作为聊天消息永久复制。
 
-DeepSeek Harness 的 Session Event Log 和 Compaction 是这里最值得研究的部分。它把模型消息视为事件日志的派生结果，并显式记录压缩的开始、摘要和结束。[Session](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md)、[Compaction](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/compaction.md) 这部分可以进入 StarCut 的替换实验，项目记忆和视频工程状态仍按现有边界保留。
+在上下文治理这一部分，DeepSeek Harness 给出了一套清楚的 Session Event Log 和 Compaction 实现：模型消息由事件日志派生，压缩过程显式记录开始、摘要和结束。[Session](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md)、[Compaction](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/compaction.md) 这部分可以进入 StarCut 的替换实验，项目记忆和视频工程状态仍按现有边界保留。
 
 <!-- [研发待补 A-X1] 用长 Session 比较压缩前后 token、目标保持率、Tool Call/Result 配对完整性和恢复时间；分别评估用户长期、用户当日与项目记忆的命中和污染。 -->
 
@@ -246,7 +246,7 @@ StarCut 的 Video Agent Loop 将这些问题放进同一条视频创作链路：
 
 这就是 StarCut 对 Video Agent Loop 的理解。内循环负责一次模型能够连续完成的工作，外循环负责创作过程中后来发生的事实。Inbox、WaitPort、Monitor、Run Lease、MCP Canvas、SSE、WebSocket 和 Client Lease 都服务于这条链路中的具体问题。
 
-DeepSeek Harness 在通用 Agent Loop、Session 和上下文治理上提供了值得研究的实现，可能帮助 StarCut 简化内循环。媒体任务的持续感知、用户与 Agent 共用的项目状态、多窗口调度和浏览器执行仍然属于视频创作运行时。它能否满足视频场景，最终要看接入后是否减少了系统概念，同时保留这些已经存在的业务能力。
+用 StarCut 的业务链路来检验，DeepSeek Harness 当前公开的能力主要覆盖通用 Agent Loop、Session 和上下文治理，可以成为内循环的候选实现。媒体任务的持续感知、用户与 Agent 共用的项目状态、多窗口调度和浏览器执行仍然由 StarCut 的视频运行时处理。接入是否成立，取决于它能否在完整保留这些业务能力的前提下，真正减少系统概念和维护成本。
 
 ## 相关资料
 

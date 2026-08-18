@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">双环 Agent 总体架构</title>
+  <desc id="desc">用户、任务、时间和客户端结果先进入持久事件入口，由外循环启动短暂的内循环；Monitor 负责观察，MCP Canvas 负责语义行动，最终读写同一权威项目状态。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071424"/>
+      <stop offset="1" stop-color="#17142b"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#d946ef"/>
+    </linearGradient>
+    <linearGradient id="green" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#67e8f9"/>
+    </marker>
+    <marker id="arrowViolet" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0 0L12 6L0 12Z" fill="#c084fc"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="790" cy="470" r="400" fill="#8b5cf6" opacity="0.045"/>
+  <text x="800" y="70" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700" font-family="Inter, PingFang SC, sans-serif">双环 Agent：连续性来自持久状态</text>
+  <text x="800" y="110" text-anchor="middle" fill="#94a3b8" font-size="22" font-family="Inter, PingFang SC, sans-serif">内循环完成当下 · 外循环跨越时间 · Monitor 观察 · MCP Canvas 行动</text>
+
+  <g font-family="Inter, PingFang SC, sans-serif">
+    <text x="116" y="178" fill="#94a3b8" font-size="18" font-weight="700" letter-spacing="2">外部世界</text>
+    <g filter="url(#shadow)">
+      <rect x="80" y="205" width="210" height="80" rx="18" fill="#10233a" stroke="#38bdf8" stroke-opacity="0.65"/>
+      <rect x="80" y="305" width="210" height="80" rx="18" fill="#10233a" stroke="#38bdf8" stroke-opacity="0.65"/>
+      <rect x="80" y="405" width="210" height="80" rx="18" fill="#10233a" stroke="#38bdf8" stroke-opacity="0.65"/>
+      <rect x="80" y="505" width="210" height="80" rx="18" fill="#10233a" stroke="#38bdf8" stroke-opacity="0.65"/>
+    </g>
+    <text x="185" y="255" text-anchor="middle" fill="#e0f2fe" font-size="22">用户消息</text>
+    <text x="185" y="355" text-anchor="middle" fill="#e0f2fe" font-size="22">异步任务</text>
+    <text x="185" y="455" text-anchor="middle" fill="#e0f2fe" font-size="22">时间事件</text>
+    <text x="185" y="555" text-anchor="middle" fill="#e0f2fe" font-size="22">客户端结果</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="350" y="165" width="875" height="525" rx="42" fill="#111b31" stroke="url(#violet)" stroke-width="3"/>
+  </g>
+  <text x="392" y="212" fill="#d8b4fe" font-size="25" font-weight="700" font-family="Inter, PingFang SC, sans-serif">外循环 · 持久 Session 生命周期</text>
+
+  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
+    <rect x="405" y="255" width="280" height="170" rx="26" fill="#152741" stroke="#38bdf8" stroke-width="2"/>
+    <text x="545" y="305" text-anchor="middle" fill="#67e8f9" font-size="25" font-weight="700">持久事件入口</text>
+    <text x="545" y="345" text-anchor="middle" fill="#cbd5e1" font-size="18">先保存事实，再发运行提示</text>
+    <rect x="455" y="370" width="180" height="20" rx="10" fill="url(#blue)" opacity="0.9"/>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
+    <rect x="405" y="475" width="280" height="150" rx="26" fill="#18223b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="545" y="525" text-anchor="middle" fill="#ddd6fe" font-size="24" font-weight="700">执行权与恢复</text>
+    <text x="545" y="562" text-anchor="middle" fill="#cbd5e1" font-size="18">同一 Session 串行执行</text>
+    <text x="545" y="592" text-anchor="middle" fill="#94a3b8" font-size="17">重复提示不产生多个自我</text>
+  </g>
+
+  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
+    <rect x="785" y="255" width="375" height="370" rx="38" fill="#21193b" stroke="url(#violet)" stroke-width="3"/>
+    <text x="972" y="310" text-anchor="middle" fill="#f5d0fe" font-size="28" font-weight="700">内循环 · 短暂 Process</text>
+    <circle cx="972" cy="445" r="106" fill="#141e37" stroke="#c084fc" stroke-width="3"/>
+    <path d="M918 400 C960 360 1035 380 1050 432" fill="none" stroke="#67e8f9" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowBlue)"/>
+    <path d="M1028 486 C986 526 911 506 896 454" fill="none" stroke="#c084fc" stroke-width="7" stroke-linecap="round" marker-end="url(#arrowViolet)"/>
+    <text x="972" y="428" text-anchor="middle" fill="#e2e8f0" font-size="21" font-weight="700">观察 → 判断</text>
+    <text x="972" y="462" text-anchor="middle" fill="#e2e8f0" font-size="21" font-weight="700">行动 → 验证</text>
+    <text x="972" y="576" text-anchor="middle" fill="#a5b4fc" font-size="18">完成或进入等待后即可退出</text>
+  </g>
+
+  <path d="M290 245 C330 245 350 300 405 315" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M290 345 C340 345 355 345 405 345" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M290 445 C340 445 355 390 405 375" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M290 545 C350 545 350 410 405 405" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M685 340 C730 340 742 370 785 392" fill="none" stroke="#c084fc" stroke-width="5" marker-end="url(#arrowViolet)"/>
+  <path d="M785 500 C735 515 730 550 685 550" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="10 10" marker-end="url(#arrowViolet)"/>
+
+  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
+    <rect x="80" y="720" width="350" height="120" rx="28" fill="#102a2d" stroke="#34d399" stroke-width="2"/>
+    <text x="255" y="765" text-anchor="middle" fill="#6ee7b7" font-size="24" font-weight="700">Monitor · 观察面</text>
+    <text x="255" y="802" text-anchor="middle" fill="#cbd5e1" font-size="18">任务聚合 · 注意力压缩</text>
+
+    <rect x="500" y="720" width="350" height="120" rx="28" fill="#23213d" stroke="#c084fc" stroke-width="2"/>
+    <text x="675" y="765" text-anchor="middle" fill="#e9d5ff" font-size="24" font-weight="700">MCP Canvas · 行动面</text>
+    <text x="675" y="802" text-anchor="middle" fill="#cbd5e1" font-size="18">显式项目 · 语义操作</text>
+
+    <rect x="965" y="720" width="555" height="120" rx="28" fill="#10252d" stroke="url(#green)" stroke-width="3"/>
+    <text x="1242" y="765" text-anchor="middle" fill="#d1fae5" font-size="26" font-weight="700">权威项目与任务状态</text>
+    <text x="1242" y="803" text-anchor="middle" fill="#cbd5e1" font-size="18">Agent、外部工具与人类编辑器共享同一事实</text>
+  </g>
+
+  <path d="M255 720 C300 665 350 625 405 590" fill="none" stroke="#34d399" stroke-width="4" marker-end="url(#arrowBlue)"/>
+  <path d="M850 780 C900 780 915 780 965 780" fill="none" stroke="#c084fc" stroke-width="5" marker-end="url(#arrowViolet)"/>
+  <path d="M1160 490 C1270 510 1270 660 1242 720" fill="none" stroke="#67e8f9" stroke-width="5" marker-end="url(#arrowBlue)"/>
+</svg>

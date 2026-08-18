@@ -4,13 +4,9 @@
 >
 > 论文英文候选标题：*Durable Two-Loop Agents: Message-Driven Recovery, Monitored Tasks, and Semantic Canvas Execution*
 >
-> 系列文章总标题：**《Agent 为什么只需要两个业务循环》**
+> 面向公众的文章：[《Agent Loop：内循环完成当下，外循环跨越时间》](./article-agent-loop.md)
 >
-> 三篇分章标题：
->
-> 1. 《内循环负责思考，外循环负责活着》
-> 2. 《Monitor 不应该成为第二个任务系统》
-> 3. 《MCP 如何操纵画布：发送语义操作，而不是远程点击像素》
+> 当前先以一篇完整长文发布；若后续内容量和实验结果确实需要，再按内外循环、Monitor 与 MCP Canvas 拆成系列，而不预先制造重复章节。
 >
 > 状态：架构稿。本文描述业务循环；Redis listener、SSE、重连和 sweep 是交付/恢复机制，不应被误算成额外业务循环。
 
@@ -471,7 +467,7 @@ Actor、消息队列、event sourcing、workflow engine 和 durable execution �
 
 > **[待补 A-T6]** 为 MCP 记录授权 projectId、toolCallId、Project Stream messageId、Editor assignment、Y.Doc transaction 与最终结果的关联链。
 
-## 13. 中文系列文章母稿
+## 13. 公开文章的早期提纲
 
 ### 13.1 内循环负责思考，外循环负责活着
 
@@ -523,4 +519,3 @@ MCP 调用应该携带明确的项目 ID 和语义操作。服务端完成授权
 5. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
 6. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
 7. **[待补 A-L1]** Virtual actor、durable execution、transactional outbox、event sourcing、lease scheduling 与 workflow recovery 的系统论文。
-

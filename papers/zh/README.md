@@ -12,16 +12,16 @@
 | 02 | [REST-Edit：面向 AI 的轻量级、流式、语义化精确编辑协议](./02-rest-edit.md) | 让 AI 像改代码一样精确剪视频 | 协议与 Agent 接口优化 |
 | 03 | [Edit-as-Code：让 AI 像 Coding Agent 一样完成视频剪辑](./03-edit-as-code.md) | [Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图](./article-edit-video-as-code.md)（面向技术同学） | Agent-Computer Interface 与创作系统 |
 | 04 | [单时钟可寻址 Motion Graphics](./04-single-clock-motion-graphics.md) | 让同一份 MG 同时服务实时预览、缩略图和最终导出 | 浏览器图形运行时 |
-| 05 | [双环 Agent：Inbox、WaitPort、Monitor 与 MCP Canvas](./05-durable-two-loop-agent.md) | Agent 为什么只需要两个业务循环 | Agent 运行时与系统设计 |
+| 05 | [双环 Agent：Inbox、WaitPort、Monitor 与 MCP Canvas](./05-durable-two-loop-agent.md) | [Agent Loop：内循环完成当下，外循环跨越时间](./article-agent-loop.md) | Agent 运行时与系统设计 |
 
 ## 为什么是五份母稿
 
-最初列出的主题可以分成四篇 Paper/文章和三个 Agent-Loop 章节。Agent-Loop 的三个部分共享同一组不变量：外部事件统一进入 Inbox，WaitPort 只保存路由状态，Monitor 只聚合权威 Task，MCP Canvas 调用也通过普通消息和工具结果收口。若拆成三篇独立论文，会重复解释同一运行时。
+最初列出的主题可以分成四篇 Paper/文章和三个 Agent-Loop 章节。Agent-Loop 的三个部分共享同一组不变量：外部事件统一进入 Inbox，WaitPort 只保存路由状态，Monitor 只聚合权威 Task，MCP Canvas 调用也通过普通消息和工具结果收口。当前先写成一篇完整公开文章；只有后续内容量和实验结果确实需要时才拆成系列，避免预先重复解释同一运行时。
 
 因此当前结构是：
 
 - 四篇相互独立的媒体/Agent Paper；
-- 一份双环 Agent 总设计，其中包含“内外循环”“Monitor”“MCP 画布”三个可单独发布的文章章节。
+- 一份双环 Agent 总设计，以及一篇贯通“内外循环”“Monitor”“MCP 画布”的公开长文。
 
 如果后续实验量足够，第 05 稿可以再拆为“持久 Agent Loop”和“MCP Canvas Bridge”两篇；现在不提前拆，以免制造重复贡献。
 

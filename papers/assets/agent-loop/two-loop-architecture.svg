@@ -1,21 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
-  <title id="title">StarCut Video Agent Loop 总体架构</title>
-  <desc id="desc">Vercel AI SDK ToolLoopAgent 运行一次短暂内循环，StarCut 的消息入口、Inbox、WaitPort、Monitor、Lease、Task 和浏览器 Editor 组成持久外循环。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" role="img" aria-labelledby="title desc">
+  <title id="title">StarCut Video Agent Loop 基本结构</title>
+  <desc id="desc">一次短暂的模型与工具循环运行在持续存在的创作过程之中。用户要求、媒体完成、项目变化和编辑器结果会在需要时启动下一次运行，项目、后台工作和创作记录持续存在。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#071321"/>
-      <stop offset="1" stop-color="#151127"/>
+      <stop offset="1" stop-color="#171229"/>
     </linearGradient>
-    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0">
+    <linearGradient id="outer" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111d32"/>
+      <stop offset="1" stop-color="#191833"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0e3147"/>
+      <stop offset="1" stop-color="#27204a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#22d3ee"/>
-      <stop offset="1" stop-color="#3b82f6"/>
-    </linearGradient>
-    <linearGradient id="violet" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8b5cf6"/>
-      <stop offset="1" stop-color="#d946ef"/>
+      <stop offset="1" stop-color="#a78bfa"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="17" flood-color="#000" flood-opacity="0.34"/>
     </filter>
     <marker id="arrowCyan" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
       <path d="M0 0L12 6L0 12Z" fill="#67e8f9"/>
@@ -23,110 +27,79 @@
     <marker id="arrowViolet" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
       <path d="M0 0L12 6L0 12Z" fill="#c084fc"/>
     </marker>
-    <marker id="arrowGreen" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0 0L12 6L0 12Z" fill="#34d399"/>
-    </marker>
   </defs>
 
-  <rect width="1600" height="980" fill="url(#bg)"/>
-  <circle cx="1070" cy="440" r="360" fill="#2563eb" opacity="0.04"/>
-  <text x="800" y="62" text-anchor="middle" fill="#f8fafc" font-size="38" font-weight="700" font-family="Inter, PingFang SC, sans-serif">StarCut Video Agent Loop</text>
-  <text x="800" y="100" text-anchor="middle" fill="#94a3b8" font-size="21" font-family="Inter, PingFang SC, sans-serif">短暂内循环运行模型与工具 · 持久外循环承接整个创作过程</text>
+  <rect width="1600" height="920" fill="url(#bg)"/>
+  <circle cx="1260" cy="330" r="320" fill="#2563eb" opacity="0.04"/>
 
-  <g font-family="Inter, PingFang SC, sans-serif">
-    <text x="70" y="158" fill="#94a3b8" font-size="17" font-weight="700" letter-spacing="2">后来发生的事实</text>
+  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <text x="800" y="62" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700">StarCut Video Agent Loop</text>
+    <text x="800" y="103" text-anchor="middle" fill="#94a3b8" font-size="21">一次 Run 处理当前工作 · 整个创作过程跨越等待、变化与再次行动</text>
+  </g>
+
+  <rect x="70" y="140" width="1460" height="690" rx="42" fill="url(#outer)" stroke="#a78bfa" stroke-width="3" filter="url(#shadow)"/>
+
+  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <text x="115" y="192" fill="#e9d5ff" font-size="27" font-weight="700">外循环 · 持续存在的创作过程</text>
+    <text x="1485" y="192" text-anchor="end" fill="#a5b4fc" font-size="17">平时可以没有模型运行</text>
+
+    <text x="115" y="250" fill="#94a3b8" font-size="17" font-weight="700" letter-spacing="2">后来发生的事情</text>
     <g filter="url(#shadow)">
-      <rect x="55" y="182" width="215" height="70" rx="16" fill="#10243a" stroke="#38bdf8" stroke-opacity="0.7"/>
-      <rect x="55" y="270" width="215" height="70" rx="16" fill="#10243a" stroke="#38bdf8" stroke-opacity="0.7"/>
-      <rect x="55" y="358" width="215" height="70" rx="16" fill="#10243a" stroke="#38bdf8" stroke-opacity="0.7"/>
-      <rect x="55" y="446" width="215" height="70" rx="16" fill="#10243a" stroke="#38bdf8" stroke-opacity="0.7"/>
-      <rect x="55" y="534" width="215" height="70" rx="16" fill="#10243a" stroke="#38bdf8" stroke-opacity="0.7"/>
+      <rect x="115" y="272" width="285" height="68" rx="18" fill="#102b40" stroke="#38bdf8"/>
+      <rect x="445" y="272" width="285" height="68" rx="18" fill="#102b40" stroke="#38bdf8"/>
+      <rect x="775" y="272" width="285" height="68" rx="18" fill="#2a2245" stroke="#a78bfa"/>
+      <rect x="1105" y="272" width="310" height="68" rx="18" fill="#2a2245" stroke="#a78bfa"/>
     </g>
-    <text x="162" y="225" text-anchor="middle" fill="#e0f2fe" font-size="20">用户消息</text>
-    <text x="162" y="313" text-anchor="middle" fill="#e0f2fe" font-size="20">Task Update</text>
-    <text x="162" y="401" text-anchor="middle" fill="#e0f2fe" font-size="20">时间事件</text>
-    <text x="162" y="489" text-anchor="middle" fill="#e0f2fe" font-size="20">客户端结果</text>
-    <text x="162" y="577" text-anchor="middle" fill="#e0f2fe" font-size="20">外部 MCP 调用</text>
+    <text x="257" y="314" text-anchor="middle" fill="#e0f2fe" font-size="20">用户提出新要求</text>
+    <text x="587" y="314" text-anchor="middle" fill="#e0f2fe" font-size="20">图片或视频完成</text>
+    <text x="917" y="314" text-anchor="middle" fill="#ede9fe" font-size="20">项目被继续修改</text>
+    <text x="1260" y="314" text-anchor="middle" fill="#ede9fe" font-size="20">编辑器返回执行结果</text>
+
+    <path d="M257 340C257 378 395 378 470 405" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+    <path d="M587 340V395" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+    <path d="M917 340V395" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
+    <path d="M1260 340C1260 378 1150 378 1085 405" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
   </g>
 
-  <g filter="url(#shadow)">
-    <rect x="310" y="138" width="1235" height="625" rx="38" fill="#111a2e" stroke="url(#violet)" stroke-width="3"/>
-  </g>
-  <text x="350" y="183" fill="#e9d5ff" font-size="25" font-weight="700" font-family="Inter, PingFang SC, sans-serif">外循环 · StarCut 持久运行时</text>
+  <rect x="270" y="400" width="1060" height="245" rx="34" fill="url(#inner)" stroke="url(#accent)" stroke-width="3" filter="url(#shadow)"/>
 
-  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
-    <rect x="355" y="225" width="245" height="112" rx="22" fill="#18243b" stroke="#a78bfa" stroke-width="2"/>
-    <text x="477" y="268" text-anchor="middle" fill="#ddd6fe" font-size="22" font-weight="700">消息入口</text>
-    <text x="477" y="302" text-anchor="middle" fill="#a5b4fc" font-size="17">内部 Session / 外部项目</text>
+  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <text x="315" y="447" fill="#bae6fd" font-size="25" font-weight="700">内循环 · 一次可以连续完成的 Run</text>
+    <text x="1285" y="445" text-anchor="end" fill="#7dd3fc" font-size="17">Vercel AI SDK · ToolLoopAgent</text>
 
-    <rect x="355" y="382" width="245" height="150" rx="22" fill="#122941" stroke="#38bdf8" stroke-width="2"/>
-    <text x="477" y="426" text-anchor="middle" fill="#67e8f9" font-size="24" font-weight="700">统一 Inbox</text>
-    <text x="477" y="462" text-anchor="middle" fill="#cbd5e1" font-size="16">message · context</text>
-    <text x="477" y="491" text-anchor="middle" fill="#cbd5e1" font-size="16">tool result · task update</text>
+    <g filter="url(#shadow)">
+      <rect x="330" y="495" width="205" height="92" rx="21" fill="#15364b" stroke="#38bdf8"/>
+      <rect x="585" y="495" width="180" height="92" rx="21" fill="#242044" stroke="#a78bfa"/>
+      <rect x="815" y="495" width="180" height="92" rx="21" fill="#15364b" stroke="#38bdf8"/>
+      <rect x="1045" y="495" width="225" height="92" rx="21" fill="#19352f" stroke="#34d399"/>
+    </g>
+    <text x="432" y="532" text-anchor="middle" fill="#e0f2fe" font-size="20" font-weight="700">读取当前状态</text>
+    <text x="432" y="562" text-anchor="middle" fill="#94a3b8" font-size="15">历史 · 项目 · 新输入</text>
+    <text x="675" y="532" text-anchor="middle" fill="#ede9fe" font-size="20" font-weight="700">模型判断</text>
+    <text x="675" y="562" text-anchor="middle" fill="#a5b4fc" font-size="15">回答或调用工具</text>
+    <text x="905" y="532" text-anchor="middle" fill="#e0f2fe" font-size="20" font-weight="700">执行工具</text>
+    <text x="905" y="562" text-anchor="middle" fill="#94a3b8" font-size="15">服务端或编辑器</text>
+    <text x="1157" y="532" text-anchor="middle" fill="#d1fae5" font-size="20" font-weight="700">获得结果</text>
+    <text x="1157" y="562" text-anchor="middle" fill="#94a3b8" font-size="15">继续判断或结束</text>
 
-    <rect x="355" y="580" width="245" height="112" rx="22" fill="#1b2238" stroke="#c084fc" stroke-width="2"/>
-    <text x="477" y="623" text-anchor="middle" fill="#e9d5ff" font-size="21" font-weight="700">Run Lease 与恢复</text>
-    <text x="477" y="657" text-anchor="middle" fill="#a5b4fc" font-size="16">选择唯一 Session Worker</text>
-  </g>
+    <path d="M535 541H575" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+    <path d="M765 541H805" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
+    <path d="M995 541H1035" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
+    <path d="M1157 587C1157 625 675 625 675 597" fill="none" stroke="#34d399" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowCyan)"/>
 
-  <g filter="url(#shadow)">
-    <rect x="685" y="215" width="800" height="445" rx="34" fill="#13233b" stroke="url(#cyan)" stroke-width="3"/>
-  </g>
-  <text x="725" y="263" fill="#bae6fd" font-size="25" font-weight="700" font-family="Inter, PingFang SC, sans-serif">内循环 · 一次 Session Run</text>
-  <text x="1440" y="260" text-anchor="end" fill="#7dd3fc" font-size="17" font-family="Inter, PingFang SC, sans-serif">Vercel AI SDK 7 · ToolLoopAgent</text>
-
-  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
-    <rect x="745" y="318" width="175" height="96" rx="20" fill="#172b46" stroke="#38bdf8" stroke-width="2"/>
-    <rect x="970" y="318" width="175" height="96" rx="20" fill="#202044" stroke="#a78bfa" stroke-width="2"/>
-    <rect x="1195" y="318" width="215" height="96" rx="20" fill="#172b46" stroke="#38bdf8" stroke-width="2"/>
-    <text x="832" y="358" text-anchor="middle" fill="#e0f2fe" font-size="20" font-weight="700">构建上下文</text>
-    <text x="832" y="387" text-anchor="middle" fill="#94a3b8" font-size="15">历史 · 记忆 · 项目</text>
-    <text x="1057" y="358" text-anchor="middle" fill="#ede9fe" font-size="20" font-weight="700">模型判断</text>
-    <text x="1057" y="387" text-anchor="middle" fill="#a5b4fc" font-size="15">回答或 Tool Call</text>
-    <text x="1302" y="358" text-anchor="middle" fill="#e0f2fe" font-size="20" font-weight="700">执行 Tool</text>
-    <text x="1302" y="387" text-anchor="middle" fill="#94a3b8" font-size="15">Server / Client / Task</text>
-
-    <rect x="970" y="490" width="260" height="98" rx="22" fill="#142c38" stroke="#34d399" stroke-width="2"/>
-    <text x="1100" y="530" text-anchor="middle" fill="#a7f3d0" font-size="21" font-weight="700">Tool Result</text>
-    <text x="1100" y="559" text-anchor="middle" fill="#94a3b8" font-size="15">继续下一 Step 或结束</text>
+    <text x="115" y="704" fill="#94a3b8" font-size="17" font-weight="700" letter-spacing="2">Run 结束以后仍然存在</text>
+    <g filter="url(#shadow)">
+      <rect x="115" y="727" width="400" height="66" rx="19" fill="#12332f" stroke="#34d399"/>
+      <rect x="600" y="727" width="400" height="66" rx="19" fill="#102b40" stroke="#38bdf8"/>
+      <rect x="1085" y="727" width="330" height="66" rx="19" fill="#2a2245" stroke="#a78bfa"/>
+    </g>
+    <text x="315" y="768" text-anchor="middle" fill="#d1fae5" font-size="20">当前视频项目</text>
+    <text x="800" y="768" text-anchor="middle" fill="#e0f2fe" font-size="20">仍在进行的后台工作</text>
+    <text x="1250" y="768" text-anchor="middle" fill="#ede9fe" font-size="20">创作记录</text>
   </g>
 
-  <path d="M920 366H960" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M1145 366H1185" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M1302 414C1302 455 1255 505 1235 520" fill="none" stroke="#34d399" stroke-width="4" marker-end="url(#arrowGreen)"/>
-  <path d="M970 539C905 539 894 438 1020 418" fill="none" stroke="#c084fc" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowViolet)"/>
-
-  <path d="M270 217H345" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M270 305C310 305 320 270 355 270" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M270 393C320 393 322 295 355 295" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M270 481C320 481 322 320 355 320" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M270 569C310 569 320 310 355 310" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M477 337V372" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
-  <path d="M477 532V570" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
-  <path d="M600 636C650 636 655 420 685 405" fill="none" stroke="#c084fc" stroke-width="5" marker-end="url(#arrowViolet)"/>
-  <path d="M685 470C642 470 633 455 610 455" fill="none" stroke="#67e8f9" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowCyan)"/>
-
-  <g font-family="Inter, PingFang SC, sans-serif" filter="url(#shadow)">
-    <rect x="70" y="815" width="310" height="110" rx="24" fill="#102a2d" stroke="#34d399" stroke-width="2"/>
-    <text x="225" y="858" text-anchor="middle" fill="#a7f3d0" font-size="22" font-weight="700">权威 Task</text>
-    <text x="225" y="890" text-anchor="middle" fill="#94a3b8" font-size="16">生成 · 转写 · 后台工作</text>
-
-    <rect x="430" y="815" width="310" height="110" rx="24" fill="#15263b" stroke="#38bdf8" stroke-width="2"/>
-    <text x="585" y="858" text-anchor="middle" fill="#bae6fd" font-size="22" font-weight="700">WaitPort · Monitor</text>
-    <text x="585" y="890" text-anchor="middle" fill="#94a3b8" font-size="16">关联结果 · 聚合变化</text>
-
-    <rect x="790" y="815" width="310" height="110" rx="24" fill="#202044" stroke="#a78bfa" stroke-width="2"/>
-    <text x="945" y="858" text-anchor="middle" fill="#ede9fe" font-size="22" font-weight="700">Session 历史</text>
-    <text x="945" y="890" text-anchor="middle" fill="#94a3b8" font-size="16">完整 UIMessage · 压缩 · 记忆</text>
-
-    <rect x="1150" y="815" width="380" height="110" rx="24" fill="#102a2d" stroke="#34d399" stroke-width="2"/>
-    <text x="1340" y="858" text-anchor="middle" fill="#a7f3d0" font-size="22" font-weight="700">浏览器 Editor 与项目模型</text>
-    <text x="1340" y="890" text-anchor="middle" fill="#94a3b8" font-size="16">SSE / WebSocket · Client Lease</text>
+  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
+    <rect x="300" y="854" width="1000" height="44" rx="22" fill="#101b2d" stroke="#475569"/>
+    <text x="800" y="883" text-anchor="middle" fill="#cbd5e1" font-size="18">新的事情出现时，再读取当前状态并启动下一次 Run</text>
   </g>
-
-  <path d="M380 870H420" fill="none" stroke="#34d399" stroke-width="4" marker-end="url(#arrowGreen)"/>
-  <path d="M585 815C585 780 520 755 500 700" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-  <path d="M945 815C945 760 900 710 900 660" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
-  <path d="M1340 815C1340 760 1340 700 1340 660" fill="none" stroke="#34d399" stroke-width="4" marker-end="url(#arrowGreen)"/>
-  <path d="M1410 470C1490 500 1500 745 1430 815" fill="none" stroke="#67e8f9" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowCyan)"/>
 </svg>

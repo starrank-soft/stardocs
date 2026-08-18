@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">SSE 与 WebSocket 的职责分工</title>
-  <desc id="desc">服务端通过 SSE 向浏览器持续发送回答、状态和增量，通过 WebSocket 双向分配客户端工具并接收结果；持久消息、Inbox 和统一身份负责断线后的恢复与结果归属。</desc>
+  <desc id="desc">服务端通过 SSE 向浏览器持续发送回答、状态和增量，通过 WebSocket 下发客户端操作并接收执行结果；持久消息和统一调用身份负责断线后的恢复与结果归属。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#071522"/>
@@ -39,10 +39,10 @@
     <text x="255" y="312" text-anchor="middle" fill="#bae6fd" font-size="19" font-weight="700">模型回答与运行状态</text>
     <text x="255" y="339" text-anchor="middle" fill="#94a3b8" font-size="15">增量 + 完整消息</text>
     <rect x="120" y="395" width="270" height="78" rx="20" fill="#202044"/>
-    <text x="255" y="427" text-anchor="middle" fill="#ede9fe" font-size="19" font-weight="700">客户端 Tool Call</text>
-    <text x="255" y="454" text-anchor="middle" fill="#a5b4fc" font-size="15">Lease + Assignment</text>
+    <text x="255" y="427" text-anchor="middle" fill="#ede9fe" font-size="19" font-weight="700">客户端操作</text>
+    <text x="255" y="454" text-anchor="middle" fill="#a5b4fc" font-size="15">等待在线编辑器执行</text>
     <rect x="120" y="510" width="270" height="110" rx="20" fill="#113a38"/>
-    <text x="255" y="545" text-anchor="middle" fill="#a7f3d0" font-size="19" font-weight="700">持久消息与 Inbox</text>
+    <text x="255" y="545" text-anchor="middle" fill="#a7f3d0" font-size="19" font-weight="700">持久消息与结果</text>
     <text x="255" y="577" text-anchor="middle" fill="#d1fae5" font-size="15">恢复、重放、结果归属</text>
     <text x="255" y="604" text-anchor="middle" fill="#94a3b8" font-size="14">唯一持久事实</text>
 
@@ -55,8 +55,8 @@
     <text x="1345" y="427" text-anchor="middle" fill="#e0e7ff" font-size="19" font-weight="700">执行编辑器工具</text>
     <text x="1345" y="454" text-anchor="middle" fill="#a5b4fc" font-size="15">读取现场 · 修改项目</text>
     <rect x="1210" y="510" width="270" height="110" rx="20" fill="#233b45"/>
-    <text x="1345" y="545" text-anchor="middle" fill="#d1fae5" font-size="19" font-weight="700">返回 Tool Result</text>
-    <text x="1345" y="577" text-anchor="middle" fill="#a7f3d0" font-size="15">携带 toolCallId</text>
+    <text x="1345" y="545" text-anchor="middle" fill="#d1fae5" font-size="19" font-weight="700">返回执行结果</text>
+    <text x="1345" y="577" text-anchor="middle" fill="#a7f3d0" font-size="15">携带原调用身份</text>
     <text x="1345" y="604" text-anchor="middle" fill="#94a3b8" font-size="14">回到所属调用</text>
   </g>
 
@@ -68,8 +68,8 @@
 
     <rect x="535" y="430" width="530" height="214" rx="30" fill="#241d40" stroke="#a78bfa" stroke-width="2"/>
     <text x="800" y="477" text-anchor="middle" fill="#e9d5ff" font-size="25" font-weight="700">WebSocket · 双向执行</text>
-    <text x="800" y="520" text-anchor="middle" fill="#ede9fe" font-size="18">→ Client Lease · Tool Assignment</text>
-    <text x="800" y="559" text-anchor="middle" fill="#ddd6fe" font-size="18">← Tool Result · 在线能力状态</text>
+    <text x="800" y="520" text-anchor="middle" fill="#ede9fe" font-size="18">→ 下发客户端操作</text>
+    <text x="800" y="559" text-anchor="middle" fill="#ddd6fe" font-size="18">← 执行结果 · 在线能力状态</text>
     <text x="800" y="604" text-anchor="middle" fill="#94a3b8" font-size="16">连接中断不改变调用身份</text>
   </g>
 
@@ -82,7 +82,7 @@
 
   <g font-family="Inter, PingFang SC, sans-serif">
     <rect x="190" y="745" width="1220" height="92" rx="30" fill="#121d30" stroke="#475569" stroke-width="2"/>
-    <text x="800" y="782" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="700">实时 Delta 可以丢失，完整消息与 Tool Result 必须可以恢复</text>
+    <text x="800" y="782" text-anchor="middle" fill="#f8fafc" font-size="21" font-weight="700">实时增量可以丢失，完整消息与执行结果必须可以恢复</text>
     <text x="800" y="816" text-anchor="middle" fill="#94a3b8" font-size="18">两种连接共享消息身份和持久状态，不维护两套事实</text>
   </g>
 </svg>

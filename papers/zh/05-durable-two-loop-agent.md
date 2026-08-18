@@ -1,521 +1,467 @@
-# 双环 Agent：基于持久 Inbox、WaitPort 与 Monitor 的可恢复创作代理架构
+# Video Agent Loop：StarCut 面向视频创作的运行架构与实践
 
-> 中文系统设计母稿，可继续发展为论文或系列文章
+> 中文论文母稿。本文先完整描述 StarCut 的问题、架构和实现，再由此改写公开文章。
 >
-> 论文英文候选标题：*Durable Two-Loop Agents: Message-Driven Recovery, Monitored Tasks, and Semantic Canvas Execution*
+> 公开文章标题暂定：[《Video Agent Loop：StarCut 的硬核实践，DeepSeek Harness 能否满足视频场景？》](./article-agent-loop.md)
 >
-> 面向公众的文章：[《Video Agent Loop：StarCut 的硬核实践，DeepSeek Harness 能否满足视频场景？》](./article-agent-loop.md)
->
-> 当前先以一篇完整长文发布；若后续内容量和实验结果确实需要，再按内外循环、Monitor 与 MCP Canvas 拆成系列，而不预先制造重复章节。
->
-> 状态：架构稿。本文描述业务循环；Redis listener、SSE、重连和 sweep 是交付/恢复机制，不应被误算成额外业务循环。
+> 状态：架构与实验设计稿。工程耗时区间来自当前业务经验，正式发表前需要补充可复现实验数据。
 
 ## 摘要
 
-创作型 Agent 既需要在一次推理中连续调用工具，也需要跨越用户消息、客户端执行、异步生成任务、定时唤醒、网络重连和进程崩溃继续工作。将所有行为放进一个常驻循环会让会话状态、工具结果、任务进度和恢复逻辑相互纠缠；为每类异步事件再建立独立队列和循环，又会制造多份路由状态与竞争唤醒。
+视频创作正在从单次素材处理，转向理解、编辑与生成交替发生的持续过程。Agent 不仅需要读取项目、修改时间线和验证结果，还要等待图片、视频、音频与转写任务完成，并与用户、浏览器 Editor 及外部 Agent 共同操作一份持续变化的工程。常见的模型—工具循环可以处理一次连续推理，却不能独立回答长任务完成后如何继续、Tool Call 在客户端还是服务端执行、多个窗口如何避免重复操作、外部 Agent 如何进入同一项目，以及上下文如何在长时间创作中维持等问题。
 
-本文提出一种双环 Agent 架构。内循环是一次 Agent Process 内的模型—工具迭代，负责完成当前推理；外循环是由持久 Session Inbox 驱动的消息循环，负责把用户消息、工具结果、时钟事件和任务通知转化为可恢复的 Agent Process。每个 Session 通过租约保证最多一个活动 Process；所有生产者先写 Inbox 再发送运行信号，信号仅用于加速，周期 sweep 可从持久状态恢复丢失唤醒。
+本文介绍 StarCut 的 Video Agent Loop。系统以 Vercel AI SDK 承担一次模型与工具的连续交互，并在其外建立由持久输入驱动的业务循环。所有外部事实通过统一 Inbox 回到 Agent；不同工具可以立即交回、有限等待或等待匹配结果；Monitor sidecar 将后台 Task 更新转换成模型可消费的新输入；项目级执行租约在多个浏览器窗口中选择唯一执行者；Session Stream 与 Project Stream 分别承载对话交付和编辑器执行；MCP 将同一项目模型和领域能力开放给 Codex、Claude Code 等外部 Agent；完整历史、压缩视图、分层记忆、当前项目与按需 Skill 共同组成长期创作上下文。
 
-为支持长任务，系统使用 WaitPort 描述“某个异步结果应如何路由”，而不再建立第二个结果队列。Monitor 作为任务更新之上的 sidecar，从权威 Task 状态聚合进度，只对正在监控的 WaitPort 形成 cohort，并把多次底层更新压缩为一个稳定的隐藏上下文。对于外部 Coding Agent，系统通过无状态 MCP 接收带显式 `projectId` 的语义画布操作，将其写入普通 Project Message Stream，由获得执行租约的浏览器 Editor 通过同一编辑链修改画布，并以 `toolCallId` 关联结果。
+本文的目标不是把 Tool Loop、Inbox、租约或后台任务分别声明为新发明，而是说明这些已有机制如何围绕视频场景收敛为一套完整运行架构。我们进一步给出并发媒体任务、异步结果回流、多窗口执行、故障恢复、上下文成本和外部 Agent 协同的实验方案，并讨论通用 Agent Harness 可以替代哪些基础能力、哪些视频业务边界仍需由创作运行时负责。
 
-本文给出循环边界、持久化不变量、故障恢复、Monitor 聚合和 MCP Canvas Bridge 的设计，并计划通过崩溃注入、多副本竞争、重复/乱序通知、长任务编排和画布操作任务评估可靠性、延迟、模型唤醒次数、进度压缩率和重复执行率。
+## 1. 引言
 
-## 1. 为什么要严格定义“循环”
+AI Coding 的成效已经说明，模型能力只有进入可读取、可行动、可反馈的环境，才能持续完成真实工作。Coding Agent 读取仓库、修改文件、运行命令和测试，再根据结果继续判断。代码仓库保存工程状态，文件和终端提供操作入口，编译器与测试反馈执行结果，人也可以随时检查和接管。
 
-Agent 系统中常见的“循环”至少有四种含义：
+创作软件正在经历相似变化。视频 Agent 可以理解素材、生成初剪、修改时间线，也可以在项目进行到一半时补充图片、视频、旁白、字幕和 Motion Graphics。理解、生成与剪辑在同一工程中交替发生，素材集合与时间线持续变化。
 
-- 模型连续思考和调用工具；
-- 收到一条新消息后重新运行 Agent；
-- 网络 listener 持续读取 Redis、SSE 或 WebSocket；
-- sweep 定期扫描遗漏工作；
-- Monitor 持续观察任务状态。
+这使视频 Agent 面临一组相互关联的运行问题：
 
-如果把所有持续运行的代码都称为 Agent Loop，架构很快会失去边界。本文只把会改变 Agent 业务状态和推理阶段的循环称为业务循环：
+- 图片和视频生成需要十几秒到数分钟，完成以后 Agent 如何自动感知并继续？
+- Tool Call 有的在服务端完成，有的必须交给正在打开项目的浏览器，结果如何回到同一个模型循环？
+- 回答、流式内容、客户端指令和执行结果，应该使用 SSE 还是 WebSocket？
+- 同一个项目打开多个窗口时，哪一个窗口真正执行 Agent 命令？
+- StarCut 内置 Agent 如何控制编辑器，Codex、Claude Code 等外部 Agent 又如何控制同一项目？
+- 创作持续较长时间后，如何压缩上下文、维护记忆并按需加载 Skill？
+- 网络断开、通知丢失或服务重启以后，未完成工作如何继续？
 
-1. **内循环**：当前 Process 内，模型 step 与工具结果之间的迭代；
-2. **外循环**：持久事件触发新的或继续中的 Session Process。
+这些问题不能分别堆叠成互不相干的补丁。它们共同要求一套明确的 Agent Loop：一次模型执行能够连续使用工具，执行结束以后，用户消息、后台任务、浏览器结果和外部 Agent 行动仍能回到同一创作过程。
 
-listener、消息推送、租约续期、重连和 sweep 都是交付或恢复机制。Monitor 是对任务事件的聚合 sidecar；它不自行成为第三套 Agent 推理循环。
+本文以 StarCut 的真实实现为主线，先给出完整架构，再从上述业务问题逐一展开设计。具体工作包括：
 
-## 2. 系统模型
+1. 区分一次模型—工具内循环与跨越异步任务、人和多个入口的外部业务循环；
+2. 统一服务端、浏览器、后台 Task 和人类回答的 Tool Call 返回路径；
+3. 设计异步媒体任务的等待策略与 Monitor 感知机制；
+4. 设计多窗口客户端执行租约、双 Transport 和外部 MCP 项目通道；
+5. 形成完整历史、压缩视图、分层记忆、项目状态与 Skill 的上下文模型；
+6. 给出恢复语义、实验指标和仍需验证的创作能力边界。
 
-### 2.1 主要实体
+## 2. Video Agent Loop 的整体架构
 
-| 实体 | 生命周期 | 责任 |
+### 2.1 内循环：模型怎样连续完成当前工作
+
+Agent Loop 最基本的结构是：模型判断下一步，发出 Tool Call，取得 Tool Result，再决定继续调用工具还是形成回答。
+
+StarCut 使用 Vercel AI SDK 的 ToolLoopAgent 实现这一层。它负责模型适配、多步 Tool Calling、参数校验、流式输出、步骤上限和停止条件。一次连续思考可以搜索项目、读取文档、修改时间线、查询素材或提交后台任务，并在当前可以取得的结果基础上继续。
+
+这一层解决的是“当前工作下一步做什么”。它并不拥有完整创作的生命周期。用户可能稍后发送新要求，媒体任务可能数分钟后完成，浏览器也可能断开后重新连接。
+
+### 2.2 外循环：创作怎样跨越等待继续推进
+
+外循环描述完整业务过程：
+
+```text
+用户要求
+  → Agent 判断并发出工作
+  → 服务端、浏览器、后台任务或人类执行
+  → 新结果回到 Agent
+  → Agent 读取受影响对象的当前状态
+  → 继续判断和行动
+```
+
+它并不依赖一个永久存在的模型实例。持续存在的是对话历史、项目、Task、未处理输入和调用之间的因果关系。新的事实到达时，系统可以把它交给仍在进行的内循环，也可以启动下一次有限的思考。
+
+因此，内外循环的分工是：
+
+| 层次 | 回答的问题 | 主要输入 |
 |---|---|---|
-| Session | 持久 | 对话、记忆与 Agent 工作上下文 |
-| Inbox | 持久 | Session 的唯一异步输入入口 |
-| Run signal | 易失/可重复 | 提醒 Worker 某 Session 有工作 |
-| Lease | 有期限 | 保证同一 Session 至多一个活动 Process |
-| Agent Process | 短暂 | 加载上下文并运行一次内循环 |
-| UIMessage | 持久 | 用户、助手、工具调用与结果的权威消息表示 |
-| WaitPort | 持久路由状态 | 描述异步调用等待什么、如何结束 |
-| Task | 持久权威状态 | 生成、转写等长任务生命周期 |
-| Monitor | 逻辑 sidecar | 聚合被监控 Task 的更新并唤醒外循环 |
-| Project Message Stream | 持久 | 无对话 Session 的项目级 MCP/Editor 工具调用 |
+| 内循环 | 当前下一步做什么 | 模型上下文、当前 Tool Result、当前步骤间到达的新消息 |
+| 外循环 | 工作回来以后如何继续创作 | 用户消息、后台 Task 更新、浏览器结果、定时事件、外部 Agent 调用 |
 
-### 2.2 单一 Session Inbox
+![图 1：Video Agent Loop 的内循环、外循环与持续业务事实](../assets/agent-loop/two-loop-architecture.svg)
 
-Inbox 接收四类条目：
+*图 1. 内循环完成当前判断，外循环让工作跨越执行位置、等待和人的介入重新回到创作过程。*
 
-```text
-message       用户或系统消息
-context       时钟/Monitor 等隐藏上下文
-tool_result   客户端或异步工具结果
-task_update   Task 权威快照的版本化投影
-```
+### 2.3 全貌中的关键部件
 
-所有异步生产者都写同一个 Inbox：用户 API、客户端工具执行器、Clock、Task listener 和 Monitor。系统不再为“工具结果”“任务进度”“定时器”各建一条业务队列。
+StarCut 的整体运行架构由以下部分组成：
 
-单 Inbox 的价值不是减少 Redis key 数量，而是让以下事实只有一个权威定义：Session 还有哪些未被 Agent 消费的外部事件。
+| 部件 | 在业务中的责任 |
+|---|---|
+| 对话历史 | 保存用户要求、模型回答、Tool Call 和正式结果 |
+| 项目模型 | 保存当前时间线、素材、文档和协同编辑状态 |
+| 已提交消息流 | 记录 Agent 已经正式发出的内容与 Tool Call，供界面和执行器恢复 |
+| Inbox | 接收尚未被 Agent 消费的用户消息、工具结果和隐藏上下文 |
+| Tool 执行层 | 将调用交给服务端、浏览器、人或后台任务 |
+| Task 系统 | 独立执行生成、转写等长任务，维护状态、版本和 Artifact |
+| Monitor | 把后台 Task 更新转换为 Agent 的新输入 |
+| 执行租约 | 在多实例和多窗口中确定唯一的有效执行者 |
+| Session Stream | 向界面交付对话快照、已提交消息、模型增量和状态 |
+| Project Stream | 维护 Editor 在线状态、项目级 Tool Call 和客户端执行分配 |
+| MCP Project Channel | 让外部 Agent 操作项目，而不虚构内部对话 |
 
-### 2.3 WaitPort 是路由状态，不是队列
+这些部件并不是多个平行的 Agent Loop。业务上仍然只有两个层次：一次连续思考，以及围绕同一创作不断接收新事实的外部循环。消息监听、WebSocket、恢复检查和租约续期只是交付与恢复机制。
 
-Agent 调用一个不能立即完成的工具时，系统创建 WaitPort：
+### 2.4 四类权威状态
 
-```text
-toolCallId -> expected producer / taskId / policy / deadline / status
-```
+系统把长期事实分为四类：
 
-WaitPort 回答：
+| 权威状态 | 保存什么 | 不保存什么 |
+|---|---|---|
+| 对话 | 目标、决策、调用和结果 | 整份实时项目副本 |
+| 项目 | 时间线、素材、文档和协同状态 | Agent 的临时推理 |
+| Task | 请求、状态、版本、产物和失败信息 | 面向模型的自然语言总结 |
+| 路由与执行权 | 结果返回关系、等待策略、当前执行者 | 第二份项目或任务状态 |
 
-- 哪个结果属于哪个工具调用；
-- 结果到达后是唤醒 Agent、仅记录、还是严格等待；
-- 是否有 deadline；
-- 是否属于正在 Monitor 的 Task cohort；
-- 何时可以关闭。
+这一拆分贯穿后续所有机制：短暂计算不拥有长期事实，Agent 的历史不替代项目的现在，Monitor 不复制 Task，MCP 不维护影子工程。
 
-真正的结果仍进入 Inbox。若 WaitPort 自己再保存一份消息队列，系统就会出现 Inbox 与 WaitPort 双重确认、双重恢复和不一致状态。
+## 3. Tool Call 的结果从哪里来，又怎样交回内循环
 
-## 3. 内循环：一次 Process 内的模型—工具迭代
+### 3.1 四类执行者
 
-内循环可以抽象为：
+StarCut 中的 Tool Call 可能由不同执行者完成：
 
-```text
-prepare context
-  -> model step
-  -> zero or more tool calls
-  -> tool results
-  -> next model step
-  -> committed assistant message or final response
-```
+| 执行者 | 典型能力 |
+|---|---|
+| 服务端 | 查询模型、加载 Skill、准备 Library 素材、定时与任务提交 |
+| 浏览器 Editor | 读取项目、局部编辑、播放、定位、抽帧、渲染 |
+| Task Worker | 图片、视频、音频、MG、SVG 生成和转写 |
+| 人 | 回答信息不足的问题、作出创作选择 |
 
-它负责：
+模型不应该理解四套返回协议。工具定义只需声明由谁执行、是否需要写权限、可以等待多久，以及执行权丢失以后能否重试。
 
-- 根据当前上下文选择工具；
-- 执行服务端工具或等待客户端工具结果；
-- 在 step 边界吸收 Process 运行期间到达的 Inbox 条目；
-- 持久化完整 UIMessage 快照；
-- 在当前目标完成、等待外部事件或达到停止条件时退出。
+### 3.2 先提交 Tool Call，再交给执行者
 
-[ReAct](https://arxiv.org/abs/2210.03629) 将推理与行动交错，是内循环的典型思想来源。本文不主张发明模型—工具循环，而研究它如何嵌入持久、可恢复的外循环。
+模型流式生成参数时，浏览器可以提前显示或渐进投影，但流式片段可能中断或丢失。正式副作用必须以完整、已经提交的 Tool Call 为依据。
 
-### 3.1 内循环不拥有永久生命
+StarCut 在工具产生副作用前保存调用事实，并同步到已提交消息流。服务端和浏览器执行器都从这一事实取得工作。当前模型执行即使中断，开放调用仍可恢复，不依赖内存中的 Promise。
 
-Agent Process 是可丢弃计算，不是 Session 本身。进程可以因扩缩容、部署、超时或崩溃结束；可恢复信息必须在消息、Inbox、WaitPort、Task 和数据库中，而不是只存在 JS Promise 或内存对象里。
+### 3.3 所有结果回到同一个 Inbox
 
-### 3.2 客户端工具等待
+无论执行者在哪里，结果都携带原来的 `toolCallId` 进入同一个 Inbox。用户的新消息、Monitor 形成的上下文和定时提醒也进入这一入口。
 
-某些操作只能由持有当前 Editor 状态的浏览器执行。内循环提交工具调用后：
+如果内循环仍在等待对应调用，结果直接推动下一步；如果当前思考已经结束，结果留在 Inbox 中，由外循环重新开始判断。执行位置不同，结果协议不分叉。
 
-1. 服务端分配唯一执行 token 给获得项目租约的客户端；
-2. 客户端通过统一 ClientToolRunner 执行；
-3. 结果以 `toolCallId` 写入 Inbox；
-4. Process 若仍活动，可在下一个 step 吸收；若已退出，外循环会重新启动；
-5. 已提交消息只用于权威展示和恢复，不能被任意观察标签页再次当作执行授权。
+这一设计把“结果从哪里产生”与“Agent 怎样继续”分开。服务端可以更换实现，浏览器可以断线重连，Task 可以迁移 Worker，内循环仍然只消费调用身份明确的新事实。
 
-执行 token 与租约防止多个打开同一项目的标签页重复修改。
+![图 2：Tool Call 按能力分发，结果按原调用身份统一返回](../assets/agent-loop/tool-execution-routing.svg)
 
-## 4. 外循环：持久事件驱动 Session Process
+*图 2. 执行位置与结果协议解耦。*
 
-### 4.1 写入先于唤醒
+## 4. 图片、视频生成完成后，Agent 如何感知
 
-每个生产者遵循：
+### 4.1 请求受理与最终完成分离
 
-```text
-persist Inbox entry
-  -> emit run signal
-```
+一张图片的常见生成耗时约为 10–20 秒，一段视频约为 200–600 秒，具体时间取决于模型、队列和参数。如果 Agent 需要同时生成十张候选图，却让每次 Tool Call 等待最终产物，独立工作会被生成耗时串行阻塞。
 
-不能先发信号再写 Inbox。否则 Worker 可能先收到信号、发现没有内容并退出，随后写入的消息失去唤醒。
+StarCut 将长任务拆成两个业务时刻：
 
-### 4.2 一 Session 一活动租约
+1. 系统接受请求，创建持久 Task，并立即返回任务身份和预期 Artifact；
+2. Task 在后台排队、运行并完成，每个已经提交的权威版本随后回到外循环。
 
-Worker 收到信号后使用 NX/条件写竞争 Session lease。只有赢家可以创建 Process。其他 Worker 即使收到重复信号也不启动第二个 Process。
+Agent 因而可以连续提交多项生成任务，后台并行执行；它还可以继续整理不依赖结果的时间线内容。当前没有可做工作时，内循环可以结束，Task 仍然继续。
 
-核心安全不变量：
+### 4.2 一套协议支持三种等待策略
 
-\[
-ActiveProcess(session) \le 1
-\]
+| 等待策略 | Agent 当下得到什么 | 适用场景 |
+|---|---|---|
+| 立即交回 | 请求已受理及任务身份 | 图片、视频、MG、SVG 生成 |
+| 有限等待 | 限时内完成则直接得到结果，否则转入后台感知 | 当前实现中的转写，等待 30 秒 |
+| 等待结果 | 必须取得匹配结果才能继续，超时作为调用失败 | 普通查询、读取和编辑工具 |
 
-租约必须有 owner、期限和安全释放条件。仅依靠内存中的“正在运行”集合无法跨多副本或进程崩溃成立。
+区别只是当前内循环是否等待，调用身份、结果入口和恢复方式保持一致。
 
-### 4.3 活动 Process 排空新事件
+![图 3：媒体任务的等待策略与后台返回路径](../assets/agent-loop/media-task-lifecycle.svg)
 
-若新的 Inbox 条目在租约已经存在时到达，生产者仍然写入并发送信号。第二个 Worker不会创建 Process；当前 Process 在合适的 step 边界重新 claim Inbox，把新消息加入上下文。这样既没有并行 Session 推理，也不需要等待旧 Process 完全结束后才看到结果。
+*图 3. 请求受理和最终完成分开后，媒体任务可以并行执行。*
 
-### 4.4 安全释放
+### 4.3 Task 与调用之间需要明确的返回关系
 
-Process 结束时，不能简单执行：
+Task 是后台工作的权威事实，保存请求、状态、版本、响应和 Artifact。Task 状态先提交数据库，再发送轻量变化提示；消费者重新读取权威快照，重复、乱序或丢失提示不会成为第二份状态。
+
+Tool Call 创建 Task 时，系统留下调用关联记录，保存原调用、Task、返回通道、等待策略和截止时间。实现中这一记录称为 WaitPort。它不是结果队列，也不保存另一份 Task，只回答“这项工作后来变化时应该怎样返回”。
+
+### 4.4 Monitor 是后台任务的感知 sidecar
+
+立即交回以后，原 Tool Call 已经取得“请求已受理”的正式结果。最终图片不能再次成为同一调用的第二个 Tool Result，而必须作为外部世界的新变化进入 Agent。
+
+如果没有 Monitor，用户需要手动说“生成好了，请继续”，或者 Agent 必须主动轮询任务；让 Task 系统直接拼接模型消息，则会把 Agent 语义耦合进任务平台。
+
+Monitor 只负责这次转换：
 
 ```text
-release lease
+后台 Task 更新
+      ↓
+Agent 可以理解的新输入
 ```
 
-因为“检查 Inbox 为空”和“释放租约”之间可能有新消息到达。需要以原子方式完成：
+它从调用关联记录中找到当前对话正在关注的 Task，把 Inbox 中的版本化更新转换为隐藏上下文，并形成任务组概览。例如十张候选图中已有两张完成时，Agent 可以看到“2/10 成功、8 项仍在运行”以及已完成产物。
 
-- 若 Inbox 为空，释放属于自己的租约；
-- 若 Inbox 非空，继续运行或确保重新调度；
-- 若租约 owner 已变化，不得释放别人的租约。
+Monitor 不执行 Task、不拥有对话，也不维护第二份任务列表。当前实现让每个已经提交的权威 Task 版本先进入 Inbox；同一批出现多个版本时保留最新版本。是否需要控制模型继续频率，应作为调度策略评估，而不能依靠丢失任务事实实现。
 
-### 4.5 signal 是加速器，sweep 是恢复器
+![图 4：Monitor 将版本化 Task 更新转换为任务组感知](../assets/agent-loop/monitor-compression.svg)
 
-运行信号可以重复、延迟或丢失。系统的正确性不依赖每个信号必达，因为 sweep 会扫描“有未消费 Inbox 且无有效 lease”的 Session 并重新调度。
+*图 4. Monitor 改变表达方式，不改变 Task 的权威来源。*
 
-```text
-durable Inbox = truth
-run signal    = low-latency hint
-sweep         = recovery
-```
+### 4.5 素材回来时重新面对当前项目
 
-若 sweep 自己维护另一份“待运行 Session 表”，就又创造了第二个真相源。它应从 Inbox、lease 和持久 Session 状态推导工作。
+等待生成期间，用户可能已经移动 Clip、替换素材或删除占位镜头。对话保存“为什么做”和原目标，当前时间线仍由项目模型维护。Agent 收到任务更新以后，延迟行动应先读取受影响对象的当前状态，再判断是使用已经完成的两张图、继续等待，还是修改原方案。
 
-## 5. Monitor：不要建立第二个任务系统
+自动感知解决“Agent 是否知道结果回来”，项目工具提供当时的工程事实。能否稳定做到“先读当前状态、再应用延迟结果”仍需实验，不能只把它当作提示词约定。
 
-### 5.1 Task 状态与通知提示分离
+> **[待补 V-M1]** 记录 Task 权威版本数、Inbox 更新数、Monitor 上下文数、任务组大小、模型继续次数和 Task 完成到 Agent 感知的延迟。
 
-Task Worker 完成一步后先提交权威数据库状态，再发送轻量提示：
+> **[待补 V-P1]** 在媒体生成期间安排人类修改目标时间线，测量 Agent 恢复后的错误覆盖率、局部修改成功率和人工接管次数。
 
-```text
-commit Task(taskId, version, status, progress, output)
-  -> emit TaskChanged(taskId, version)
-```
+> **[待补 V-P2]** 记录延迟任务恢复后对受影响对象的读取率，并评估是否需要版本前置条件等协议保证。
 
-listener 收到提示后重新读取权威 Task。提示可以重复、乱序或丢失；版本比较与周期 sweep 使最终状态仍可恢复。
+## 5. 内置 Agent 如何控制真实编辑器
 
-这比在事件消息里携带并信任完整 Task 状态更稳健，因为数据库提交和消息投递无需伪装成一个分布式事务。
+### 5.1 Agent 操作项目语义，而不是屏幕坐标
 
-### 5.2 只监控被显式等待的 cohort
+StarCut 将视频工程映射为 Agent 可读取的项目视图，并通过语义化工具开放查找、读取、创建和局部编辑能力。Agent 表达的是“读取这个时间线”“修改这个对象”或“在此处加入素材”，而不是模拟鼠标拖拽。
 
-Monitor 不扫描全系统任务，也不建立自己的任务 registry。它从当前 Session 的 WaitPort 中选择具有 monitoring policy 的 Task，形成 cohort：
+项目状态已经由 Y.Doc 建模并支持协同。Agent 不维护另一条 AI 专用时间线，也不把整份项目复制进对话。人类界面、内置 Agent 和外部 Agent 最终进入同一领域写入路径。
 
-```text
-monitoring WaitPorts
-  -> task IDs
-  -> authoritative Task snapshots
-  -> one aggregate context
-```
+### 5.2 为什么部分工具必须在浏览器执行
 
-没有对应 WaitPort 的任务不属于该 Session 的 Monitor。这样任务所有权和等待语义仍只有一个来源。
+浏览器掌握当前 Editor、播放状态、解码渲染能力和协同项目现场。服务端适合完成查询和后台任务，读取当前时间线、局部编辑、播放、抽帧和渲染等工作则必须交给在线 Editor。
 
-### 5.3 聚合而不是逐事件唤醒模型
+浏览器执行完成后，结果仍按原 `toolCallId` 进入 Inbox。对于内循环而言，浏览器只是另一类执行者；它不需要一套特殊的模型协议。
 
-长任务可能产生大量进度更新。如果每个 1% 更新都运行一次模型，会产生无意义成本和上下文噪声。Monitor 把同一 cohort 的最新版本聚合为一个隐藏上下文，例如：
+### 5.3 流式编辑只改善反馈，已提交调用才决定结果
 
-```text
-Monitored tasks: 2/5 terminal.
-- image-a: running, 70%
-- video-b: completed, artifact=...
-- video-c: failed, reason=...
-```
+当模型流式输出较长的写入内容时，浏览器可以渐进应用已收到的连续前缀，使用户尽早看到编辑过程。如果增量中断，正式提交的完整调用会补齐并完成同一次修改。
 
-聚合必须保留每个 Task 的最新权威版本，不能因为只消费了本批 4 条事件，就把总进度错误地从 `2/5` 退化为 `1/4`。
+流式 Delta 是可丢失的实时反馈，已提交 Tool Call 才是权威执行输入。这条边界使渐进编辑不会破坏恢复能力。
 
-建议触发 Agent 的条件：
+## 6. 回答、指令和执行结果如何在两端交回
 
-- cohort 首次出现需要决策的失败；
-- 有任务进入 terminal 且可能解锁后续工作；
-- 全部任务 terminal；
-- 达到显式检查点或 deadline；
-- 用户消息要求立即查看。
+对话回答主要从服务端流向界面，客户端工具还要求服务端分配执行权、浏览器执行并回传结果。StarCut 使用两类 Transport 承担不同职责。
 
-纯进度刷新可以更新 UI，但不一定需要唤醒模型。
+### 6.1 Session Stream
 
-### 5.4 幂等与关闭
+Session Stream 交付：
 
-对每个 Task，Monitor 使用版本 CAS 或单调比较拒绝旧快照。全部 terminal 后：
+- 对话历史快照；
+- 已提交消息和 Tool Call；
+- 模型流式 Delta；
+- token 使用和当前活动状态。
 
-1. 写入最终聚合上下文；
-2. 关闭对应 WaitPort；
-3. 触发外循环；
-4. 重复 TaskChanged 不再重新打开 cohort。
+默认 Transport 是 SSE，部署需要时可以使用 WebSocket。连接可以跨越多次有限思考持续存在，重新连接只恢复读取，不会凭空启动模型。
 
-> **[待补 A-C1：触发策略]** 当前需要固定“哪些 Task 更新写 Inbox、哪些只更新 UI、哪些真正触发模型”，否则成本实验无法复现。
+### 6.2 Project Stream
 
-## 6. Clock：把未来时间也写回同一个入口
+Project Stream 使用 WebSocket，交付：
 
-Agent 可能要求“十分钟后检查”或“明早继续”。Clock 只负责在到期时产生一个 Inbox context，并触发外循环。逻辑上一个 Session 只有一个 Clock 能力，不为每个 alarm 建立独立 Agent。
+- Editor 在线与能力状态；
+- 项目级执行租约；
+- 客户端 Tool Call 分配、撤销与结果；
+- 外部 Agent 的项目级调用。
 
-Clock 与 Monitor 的共同点是：它们不是另一个会思考的 Agent，而是把外部世界的变化转化为持久消息。
+它承担浏览器执行的双向协调，不复制对话生命周期。
 
-## 7. MCP 如何操纵画布
+![图 5：对话通道与项目执行通道的职责](../assets/agent-loop/dual-transport.svg)
 
-### 7.1 不要把 MCP 变成远程鼠标
+*图 5. Transport 负责及时交付，持久消息与 Inbox 负责业务连续性。*
 
-无限画布的屏幕坐标受 camera、zoom、窗口、布局和选中状态影响。外部 Coding Agent 若通过 MCP 发送“点击 (817, 424)，拖到 (1200, 424)”，得到的是脆弱的 UI 自动化。
+### 6.3 Transport 不拥有业务状态
 
-MCP 应暴露画布语义：
+SSE 与 WebSocket 回答“怎样及时送达”，不是“事实是什么”。模型 Delta 可以丢失；完整消息、Task、项目和未处理结果仍由持久状态恢复。无论结果通过 HTTP 还是 WebSocket 回传，最终都进入相同的调用结果路径。
 
-- 创建或放置一个项目节点；
-- 修改节点属性；
-- 移动/重排节点；
-- 删除节点；
-- 读取项目文件或节点；
-- 调用只能由连接 Editor 完成的客户端能力。
+> **[待补 V-T1]** 测量 SSE/WS 断线恢复、游标重复、增量丢失后的收敛时间，以及客户端结果回传到模型继续判断的延迟。
 
-像素只在视觉验证和用户交互层存在，不应成为持久协议地址。
+## 7. 同一项目打开多个窗口时怎么办
 
-### 7.2 无状态 MCP，请求显式携带项目句柄
+### 7.1 能看到调用，不等于有权执行
 
-[MCP 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) 使用无状态、自包含请求；官方说明应用若需要跨调用状态，应创建显式 handle 并由模型在后续参数中传回，而不是把状态藏在传输 session 中。
+同一个项目可以同时在浏览器标签页、桌面端和其他工作窗口打开。所有窗口都能观察项目与消息，但一项带副作用的命令只能执行一次。
 
-这与项目画布非常契合。每个调用显式携带：
+StarCut 从在线、具备所需能力且满足读写权限的 Editor 中选择一个默认执行者。客户端获得项目级执行租约后，还要确认自己已经准备好；没有及时确认时，系统可以选择其他窗口。
 
-```json
-{
-  "projectId": "project_123",
-  "path": "compositions/main.vml",
-  "changes": "PATCH #clip_42\nopacity=\"0.8\""
-}
-```
+### 7.2 每项调用还有独立执行凭证
 
-`projectId` 是可授权、可审计、模型可见的应用句柄。MCP 层不需要伪造 Agent Session，也不需要 `replyTo` 路由字段。
+项目租约决定默认窗口，单次执行凭证决定哪一次 Tool Call 执行有效。结果回传时服务端再次校验；窗口断线后，即使旧结果迟到，也不能越过已经转移的执行权。
 
-### 7.3 MCP Canvas Bridge
+可安全重试的读取操作可以改派新窗口。已经开始产生不可确认副作用的写入或渲染操作不能盲目重放，应中断并重新读取项目状态。
 
-完整链路为：
+### 7.3 多窗口中的对话与项目是两个并发层次
 
-```text
-External Agent / MCP Host
-  -> OAuth and project authorization
-  -> stateless MCP tools/call(projectId, ...)
-  -> stable mcpToolCallId
-  -> committed Project Message Stream
-  -> assigned connected Editor
-  -> ClientToolRunner
-  -> EditorToolHost
-  -> FileMutationTool / semantic canvas operation
-  -> DocumentEditing / StructuredEditing
-  -> Y.Doc
-  -> tool result in Project Inbox
-  -> MCP result
-```
+多个窗口打开同一段对话时，可以共同观察消息并从任一窗口发送新输入，但同一对话只允许一个活动模型执行。多个不同对话可以同时围绕同一项目思考，项目仍由 Y.Doc 协同；这能维护结构状态，却不能自动解决两个 Agent 的创作意图冲突。
 
-这条链路有三个重要约束：
+因此需要区分：
 
-1. MCP 只发布已提交的完整调用，不伪造模型流式 delta；
-2. MCP、内置 Agent 和人类 UI 最终进入同一 Editor 领域写路径；
-3. `toolCallId` 只负责关联调用和结果，不承担隐式会话身份。
+- 对话级租约：避免同一段对话并行思考；
+- 项目级客户端租约：避免多个窗口重复执行；
+- 项目协同模型：合并结构修改；
+- 任务归属与人工决定：处理更高层创作意图冲突。
 
-### 7.4 Project Stream 与 Session Stream
+![图 6：多窗口共享项目时的执行权选择与单次调用凭证](../assets/agent-loop/client-execution-lease.svg)
 
-内置对话 Agent 有 Session Message Stream；外部 MCP 调用可能没有对话 Session，因此使用 Project Message Stream。两者可以在入口和展示上不同，但连接浏览器必须复用同一 ClientToolRunner 与执行授权机制。
+*图 6. 所有窗口都可观察，同一项编辑命令只由一个有效 Editor 执行。*
 
-```text
-Session stream ─┐
-                ├─> ClientToolRunner -> Editor mutation chain
-Project stream ─┘
-```
+> **[待补 V-C1]** 覆盖多窗口竞争、执行中断线、租约确认超时、执行权转移和旧结果晚到，记录重复副作用率、切换时间和恢复比例。
 
-如果为 MCP 另写一套服务器端画布修改逻辑，人类 Editor 和外部 Agent 就会形成两份领域语义。
+## 8. Codex、Claude Code 如何控制同一项目
 
-### 7.5 连接 Editor 与有限等待
+### 8.1 为什么主要入口是 MCP
 
-某些项目编辑需要浏览器持有本地协同状态或平台能力。MCP 调用到达时：
+CLI 适合人类调试、脚本和固定流水线。对于已经拥有模型与 Tool Loop 的外部 Agent，MCP 可以直接暴露可发现的项目能力、参数和资源，并携带授权后的项目上下文。
 
-- 若有获得项目执行租约的 Editor，分配调用；
-- 多个标签页只能有一个获得执行 token；
-- 若客户端断开，按工具策略重分配、中断或等待；
-- 若长期没有 Editor，调用在有限 deadline 后返回清晰状态；
-- 不应在服务端悄悄维护一份不同步的“影子画布”。
+外部 Agent 不需要共享 StarCut 的内部对话，也不需要通过远程鼠标操作画布。它需要的是绑定项目、读取项目视图、提交语义操作、启动后台任务和观察结果。
 
-### 7.6 与 MCP Tasks 的关系
+### 8.2 外部上下文绑定到项目和 Editor
 
-最新 MCP 将 Tasks 作为可选扩展，支持长操作、轮询和持久 handle。画布结构编辑通常是短调用；生成视频、转写或大规模导出则适合返回 Task handle。内部 Task/Monitor 可以投影到 MCP Tasks，但不应为了适配协议复制一套权威任务状态。
+每个 MCP 上下文绑定用户、组织和项目。需要浏览器能力时，还可以绑定到特定 Editor 连接。这样，同一项目中的两个外部 Agent 可以明确操作各自选择的窗口，而不是被随机分配到任意在线 Editor。
 
-> **[待补 A-C2：MCP Tasks 映射]** 固定内部 Task status/version/output 与 MCP task handle、`tasks/get`、`tasks/update` 的对应关系及取消语义。
+普通项目 Tool Call 进入项目消息通道，复用客户端执行租约和结果 Inbox。生成与转写等后台工作进入同一 Task 系统；外部 Agent 当前使用 `poll` 观察异步结果，因为它自己的继续机制由 MCP Host 管理。
 
-## 8. 安全与一致性不变量
+### 8.3 共享能力，不共享对话
 
-### 8.1 运行不变量
+内置 Agent 与外部 Agent 共享：
 
-1. 每个 Session 最多一个活动 Process；
-2. 所有可恢复异步输入先进入持久 Inbox；
-3. run signal 可以丢失，不能承载唯一状态；
-4. WaitPort 不复制消息，只描述路由；
-5. Task 数据库状态先提交，通知后发送；
-6. Monitor 只接受版本不旧于已见版本的快照；
-7. 已提交消息本身不授予浏览器执行权；
-8. 每个客户端工具调用只有一个有效 execution token；
-9. MCP 调用必须显式授权 projectId 和操作权限；
-10. MCP 与内置 Agent 复用同一领域修改链。
+- 项目模型与 Artifact；
+- 语义化编辑工具；
+- 浏览器执行通道；
+- 后台 Task；
+- Tool Call 与结果身份。
 
-### 8.2 故障语义
+它们保留各自的对话、模型、上下文压缩和继续策略。入口不同，但不应形成两套项目语义和两套权威状态。
 
-必须定义并测试：
+![图 7：外部 Agent 通过 MCP 复用 StarCut 项目能力](../assets/agent-loop/mcp-canvas-bridge.svg)
 
-- Inbox 写入后、signal 前崩溃；
-- signal 后、lease 前重复投递；
-- lease 后、Process 启动前崩溃；
-- 模型输出中途崩溃；
-- 工具已经执行、结果写 Inbox 前断线；
-- Task 提交后、TaskChanged 前崩溃；
-- Monitor 写上下文后、关闭 WaitPort 前崩溃；
-- MCP 调用分配后浏览器关闭；
-- 工具结果已经提交但 MCP HTTP 响应丢失。
+*图 7. 外部 Agent 保留自己的 Loop，StarCut 提供项目绑定、领域工具和执行通道。*
 
-系统追求的是“最终可恢复 + 副作用有明确幂等边界”，而不能笼统声称所有外部副作用 exactly-once。
+> **[待补 V-C2]** 使用同一批项目操作验证内部与外部 Agent 的结果和错误语义，并覆盖同时修改同一对象时的冲突发现与人工接管。
 
-## 9. 与相关工作的关系
+## 9. 如何压缩上下文、管理记忆和加载 Skill
 
-### 9.1 推理—行动 Agent
+创作可以持续数小时，但模型不应反复读取全部历史、全部项目和全部 Skill。StarCut 把模型需要的信息分成四层。
 
-[ReAct](https://arxiv.org/abs/2210.03629) 和大量 tool-use Agent 研究了模型如何交错推理与行动，主要对应本文内循环。本文的重点是内循环之外的持久消息、单 Process 租约、异步结果和崩溃恢复。
+### 9.1 完整历史与压缩视图
 
-### 9.2 Durable execution 与 actor/message systems
+完整对话历史保存用户消息、模型回答、Tool Call 和结果，是可追溯事实。上下文压缩只生成模型读取视图，不删除或改写原始历史。压缩本身作为持久后台任务执行，完成后通过同一 Inbox 回到后续思考。
 
-Actor、消息队列、event sourcing、workflow engine 和 durable execution 已经广泛研究单线程实体、持久事件和故障恢复。本文不把这些基础原理声明为新发明。潜在贡献是针对生成式 Agent 的特殊边界：模型 step、UIMessage 快照、客户端工具执行权、Task Monitor 压缩和项目画布桥接如何收敛为少数权威概念。
+### 9.2 分层记忆
 
-> **[待补 A-L1：分布式系统文献]** 精读 Orleans/virtual actor、Temporal/Durable Functions、event sourcing、transactional outbox 与 lease-based work scheduling 的论文或正式技术报告，明确已有保证和本文差异。
+记忆分为个人长期、个人当日和项目范围。稳定偏好进入长期记忆，短期信息进入当日记忆，项目约定和关键决策归属于项目。当前时间线仍由项目工具读取，不整体塞进记忆。
 
-### 9.3 MCP
+### 9.3 Skill 按需加载
 
-[MCP 2026-07-28 规范](https://modelcontextprotocol.io/specification/2026-07-28) 提供无状态工具互操作、显式能力和可选 Tasks 扩展。本文不是 MCP 协议论文，而是研究如何把 MCP 调用安全地桥接到一个有协同状态、客户端执行权和无限画布的创作应用。
+初始提示只提供 Skill 名称和用途，Agent 确认需要时再加载完整内容和相关参考。Skill 可以编码剪辑流程、检查方法和案例经验，但它是否能够内化节奏感、美感与网感，必须通过实际创作任务验证。
 
-### 9.4 GUI 与 ACI
+![图 8：完整历史、压缩视图、记忆、当前项目与 Skill 的分工](../assets/agent-loop/context-memory-skill.svg)
 
-[SWE-agent](https://arxiv.org/abs/2405.15793)、[OSWorld](https://arxiv.org/abs/2404.07972) 和 [AgenticVBench](https://arxiv.org/abs/2605.27705) 都说明 Agent harness/接口会显著影响行为与成功率。本文的 MCP Canvas 章节延续同一观点：外部 Agent 应调用稳定语义，而不是复刻人类鼠标路径。
+*图 8. 不同生命周期的信息不应被压进同一份长对话。*
 
-## 10. 贡献与创新性评估
+> **[待补 V-S1]** 建立包含节奏、信息密度、镜头连续性和平台风格的任务集，比较无 Skill、规则 Skill 和带案例 Skill 的质量、修改次数与人工接管。
 
-建议把潜在贡献收敛为：
+## 10. 故障恢复与一致性边界
 
-1. 一个明确区分模型工具内循环与持久消息外循环的 Agent 运行模型；
-2. 一个以单 Inbox、Session lease 和可恢复 sweep 保证串行 Session Process 的实现；
-3. 一个将 WaitPort 作为路由状态、Monitor 作为权威 Task 更新 sidecar 的长任务聚合机制；
-4. 一个把无状态 MCP 语义调用桥接到有状态浏览器 Editor、同时保持单一领域写路径的 Canvas 执行协议；
-5. 一套覆盖崩溃、多副本、重复通知和浏览器断连的故障注入评测。
+### 10.1 持久事实先于低延迟提示
 
-其中“内外循环”“Inbox”“lease”“Monitor”“MCP”单独都不是新概念。论文价值取决于概念压缩是否带来可测的可靠性与成本收益，以及是否能用故障实验而非架构图证明。
+新的用户消息和外部结果先进入 Inbox，再发送唤醒提示。Task 先提交权威状态，再广播变化提示。提示可以重复或丢失，周期性恢复检查从 Inbox、开放调用和 Task 状态重新发现工作。
+
+### 10.2 消费确认晚于历史提交
+
+Inbox 条目先进入处理中状态，只有在已经写入权威对话历史以后才确认删除。中途崩溃时，下一次执行会重新读取同一输入；消息身份和版本保证重复折叠。
+
+### 10.3 不同租约保护不同资源
+
+- 对话租约保证同一段对话最多一个活动模型执行；
+- Task 执行凭证防止旧 Worker 继续写任务；
+- 客户端执行凭证防止旧窗口提交迟到结果。
+
+三者不能合并成一个笼统的锁，因为它们分别保护思考、后台工作和项目副作用。
+
+### 10.4 保证的边界
+
+系统追求持久事实最终可恢复、同一对话串行、Task 版本单调和客户端结果受执行权约束。外部生成供应商提交与本地 Task 记录、浏览器已产生但尚未回报的副作用，仍需要业务幂等键、状态重读或人工确认。本文不笼统承诺端到端 exactly-once。
+
+![图 9：一次视频创作跨越多次有限思考、后台任务与人的修改](../assets/agent-loop/inner-outer-timeline.svg)
+
+*图 9. 重新判断时应读取当前项目，而不是恢复几分钟前的项目副本。*
+
+> **[待补 V-R1]** 在消息提交、Inbox 确认、Task 提交、任务通知、Monitor 转换和执行权转移后分别终止实例，统计遗漏、重复、恢复时间和最终项目一致性。
 
 ## 11. 实验设计
 
-### 11.1 基线
+### 11.1 研究问题
 
-1. 一个常驻进程承担整段 Session 生命周期；
-2. 每个事件直接启动 Process、无 Session lease；
-3. 工具结果、Task 更新和 Clock 各自独立队列；
-4. Agent 主动轮询所有 Task；
-5. 每个 Task 进度事件都唤醒模型；
-6. 双环 + 单 Inbox + WaitPort + Monitor；
-7. MCP 像素 GUI 操作；
-8. MCP 服务器端影子状态修改；
-9. MCP 语义操作 + 连接 Editor 执行。
+- **RQ1：** 立即交回和有限等待能否提高多媒体任务的并发效率？
+- **RQ2：** Monitor 能否让后台结果在无人提醒的情况下稳定回到 Agent？
+- **RQ3：** 多种 Tool 执行位置能否共享一致的结果语义？
+- **RQ4：** 双 Transport 在断线后能否从持久状态收敛？
+- **RQ5：** 多窗口执行租约能否避免重复项目副作用？
+- **RQ6：** 内置 Agent 与外部 Agent 是否获得一致的项目操作语义？
+- **RQ7：** 上下文压缩、记忆与 Skill 如何影响成本和创作质量？
+- **RQ8：** 故障发生后，未处理输入和开放调用能否恢复？
 
-### 11.2 工作负载
+### 11.2 对照方案
 
-- 短对话、多次同步工具；
-- 多标签页打开同一项目；
-- 5、20、100 个并发生成 Task；
-- Task 进度高频更新；
-- Session 运行中连续用户追问；
-- Clock 到期与用户消息同时到达；
-- 外部 MCP 批量修改画布；
-- 浏览器在线、重连、离线三种条件；
-- Worker 多副本扩缩容与滚动部署。
+1. 长任务 Tool Call 阻塞到最终完成；
+2. Tool Call 立即交回，但依赖用户再次提醒；
+3. Agent 主动轮询后台任务；
+4. 统一 Inbox + 调用关联记录 + Monitor；
+5. 所有 Tool 都在服务端执行；
+6. 服务端与真实 Editor 分工；
+7. 多窗口观察到调用后各自执行；
+8. 项目租约 + 单次执行凭证；
+9. 外部 Agent 使用影子项目；
+10. 外部 Agent 复用真实项目模型和 Editor。
 
-### 11.3 指标
+### 11.3 工作负载与指标
 
-- 同 Session 并发 Process 违规次数；
-- 重复客户端工具执行率；
-- Inbox 写入到 Process 开始延迟；
-- signal 丢失后的 sweep 恢复时间；
-- Process 崩溃后的任务完成率；
-- 每个用户目标的模型调用次数；
-- 原始 Task update 数、Monitor context 数与压缩率；
-- 进度倒退或 cohort 计数错误次数；
-- 长任务期间 token 与费用；
-- MCP 调用到画布提交/结果返回延迟；
-- 多标签页执行权切换成功率；
-- 无连接 Editor 时的明确失败/等待比例；
-- Redis、数据库和 Worker 资源使用。
+| 场景 | 主要指标 |
+|---|---|
+| 1、5、10、20 项并发生成 | 请求受理延迟、全部完成时间、同时活跃 Task 数 |
+| Task 进度与完成回流 | Agent 感知延迟、需要用户提醒次数、模型继续次数、token |
+| 服务端与浏览器 Tool | 结果延迟、错误语义一致性、恢复率 |
+| SSE/WS 断线重连 | 游标重复、增量丢失后的收敛时间 |
+| 多窗口执行 | 重复副作用、旧凭证拒绝、执行权切换耗时 |
+| 人和 Agent 并行修改 | 错误覆盖率、冲突发现率、人工接管率 |
+| MCP 外部调用 | 项目操作一致性、异步结果可观察性 |
+| 压缩、记忆与 Skill | 上下文 token、完成质量、返工次数 |
+| 通知丢失与实例终止 | 遗漏结果、重复结果、恢复率和恢复时间 |
 
-### 11.4 故障注入矩阵
+## 12. 局限与待解决问题
 
-> **[待补 A-D1]** 在每个持久化边界之后自动 kill Worker，至少重复 100 次并验证最终消息、Inbox、lease、WaitPort 和 Task 状态。
+Video Agent Loop 解决的是持续感知、可靠行动和多入口协同，不直接保证创作质量。AI Cut 与 Human Cut 的差距仍然体现在节奏、美感、镜头运动、叙事意图和平台风格的理解上。Skill 可能沉淀部分方法，但需要实践验证。
 
-> **[待补 A-D2]** 重复、乱序和丢弃 TaskChanged，验证权威 DB 重读与版本 CAS。
+当前实现让每个权威 Task 版本进入 Inbox。任务更新频率提高以后，怎样在不丢事实的前提下控制模型继续次数，仍需实验。
 
-> **[待补 A-D3]** 重复 run signal 并增加 Worker 数量，验证同 Session 单 Process。
+Y.Doc 可以维护结构一致性，却不能自动解决多个 Agent 的创作意图冲突。需要进一步研究任务归属、版本策略和人工裁决。
 
-> **[待补 A-D4]** 在客户端工具已修改 Y.Doc 但结果未提交时断网，验证幂等键、结果恢复和用户可见状态。
+当所有 Editor 离线时，必须依赖浏览器现场的工具无法立即执行。系统可以保存调用或返回明确状态，但不能假装服务端拥有同一编辑环境。
 
-> **[待补 A-D5]** 对 MCP HTTP 响应丢失进行重试，验证同一调用 ID 不重复修改画布。
+## 13. 相关工作
 
-## 12. 研发阶段必须埋点
+[ReAct](https://arxiv.org/abs/2210.03629) 研究模型如何交错推理与行动，对应本文的内循环。本文进一步关注结果跨越当前模型执行后，怎样进入持续业务循环。
 
-> **[待补 A-T1]** 为每个 Inbox entry 记录 producer、persistedAt、signaledAt、claimedAt、ackedAt、processId。
+Orleans Virtual Actor、Azure Durable Functions、Temporal、event sourcing 和消息驱动系统研究持久状态、顺序执行和故障恢复。本文复用这些基础原理，讨论它们与模型步骤、媒体产物、浏览器执行权和协同项目的结合。
 
-> **[待补 A-T2]** 为 lease 记录 owner、acquire/renew/release、失效原因和抢占失败。
+[SWE-agent](https://arxiv.org/abs/2405.15793) 强调 Agent-Computer Interface 对 Agent 行为的影响；[OSWorld](https://arxiv.org/abs/2404.07972) 展示通用 GUI Agent 的现实困难；[AgenticVBench](https://arxiv.org/abs/2605.27705) 开始评估后期制作任务中的工具使用和失败模式。StarCut 同样选择稳定的项目语义，而不是屏幕坐标。
 
-> **[待补 A-T3]** 为每次 Process 记录加载消息数、吸收 Inbox 数、模型 step 数、退出原因和未完成 WaitPort。
+MCP 提供外部 Agent 与工具的标准接口和异步任务扩展。本文关注的是如何把 MCP 桥接到一份由人、内置 Agent 和多个窗口共同维护的视频工程。
 
-> **[待补 A-T4]** 为 Task/Monitor 记录原始 version、丢弃旧版本、cohort 大小、聚合次数、唤醒原因和 token。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的插件化模型适配、Tool Pipeline、Agent Loop、Session Event Log、统一 Inbox、Background Jobs 和 Compaction，与 StarCut 的通用模型运行层存在重合。后续可用相同的视频工作负载检验它是否减少模型适配、工具管线、完整历史与上下文压缩的实现复杂度；媒体 Task—Artifact 关系、任务组感知、浏览器执行权、MCP 项目绑定和 Y.Doc 协同仍属于视频业务运行时的研究范围。
 
-> **[待补 A-T5]** 为 Client Tool 记录 assignment、execution token、浏览器 identity、开始/完成/撤销和重复观察。
+> **[待补 V-H1]** 用同一批 Tool Calling、并发生成、上下文压缩和浏览器执行任务，对比现有实现与 Harness 插件实现的适配代码量、重复状态源、延迟和故障覆盖。
 
-> **[待补 A-T6]** 为 MCP 记录授权 projectId、toolCallId、Project Stream messageId、Editor assignment、Y.Doc transaction 与最终结果的关联链。
+> **[待补 V-L1]** 补充 virtual actor、durable execution、transactional outbox、event sourcing、lease scheduling 和 human-in-the-loop workflow 的论文或正式技术报告，逐项说明本文复用的已有原理。
 
-## 13. 公开文章的早期提纲
+## 14. 结论
 
-### 13.1 内循环负责思考，外循环负责活着
+StarCut 的 Video Agent Loop 不是一条无限运行的模型循环，而是一套围绕持续创作组织起来的运行架构。Vercel AI SDK 负责当前模型与工具的连续交互；Inbox 让用户、服务端、浏览器和后台任务的结果回到同一入口；等待策略与 Monitor 让长媒体任务不阻塞当前工作；项目模型为迟到结果提供当时的工程事实；双 Transport 连接对话交付与浏览器执行；租约避免多实例和多窗口重复行动；MCP 让外部 Agent 复用同一项目能力；压缩、记忆和 Skill 则维持较长创作中的上下文。
 
-Agent 一次调用模型后，模型可能搜索、读取、编辑，再根据工具结果继续。这是内循环。它适合解决“当前这件事下一步做什么”。
-
-但视频生成可能十分钟后才完成，用户可能在此期间追问，浏览器也可能断开。不能让一个 JavaScript Promise 永远挂着，假装进程不会重启。于是需要外循环：任何新事实先写进一个持久 Inbox，再唤醒这个 Session。
-
-每个 Session 同时只能有一个 Process。新的消息到达时，如果旧 Process 还在，它会在下一步吸收；如果已经结束，Worker 获取租约后启动新的 Process。信号丢了也没关系，sweep 会从 Inbox 发现尚未处理的事实。
-
-内循环让 Agent 会做事，外循环让 Agent 在真实系统里不会因为重启和等待而失忆。
-
-### 13.2 Monitor 不应该成为第二个任务系统
-
-一个 Agent 同时生成五个素材时，最容易出现的设计是再建一个 Monitor 服务，保存一份自己的任务列表和进度队列。很快，数据库里的 Task、Monitor 的列表和 Agent 的等待状态就会互相不一致。
-
-更合理的做法是只保留一个权威 Task。Task 先提交数据库，再发“它变了”的提示。Monitor 重新读数据库，只观察那些已经有 WaitPort 表示 Agent 正在等待的任务。
-
-进度也不应该每变化 1% 就叫醒一次模型。Monitor 把五个任务的最新状态压成一条上下文，在失败、完成或达到检查点时再唤醒 Agent。它是信息压缩器和唤醒策略，不是第二个任务平台。
-
-### 13.3 MCP 如何操纵画布
-
-让外部 Coding Agent 操纵画布，最直观的办法是给它远程鼠标。但画布只要缩放一下，昨天的坐标就失效了。Agent 真正想表达的通常不是“从 817 像素拖到 1200 像素”，而是“把这个片段移动到那条轨道”。
-
-MCP 调用应该携带明确的项目 ID 和语义操作。服务端完成授权后，把调用写进项目消息流；当前获得执行权的浏览器 Editor 使用和内置 Agent 相同的编辑链修改 Y.Doc，再把结果按 toolCallId 返回。
-
-外部 Agent、内置 Agent 和人类界面可以有不同入口，但不能各自拥有一套画布真相。MCP 的作用是标准化连接，不是绕过编辑器的数据模型。
-
-## 14. 写作与研发检查清单
-
-- [ ] 在所有文档中只承认内、外两个业务循环；
-- [ ] 明确 listener、SSE、reconnect、sweep 和 Monitor 的非业务循环身份；
-- [ ] 所有生产者坚持 Inbox first、signal second；
-- [ ] 验证 Session lease 的 acquire/release 原子边界；
-- [ ] WaitPort 不存第二份结果队列；
-- [ ] TaskChanged 只作提示，消费者重读权威 Task；
-- [ ] 固定 Monitor 唤醒策略和 cohort 关闭条件；
-- [ ] 对每个崩溃窗口做自动故障注入；
-- [ ] MCP 显式携带 projectId，不引入隐藏 transport session；
-- [ ] MCP 与内置 Agent 复用同一 ClientToolRunner 和 Editor 写路径；
-- [ ] 区分 MCP 短画布调用与长 Task；
-- [ ] 不声称端到端 exactly-once，逐项说明幂等边界。
+这些机制分别对应视频创作中实际发生的问题，又通过少数权威状态收敛在同一业务循环中。后续实验需要验证它们是否真正改善并发效率、自动续作、恢复能力和协同正确性，也需要继续评估通用 Harness 能否减少 StarCut 的基础运行代码，而不模糊视频业务边界。
 
 ## 参考文献（首轮）
 
 1. S. Yao et al., [ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629), 2022/2023.
-2. Model Context Protocol, [Specification 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28).
-3. Model Context Protocol Blog, [The 2026-07-28 Specification](https://blog.modelcontextprotocol.io/posts/2026-07-28/), 2026.
-4. J. Yang et al., [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793), 2024.
-5. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
-6. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
-7. **[待补 A-L1]** Virtual actor、durable execution、transactional outbox、event sourcing、lease scheduling 与 workflow recovery 的系统论文。
+2. Vercel, [AI SDK: ToolLoopAgent](https://ai-sdk.dev/docs/reference/ai-sdk-core/tool-loop-agent).
+3. DeepSeek AI, [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), developer preview, 2026.
+4. DeepSeek AI, [DeepSeek Harness Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md), 2026.
+5. J. Yang et al., [SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering](https://arxiv.org/abs/2405.15793), 2024.
+6. T. Xie et al., [OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments](https://arxiv.org/abs/2404.07972), 2024.
+7. Z. Cao et al., [AgenticVBench: Can AI Agents Complete Real-World Post-Production Tasks?](https://arxiv.org/abs/2605.27705), 2026.
+8. P. Bernstein et al., [Orleans: Distributed Virtual Actors for Programmability and Scalability](https://www.microsoft.com/en-us/research/publication/orleans-distributed-virtual-actors-for-programmability-and-scalability/), Microsoft Research Technical Report, 2014.
+9. Microsoft, [Durable Functions Overview](https://learn.microsoft.com/en-us/azure/durable-task/durable-functions/durable-functions-overview).
+10. Temporal Technologies, [Temporal Documentation](https://docs.temporal.io/).
+11. Model Context Protocol, [Tasks Overview](https://modelcontextprotocol.io/extensions/tasks/overview).
+12. **[待补 V-L1]** Transactional outbox、event sourcing、lease scheduling 与 human-in-the-loop workflow 的系统论文。

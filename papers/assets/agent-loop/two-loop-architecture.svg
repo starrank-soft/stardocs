@@ -1,105 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="920" viewBox="0 0 1600 920" role="img" aria-labelledby="title desc">
-  <title id="title">StarCut Video Agent Loop 基本结构</title>
-  <desc id="desc">一次短暂的模型与工具循环运行在持续存在的创作过程之中。用户要求、媒体完成、项目变化和编辑器结果会在需要时启动下一次运行，项目、后台工作和创作记录持续存在。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1080" viewBox="0 0 1800 1080" role="img" aria-labelledby="title desc">
+  <title id="title">StarCut Video Agent Loop 总体架构</title>
+  <desc id="desc">上方展示模型判断、调用工具、读取结果并继续的内循环。下方展示工作交给服务端、编辑器、后台任务或人以后，结果经收信箱回到当前或下一次思考的业务循环。底部是对话、项目、任务和待处理输入等持续存在的业务事实。</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#071321"/>
-      <stop offset="1" stop-color="#171229"/>
-    </linearGradient>
-    <linearGradient id="outer" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#111d32"/>
-      <stop offset="1" stop-color="#191833"/>
-    </linearGradient>
-    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#0e3147"/>
-      <stop offset="1" stop-color="#27204a"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#22d3ee"/>
-      <stop offset="1" stop-color="#a78bfa"/>
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="14" stdDeviation="17" flood-color="#000" flood-opacity="0.34"/>
-    </filter>
-    <marker id="arrowCyan" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0 0L12 6L0 12Z" fill="#67e8f9"/>
-    </marker>
-    <marker id="arrowViolet" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-      <path d="M0 0L12 6L0 12Z" fill="#c084fc"/>
-    </marker>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07131f"/><stop offset="1" stop-color="#151326"/></linearGradient>
+    <linearGradient id="inner" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#0d3146"/><stop offset="1" stop-color="#252044"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity=".28"/></filter>
+    <marker id="cyan" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0L11 5.5L0 11Z" fill="#67e8f9"/></marker>
+    <marker id="violet" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0L11 5.5L0 11Z" fill="#c4b5fd"/></marker>
+    <marker id="green" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0L11 5.5L0 11Z" fill="#6ee7b7"/></marker>
+    <style>text{font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}.h{font-size:40px;font-weight:700;fill:#f8fafc}.sub{font-size:20px;fill:#94a3b8}.band{font-size:25px;font-weight:700}.t{font-size:21px;font-weight:700;fill:#f8fafc}.p{font-size:17px;fill:#cbd5e1}.m{font-size:14px;fill:#94a3b8}.box{filter:url(#shadow)}</style>
   </defs>
 
-  <rect width="1600" height="920" fill="url(#bg)"/>
-  <circle cx="1260" cy="330" r="320" fill="#2563eb" opacity="0.04"/>
+  <rect width="1800" height="1080" fill="url(#bg)"/>
+  <text x="900" y="55" text-anchor="middle" class="h">一份视频创作，为什么需要两层 Loop</text>
+  <text x="900" y="91" text-anchor="middle" class="sub">一次思考可以结束；项目、任务和新输入让创作继续</text>
 
-  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
-    <text x="800" y="62" text-anchor="middle" fill="#f8fafc" font-size="40" font-weight="700">StarCut Video Agent Loop</text>
-    <text x="800" y="103" text-anchor="middle" fill="#94a3b8" font-size="21">一次 Run 处理当前工作 · 整个创作过程跨越等待、变化与再次行动</text>
+  <rect x="70" y="125" width="1660" height="245" rx="30" fill="url(#inner)" stroke="#38bdf8" stroke-width="2"/>
+  <text x="108" y="169" class="band" fill="#a5f3fc">内循环 · 完成当前这一步</text>
+  <text x="1693" y="169" text-anchor="end" class="m">模型与工具的连续配合</text>
+
+  <g class="box">
+    <rect x="170" y="215" width="270" height="95" rx="20" fill="#103249" stroke="#38bdf8"/>
+    <rect x="575" y="215" width="270" height="95" rx="20" fill="#282047" stroke="#a78bfa"/>
+    <rect x="980" y="215" width="270" height="95" rx="20" fill="#14352f" stroke="#34d399"/>
+    <rect x="1385" y="215" width="245" height="95" rx="20" fill="#103249" stroke="#38bdf8"/>
   </g>
+  <text x="305" y="253" text-anchor="middle" class="t">理解目标与现场</text><text x="305" y="283" text-anchor="middle" class="m">现在应该做什么</text>
+  <text x="710" y="253" text-anchor="middle" class="t">调用一项能力</text><text x="710" y="283" text-anchor="middle" class="m">读取、编辑、生成或询问</text>
+  <text x="1115" y="253" text-anchor="middle" class="t">读取即时结果</text><text x="1115" y="283" text-anchor="middle" class="m">结果已经可得时继续</text>
+  <text x="1507" y="253" text-anchor="middle" class="t">继续或交回</text><text x="1507" y="283" text-anchor="middle" class="m">形成下一步或回答</text>
+  <path d="M440 262H565" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#cyan)"/>
+  <path d="M845 262H970" stroke="#c4b5fd" stroke-width="4" fill="none" marker-end="url(#violet)"/>
+  <path d="M1250 262H1375" stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#green)"/>
+  <path d="M1507 310C1507 349 305 349 305 320" stroke="#67e8f9" stroke-width="3" fill="none" marker-end="url(#cyan)"/>
 
-  <rect x="70" y="140" width="1460" height="690" rx="42" fill="url(#outer)" stroke="#a78bfa" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="70" y="405" width="1660" height="535" rx="30" fill="#111a2d" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="108" y="451" class="band" fill="#ddd6fe">外循环 · 让发出去的工作重新回到创作过程</text>
+  <text x="1693" y="451" text-anchor="end" class="m">跨越执行位置、等待时间和人的介入</text>
 
-  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
-    <text x="115" y="192" fill="#e9d5ff" font-size="27" font-weight="700">外循环 · 持续存在的创作过程</text>
-    <text x="1485" y="192" text-anchor="end" fill="#a5b4fc" font-size="17">平时可以没有模型运行</text>
+  <g class="box"><rect x="110" y="520" width="285" height="180" rx="24" fill="#102e43" stroke="#38bdf8" stroke-width="2"/></g>
+  <text x="252" y="559" text-anchor="middle" class="t">已经发出的工作</text>
+  <path d="M157 600H347V657H157Z" fill="#143b52" stroke="#67e8f9"/><path d="M157 600L252 641L347 600" fill="none" stroke="#67e8f9" stroke-width="3"/>
+  <text x="252" y="683" text-anchor="middle" class="m">完整调用先被保存，再交付执行</text>
 
-    <text x="115" y="250" fill="#94a3b8" font-size="17" font-weight="700" letter-spacing="2">后来发生的事情</text>
-    <g filter="url(#shadow)">
-      <rect x="115" y="272" width="285" height="68" rx="18" fill="#102b40" stroke="#38bdf8"/>
-      <rect x="445" y="272" width="285" height="68" rx="18" fill="#102b40" stroke="#38bdf8"/>
-      <rect x="775" y="272" width="285" height="68" rx="18" fill="#2a2245" stroke="#a78bfa"/>
-      <rect x="1105" y="272" width="310" height="68" rx="18" fill="#2a2245" stroke="#a78bfa"/>
-    </g>
-    <text x="257" y="314" text-anchor="middle" fill="#e0f2fe" font-size="20">用户提出新要求</text>
-    <text x="587" y="314" text-anchor="middle" fill="#e0f2fe" font-size="20">图片或视频完成</text>
-    <text x="917" y="314" text-anchor="middle" fill="#ede9fe" font-size="20">项目被继续修改</text>
-    <text x="1260" y="314" text-anchor="middle" fill="#ede9fe" font-size="20">编辑器返回执行结果</text>
+  <g class="box"><rect x="500" y="495" width="455" height="250" rx="26" fill="#221e3b" stroke="#a78bfa"/></g>
+  <text x="727" y="536" text-anchor="middle" class="t">工作真正发生的地方</text>
+  <rect x="540" y="570" width="170" height="68" rx="16" fill="#103249"/><rect x="742" y="570" width="170" height="68" rx="16" fill="#292348"/>
+  <rect x="540" y="655" width="170" height="62" rx="16" fill="#15352f"/><rect x="742" y="655" width="170" height="62" rx="16" fill="#3b2938"/>
+  <text x="625" y="600" text-anchor="middle" class="p">服务端</text><text x="625" y="624" text-anchor="middle" class="m">查询与准备</text>
+  <text x="827" y="600" text-anchor="middle" class="p">Editor</text><text x="827" y="624" text-anchor="middle" class="m">读取与编辑项目</text>
+  <text x="625" y="684" text-anchor="middle" class="p">后台媒体任务</text><text x="625" y="706" text-anchor="middle" class="m">并行生成与转写</text>
+  <text x="827" y="684" text-anchor="middle" class="p">创作者</text><text x="827" y="706" text-anchor="middle" class="m">回答与取舍</text>
+  <path d="M395 610H490" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#cyan)"/>
 
-    <path d="M257 340C257 378 395 378 470 405" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-    <path d="M587 340V395" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-    <path d="M917 340V395" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
-    <path d="M1260 340C1260 378 1150 378 1085 405" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
-  </g>
+  <g class="box"><rect x="1040" y="500" width="330" height="225" rx="26" fill="#15342f" stroke="#34d399" stroke-width="2"/></g>
+  <text x="1205" y="542" text-anchor="middle" class="t">收信箱 · Inbox</text>
+  <rect x="1086" y="580" width="85" height="55" rx="9" fill="#173047" stroke="#67e8f9"/><rect x="1171" y="590" width="85" height="55" rx="9" fill="#292348" stroke="#c4b5fd"/>
+  <path d="M1086 580L1128 608L1171 580M1171 590L1213 618L1256 590" fill="none" stroke="#cbd5e1"/>
+  <path d="M1085 659H1325L1292 704H1118Z" fill="#0f443d" stroke="#6ee7b7" stroke-width="2"/>
+  <text x="1205" y="699" text-anchor="middle" class="m">消息 · 工具结果 · 任务变化 · 上下文</text>
+  <path d="M955 610H1030" stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#green)"/>
 
-  <rect x="270" y="400" width="1060" height="245" rx="34" fill="url(#inner)" stroke="url(#accent)" stroke-width="3" filter="url(#shadow)"/>
+  <g class="box"><rect x="1435" y="520" width="245" height="180" rx="24" fill="#102b3f" stroke="#38bdf8"/></g>
+  <text x="1557" y="560" text-anchor="middle" class="t">交给 Agent</text>
+  <rect x="1470" y="595" width="175" height="38" rx="12" fill="#14384b"/><rect x="1470" y="648" width="175" height="38" rx="12" fill="#292348"/>
+  <text x="1557" y="620" text-anchor="middle" class="m">当前思考仍在：继续</text><text x="1557" y="673" text-anchor="middle" class="m">当前思考已停：再次判断</text>
+  <path d="M1370 610H1425" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#cyan)"/>
+  <path d="M1557 520V392C1557 382 1180 395 1115 320" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#cyan)"/>
 
-  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
-    <text x="315" y="447" fill="#bae6fd" font-size="25" font-weight="700">内循环 · 一次可以连续完成的 Run</text>
-    <text x="1285" y="445" text-anchor="end" fill="#7dd3fc" font-size="17">Vercel AI SDK · ToolLoopAgent</text>
+  <g class="box"><path d="M500 795H805L855 842L805 889H500Z" fill="#2a2340" stroke="#a78bfa" stroke-width="2"/></g>
+  <text x="662" y="830" text-anchor="middle" class="t">调用回执</text><text x="662" y="860" text-anchor="middle" class="m">记住后台任务属于哪次调用、应回到哪里</text>
+  <path d="M625 745V785" stroke="#c4b5fd" stroke-width="3" fill="none" marker-end="url(#violet)"/>
 
-    <g filter="url(#shadow)">
-      <rect x="330" y="495" width="205" height="92" rx="21" fill="#15364b" stroke="#38bdf8"/>
-      <rect x="585" y="495" width="180" height="92" rx="21" fill="#242044" stroke="#a78bfa"/>
-      <rect x="815" y="495" width="180" height="92" rx="21" fill="#15364b" stroke="#38bdf8"/>
-      <rect x="1045" y="495" width="225" height="92" rx="21" fill="#19352f" stroke="#34d399"/>
-    </g>
-    <text x="432" y="532" text-anchor="middle" fill="#e0f2fe" font-size="20" font-weight="700">读取当前状态</text>
-    <text x="432" y="562" text-anchor="middle" fill="#94a3b8" font-size="15">历史 · 项目 · 新输入</text>
-    <text x="675" y="532" text-anchor="middle" fill="#ede9fe" font-size="20" font-weight="700">模型判断</text>
-    <text x="675" y="562" text-anchor="middle" fill="#a5b4fc" font-size="15">回答或调用工具</text>
-    <text x="905" y="532" text-anchor="middle" fill="#e0f2fe" font-size="20" font-weight="700">执行工具</text>
-    <text x="905" y="562" text-anchor="middle" fill="#94a3b8" font-size="15">服务端或编辑器</text>
-    <text x="1157" y="532" text-anchor="middle" fill="#d1fae5" font-size="20" font-weight="700">获得结果</text>
-    <text x="1157" y="562" text-anchor="middle" fill="#94a3b8" font-size="15">继续判断或结束</text>
+  <g class="box"><rect x="955" y="785" width="415" height="115" rx="22" fill="#272142" stroke="#a78bfa"/></g>
+  <text x="1162" y="824" text-anchor="middle" class="t">任务感知 · Monitor</text>
+  <text x="1162" y="854" text-anchor="middle" class="p">把版本化任务状态整理成 Agent 可理解的新输入</text>
+  <text x="1162" y="881" text-anchor="middle" class="m">不执行任务，也不保存第二份任务状态</text>
+  <path d="M855 842H945" stroke="#c4b5fd" stroke-width="3" fill="none" marker-end="url(#violet)"/>
+  <path d="M1205 785V735" stroke="#6ee7b7" stroke-width="3" fill="none" marker-end="url(#green)"/>
 
-    <path d="M535 541H575" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-    <path d="M765 541H805" fill="none" stroke="#c084fc" stroke-width="4" marker-end="url(#arrowViolet)"/>
-    <path d="M995 541H1035" fill="none" stroke="#67e8f9" stroke-width="4" marker-end="url(#arrowCyan)"/>
-    <path d="M1157 587C1157 625 675 625 675 597" fill="none" stroke="#34d399" stroke-width="4" stroke-dasharray="9 8" marker-end="url(#arrowCyan)"/>
-
-    <text x="115" y="704" fill="#94a3b8" font-size="17" font-weight="700" letter-spacing="2">Run 结束以后仍然存在</text>
-    <g filter="url(#shadow)">
-      <rect x="115" y="727" width="400" height="66" rx="19" fill="#12332f" stroke="#34d399"/>
-      <rect x="600" y="727" width="400" height="66" rx="19" fill="#102b40" stroke="#38bdf8"/>
-      <rect x="1085" y="727" width="330" height="66" rx="19" fill="#2a2245" stroke="#a78bfa"/>
-    </g>
-    <text x="315" y="768" text-anchor="middle" fill="#d1fae5" font-size="20">当前视频项目</text>
-    <text x="800" y="768" text-anchor="middle" fill="#e0f2fe" font-size="20">仍在进行的后台工作</text>
-    <text x="1250" y="768" text-anchor="middle" fill="#ede9fe" font-size="20">创作记录</text>
-  </g>
-
-  <g font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">
-    <rect x="300" y="854" width="1000" height="44" rx="22" fill="#101b2d" stroke="#475569"/>
-    <text x="800" y="883" text-anchor="middle" fill="#cbd5e1" font-size="18">新的事情出现时，再读取当前状态并启动下一次 Run</text>
-  </g>
+  <rect x="105" y="962" width="1590" height="86" rx="22" fill="#171e2e" stroke="#475569"/>
+  <text x="145" y="994" class="p">持续存在的业务事实</text>
+  <rect x="405" y="980" width="250" height="48" rx="14" fill="#103248"/><rect x="680" y="980" width="250" height="48" rx="14" fill="#13352f"/><rect x="955" y="980" width="250" height="48" rx="14" fill="#292348"/><rect x="1230" y="980" width="420" height="48" rx="14" fill="#173047"/>
+  <text x="530" y="1010" text-anchor="middle" class="p">对话历史 · 目标与决策</text><text x="805" y="1010" text-anchor="middle" class="p">当前项目 · 时间线与素材</text><text x="1080" y="1010" text-anchor="middle" class="p">后台任务 · 状态与产物</text><text x="1440" y="1010" text-anchor="middle" class="p">待处理输入与执行权 · 谁继续、谁执行</text>
 </svg>

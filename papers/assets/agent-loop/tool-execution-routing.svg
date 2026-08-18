@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Tool Call 的执行与结果回路</title>
+  <desc id="desc">Agent 先保存完整 Tool Call，再按能力交给服务端或一个在线 Editor。无论执行位置在哪里，结果都携带原调用身份回到同一个 Inbox。</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071522"/><stop offset="1" stop-color="#17132a"/></linearGradient><filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="9" stdDeviation="11" flood-color="#000" flood-opacity=".3"/></filter><marker id="a" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0L11 5.5L0 11Z" fill="#67e8f9"/></marker><marker id="v" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0L11 5.5L0 11Z" fill="#c4b5fd"/></marker><marker id="g" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0L11 5.5L0 11Z" fill="#6ee7b7"/></marker><style>text{font-family:Inter,"PingFang SC","Microsoft YaHei",sans-serif}.h{font-size:38px;font-weight:700;fill:#f8fafc}.sub{font-size:20px;fill:#94a3b8}.t{font-size:20px;font-weight:700;fill:#f8fafc}.p{font-size:16px;fill:#cbd5e1}.m{font-size:14px;fill:#94a3b8}.box{filter:url(#s)}</style></defs>
+  <rect width="1600" height="900" fill="url(#bg)"/><text x="800" y="60" text-anchor="middle" class="h">Agent 发出的工具调用由谁执行</text><text x="800" y="98" text-anchor="middle" class="sub">先提交调用事实，再决定执行位置；结果始终返回同一个 Inbox</text>
+
+  <g class="box"><rect x="105" y="160" width="345" height="135" rx="24" fill="#102e43" stroke="#38bdf8"/><rect x="625" y="145" width="350" height="165" rx="26" fill="#282044" stroke="#a78bfa" stroke-width="2"/><rect x="1150" y="160" width="345" height="135" rx="24" fill="#15342f" stroke="#34d399"/></g>
+  <text x="277" y="205" text-anchor="middle" class="t">一次工具调用</text><text x="277" y="239" text-anchor="middle" class="p">模型形成完整 Tool Call</text><text x="277" y="267" text-anchor="middle" class="m">产生副作用前先保存调用事实</text>
+  <text x="800" y="194" text-anchor="middle" class="t">已经提交的调用</text><text x="800" y="230" text-anchor="middle" class="p">参数完整，允许执行</text><text x="800" y="261" text-anchor="middle" class="m">可观察 · 可恢复 · 可按调用身份去重</text>
+  <text x="1322" y="205" text-anchor="middle" class="t">收信箱 · Inbox</text><text x="1322" y="239" text-anchor="middle" class="p">结果携带原调用身份</text><text x="1322" y="267" text-anchor="middle" class="m">执行位置不改变结果协议</text>
+  <path d="M450 225H615" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#a)"/>
+
+  <text x="90" y="390" class="sub">服务端能力</text><text x="835" y="390" class="sub">编辑器能力</text>
+  <g class="box"><rect x="80" y="420" width="340" height="155" rx="24" fill="#10283a" stroke="#38bdf8"/><rect x="485" y="420" width="270" height="155" rx="24" fill="#123934" stroke="#34d399"/><rect x="830" y="420" width="300" height="155" rx="24" fill="#282044" stroke="#a78bfa"/><rect x="1195" y="420" width="325" height="155" rx="24" fill="#173047" stroke="#38bdf8"/></g>
+  <text x="250" y="466" text-anchor="middle" class="t">服务端能力</text><text x="250" y="501" text-anchor="middle" class="p">查询 · Skill · 定时</text><text x="250" y="530" text-anchor="middle" class="m">也可以提交后台任务</text>
+  <text x="620" y="466" text-anchor="middle" class="t">服务端执行</text><text x="620" y="501" text-anchor="middle" class="p">直接结果 / Task 提交</text><text x="620" y="530" text-anchor="middle" class="m">长任务按调用回执稍后返回</text>
+  <text x="980" y="466" text-anchor="middle" class="t">选择 Editor</text><text x="980" y="501" text-anchor="middle" class="p">在线 · 可写 · 能力匹配</text><text x="980" y="530" text-anchor="middle" class="m">同一项命令只选一个执行者</text>
+  <text x="1357" y="466" text-anchor="middle" class="t">真实 Editor 执行</text><text x="1357" y="501" text-anchor="middle" class="p">读取现场 · 修改时间线</text><text x="1357" y="530" text-anchor="middle" class="m">返回结果与单次执行凭证</text>
+  <path d="M720 310C650 350 250 350 250 410" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#a)"/><path d="M880 310C930 350 980 350 980 410" stroke="#c4b5fd" stroke-width="4" fill="none" marker-end="url(#v)"/>
+  <path d="M420 497H475" stroke="#67e8f9" stroke-width="3" fill="none" marker-end="url(#a)"/><path d="M1130 497H1185" stroke="#c4b5fd" stroke-width="3" fill="none" marker-end="url(#v)"/>
+
+  <rect x="870" y="650" width="570" height="105" rx="22" fill="#13352f" stroke="#34d399"/><text x="1155" y="690" text-anchor="middle" class="t">EditorModel → Y.Doc → 协同项目</text><text x="1155" y="724" text-anchor="middle" class="p">Agent 与人类界面复用同一条领域写入路径</text>
+  <path d="M1357 575V640" stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#g)"/>
+
+  <path d="M620 575C620 650 720 790 1160 790C1260 790 1322 360 1322 305" stroke="#67e8f9" stroke-width="4" fill="none" marker-end="url(#a)"/>
+  <path d="M1440 702C1510 630 1515 350 1390 305" stroke="#6ee7b7" stroke-width="4" fill="none" marker-end="url(#g)"/>
+  <text x="800" y="830" text-anchor="middle" class="m">Agent 仍在等待时直接读取结果；前一次思考已经结束时，结果会在下一次判断中补回原调用</text>
+</svg>

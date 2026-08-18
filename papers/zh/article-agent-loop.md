@@ -14,33 +14,22 @@ AI Coding 从代码补全走向 Coding Agent，背后是一套能够持续工作
 
 ## 一、Video Agent Loop 的整体架构
 
-先从最小的 Agent Loop 说起。模型收到上下文以后给出回答，也可能调用一个工具；工具返回结果，模型再决定下一步。这个“模型—工具—结果—模型”的往复，就是一次 Agent 执行最核心的循环。
+StarCut 把 Video Agent Loop 分成内外两层。内循环处理当前能够连续完成的模型判断与工具调用；外循环承接稍后才会发生的事实，让一次创作可以跨越异步生成、人的修改、客户端断线和服务更新。
 
-StarCut 当前使用 Vercel AI SDK 7 的 `ToolLoopAgent` 运行这部分工作。它已经提供了多步 Tool Calling、流式输出、停止条件和逐步调整上下文等基础能力。[Vercel AI SDK 对 ToolLoopAgent 的定义](https://ai-sdk.dev/docs/reference/ai-sdk-core/tool-loop-agent)与我们的内循环需求比较接近：模型可以连续调用工具、观察结果，再决定继续或结束；`stopWhen` 和 `prepareStep` 让宿主在每一步之间控制停止条件和新输入。[Loop Control](https://ai-sdk.dev/docs/agents/loop-control)
+![Video Agent Loop 总体架构：Vercel AI SDK 运行内循环，持久 Inbox、Task、Monitor、Lease 和浏览器 Editor 组成外循环](../assets/agent-loop/two-loop-architecture.svg)
 
-我们选择它，主要基于四点：
-
-- **模型与运行逻辑分开。** StarCut 可以通过统一模型层选择不同供应商，Agent Loop 不跟某一家模型的消息格式绑定。
-- **工具调用已经形成稳定的多步循环。** 参数校验、Tool Call、Tool Result 和下一次模型调用沿用 SDK 语义，产品层只补充视频工具和执行策略。
-- **消息可以贯穿模型与界面。** StarCut 使用 `UIMessage` 保存文本、工具调用、结果和元数据，再把其中适合模型读取的部分转换成 Model Message。AI SDK 将 `UIMessage` 定义为面向应用状态的完整消息表示。[UIMessage](https://ai-sdk.dev/docs/reference/ai-sdk-core/ui-message)
-- **流式输出与完整结果可以同时保留。** 用户先看到文字和工具参数逐步出现，运行结束后系统再保存完整消息。
-
-这部分解决的是一次 Agent Run 内部的工作。视频生成可能在几分钟后完成，用户会在等待期间修改项目，浏览器也会断开和重连；这些事实跨越了当前 `ToolLoopAgent` 的生命周期。StarCut 在 SDK 之上继续实现了持久 Session、统一 Inbox、媒体 Task、Monitor、执行权和客户端调度。
-
-在这层基础上，StarCut 把 Video Agent Loop 分成内外两层。内循环处理当前这次能够连续完成的工作，外循环承接稍后才会发生的事实。
+*内循环可以结束，创作过程继续存在；新的事实通过外循环进入下一次判断。*
 
 ### 内循环：完成当前这次工作
 
-一次 Session Run 会创建一个短暂的 Agent Process，其中运行一个 `ToolLoopAgent`：
+StarCut 当前使用 Vercel AI SDK 7 的 `ToolLoopAgent` 运行内循环。一次 Run 从已经提交的消息和当前项目上下文开始，模型可以连续调用服务端或客户端工具，根据结果继续判断，最后保存完整消息。[ToolLoopAgent](https://ai-sdk.dev/docs/reference/ai-sdk-core/tool-loop-agent) 提供了多步 Tool Calling、流式输出和停止条件；[Loop Control](https://ai-sdk.dev/docs/agents/loop-control) 允许宿主在每一步之间控制停止条件和新输入。
 
-```text
-读取已提交消息与项目上下文
-  → 模型判断下一步
-  → 调用服务端工具或客户端工具
-  → 接收 Tool Result
-  → 模型继续判断
-  → 保存完整 UIMessage
-```
+选择它主要基于四点：
+
+- **模型与运行逻辑分开。** StarCut 可以通过统一模型层选择不同供应商，Agent Loop 不跟某一家模型的消息格式绑定。
+- **工具调用已经形成稳定的多步循环。** 参数校验、Tool Call、Tool Result 和下一次模型调用沿用 SDK 语义，产品层只补充视频工具和执行策略。
+- **消息可以贯穿模型与界面。** StarCut 使用 `UIMessage` 保存文本、工具调用、结果和元数据，再把其中适合模型读取的部分转换成 Model Message。[UIMessage](https://ai-sdk.dev/docs/reference/ai-sdk-core/ui-message) 是面向应用状态的完整消息表示。
+- **流式输出与完整结果可以同时保留。** 用户先看到文字和工具参数逐步出现，运行结束后系统再保存完整消息。
 
 内循环可以包含多次模型调用和多次工具执行。运行中的用户补充也可以在步骤之间进入上下文。当前工作完成、需要等待外部结果或达到停止条件以后，这次 Run 结束。
 
@@ -53,34 +42,21 @@ Session 和项目的生命周期比一次 Run 更长。后续输入统一进入 
 - 服务端或浏览器返回的 Tool Result；
 - 视频、图片和转写任务产生的 Task Update。
 
-WaitPort 保存“某个结果属于哪次工具调用”的关系；Monitor 把高频任务变化整理成 Agent 可以判断的上下文；Clock 负责明确的时间事件；Run Lease 保证同一个 Session 同时只有一个执行者。Inbox 中出现可处理的新事实后，外循环再启动一次内循环。
-
-![Video Agent Loop 总体架构：Vercel AI SDK 运行内循环，持久 Inbox、Task、Monitor、Lease 和浏览器 Editor 组成外循环](../assets/agent-loop/two-loop-architecture.svg)
-
-*内循环可以结束，创作过程继续存在；新的事实通过外循环进入下一次判断。*
+WaitPort 保存“某个结果属于哪次工具调用”的关系；Monitor 把高频任务变化整理成 Agent 可以判断的上下文；Run Lease 保证同一个 Session 同时只有一个执行者。Inbox 中出现新的消息、结果或到期事件后，外循环再启动一次内循环。
 
 这里有三份需要始终分清的状态：Session 保存对话和工具执行历史，Task 保存媒体工作的权威状态，项目模型保存当前视频工程。它们通过身份和版本建立关系，各自维护自己的事实。
 
-按 StarCut 的现有架构拆开看，DeepSeek Harness 可以对应模型—工具内循环，并提供 Session、插件和上下文压缩等 Runtime 能力。若做接入实验，边界会先放在一次 Session Run 内，验证它能否在保持现有行为的同时减少系统概念和适配代码。媒体 Task、Monitor、项目状态和客户端调度继续由外循环承接。
-
 ## 二、视频、图片生成完成后，Agent 如何感知
 
-在当前常见的生成链路里，一张图片通常需要 10–20 秒，一段视频大约需要 200–600 秒，具体时间还会受到模型、队列和生成参数影响。用户发出“生成三张产品图，再选两张做开场”以后，Agent 很快就会遇到几个实际选择：三张图能否并行生成，这几分钟还能不能继续工作，一张图先回来时要不要立即判断，以及本次模型执行结束后谁来接收结果。
+在 StarCut 当前接入的生成链路中，一张图片的常见耗时是 10–20 秒，一段视频大约需要 200–600 秒，具体时间还会受到模型、队列和生成参数影响。用户发出“生成三张产品图，再选两张做开场”以后，Agent 很快就会遇到几个实际选择：三张图能否并行生成，这几分钟还能不能继续工作，一张图先回来时要不要立即判断，以及本次模型执行结束后谁来接收结果。
 
 StarCut 把生成请求提交给持久 Task。每项任务独立进入对应队列，Worker 按队列容量并行执行。Agent 可以继续完成不依赖生成结果的工作；当前已经没有其他工作时，这次 Run 便正常结束，不占用一个模型调用或进程原地轮询。
 
-即使图片可能在 10–20 秒内完成，StarCut 当前仍让生成类任务在提交后立即进入 Monitor。这样，Agent 可以继续组织脚本、查找素材或提交其他生成请求。转写等结果紧接着就要使用的任务保留 30 秒有限等待；超出窗口以后，同样交给 Monitor。两种路径共用 WaitPort：
+即使图片可能在 10–20 秒内完成，StarCut 当前仍让生成类任务在提交后立即进入 Monitor。这样，Agent 可以继续组织脚本、查找素材或提交其他生成请求。转写等结果紧接着就要使用的任务可以保留一个有限等待窗口；超出窗口以后，同样交给 Monitor。两种路径共用 WaitPort：
 
-```text
-Agent 提交任务
-  → 建立 Tool Call 与 Task 的等待关系
-  → Task Worker 在后台执行
-  ├─ 生成任务：立即交给 Monitor，Agent 继续或结束当前 Run
-  └─ 有限等待任务
-       ├─ 结果先到：回到当前 Run
-       └─ 截止时间先到：转给 Monitor
-  → Monitor 整理后续变化，外循环启动新的 Run
-```
+![媒体任务从当前 Run 提交到权威 Task；短等待结果回到当前 Run，长任务由 Monitor 在完成后启动新的 Run](../assets/agent-loop/media-task-lifecycle.svg)
+
+*任务在后台继续，Agent 无需原地占用一次模型执行；结果可以回到当前 Run，也可以开启后续 Run。*
 
 生成服务发出的通知只提示“这项任务可能变了”。接收方会重新读取权威 Task，并按版本处理重复、延迟或乱序通知。这样，最终结果留在 Task 中，通知丢失以后也可以通过恢复扫描重新发现。
 
@@ -97,7 +73,7 @@ Agent 提交任务
 
 *UI 跟随连续进度，Agent 跟随决策条件。*
 
-<!-- [研发待补 A-M1] 按图片、视频、转写分别记录 Task 耗时的 P50/P95、并发度、原始更新数、Monitor 上下文数、模型唤醒数和端到端继续时延。当前 10–20 秒与 200–600 秒为常见业务区间，正式发布前补真实样本分布。 -->
+<!-- [研发待补 A-M1] 按图片、视频、转写分别记录 Task 耗时的 P50/P95、并发度、原始更新数、Monitor 上下文数、模型唤醒数和端到端继续时延。当前 10–20 秒与 200–600 秒为 StarCut 当前链路的经验区间，正式发布前补真实样本分布。 -->
 
 ## 三、等待过程中，人还在编辑项目
 
@@ -141,13 +117,17 @@ CLI 适合人在终端中调试、编写脚本和组合固定流程。MCP 更适
 
 外部 Agent 发出的短小编辑可以直接返回；视频生成、转写等后台工作返回可以继续查询的 Task。MCP 的 [Tasks 扩展](https://modelcontextprotocol.io/extensions/tasks/overview) 可以承载跨调用生命周期，协议中的 Task 则映射到 StarCut 已有的权威 Task。
 
-内部 Session Tool 和外部 MCP Tool 使用不同入口，却共用同一套调用运输：Message Stream 记录调用，WaitPort 关联结果，浏览器执行需要客户端能力的操作。外部调用使用 Project Channel，不必创建一段虚构对话；内部 Agent 继续使用带对话生命周期的 Session Channel。
+接入以后，内外 Agent 不需要共享一段对话。StarCut 内置 Agent 保留自己的 Session，Codex 或 Claude Code 也保留各自的上下文；它们共享的是项目模型和语义化编辑能力。无论指令来自哪里，Agent 都先读取当前项目，再把修改提交到同一份权威状态，人类编辑器看到的也是这份状态。
+
+内部 Tool 和外部 MCP Tool 使用不同入口，却复用同一套调用记录、结果关联与客户端执行机制。内部结果回到所属 Session 的 Inbox，外部结果回到发起它的 MCP 调用或 Task，不需要为外部 Agent 创建一段虚构对话。
+
+共享项目能够保证各方看到一致的结构状态，却不会自动判断两个 Agent 的创作意图谁更合理。局部语义操作、项目版本和客户端执行权可以避免结构损坏与重复执行；当多个 Agent 同时改动同一段内容时，任务归属和意图冲突仍需明确的产品策略。
 
 ![MCP Canvas Bridge 将外部语义调用交给连接中的编辑器，并复用人类界面的领域写路径](../assets/agent-loop/mcp-canvas-bridge.svg)
 
 *外部 Coding Agent、产品内 Agent 和人类编辑器最终操作同一份项目状态。*
 
-<!-- [研发待补 A-C1] 固定 MCP 短调用与长 Task 的状态、版本、取消、超时和输出映射；使用同一批项目操作验证内部 Agent 与外部 Agent 的结果和错误语义。 -->
+<!-- [研发待补 A-C1] 固定 MCP 短调用与长 Task 的状态、版本、取消、超时和输出映射；使用同一批项目操作验证内部 Agent 与外部 Agent 的结果和错误语义，并覆盖多个 Agent 同时修改同一对象时的任务归属与意图冲突。 -->
 
 ## 六、同一项目打开多个窗口时怎么办
 
@@ -167,8 +147,12 @@ Agent 的文字回答需要持续传给浏览器，浏览器执行工具以后�
 
 StarCut 同时保留 SSE 和 WebSocket：
 
-- SSE 负责把已提交消息、运行状态和模型增量持续发送给客户端，断线后可以从持久游标继续；
+- SSE 负责把已提交消息、运行状态和模型增量持续发送给客户端；断线后，已经提交的部分可以从持久游标继续；
 - WebSocket 除了读取同一事件流，还能双向传递客户端 Lease、Tool Assignment 和 Tool Result。
+
+两种连接解决的问题不同。SSE 提供可以恢复的服务端下行流，适合回答和状态展示；WebSocket 维护在线编辑器的双向执行通道，适合分配工具和返回结果。它们共享消息身份和持久状态，不各自保存一份事实。
+
+![SSE 将回答和状态持续发送给浏览器，WebSocket 双向传递客户端执行命令与结果，完整消息和 Inbox 负责断线恢复](../assets/agent-loop/dual-transport.svg)
 
 实时 Delta 用来降低等待感，可以在断线时丢失；完整 `UIMessage` 会在一次 Run 完成后持久化，再作为恢复和重放的依据。浏览器错过一段增量后，后续完整消息会把界面校正到已提交状态。
 
@@ -189,32 +173,21 @@ Session 持续变长以后，完整历史需要保存，模型每一步实际读
 
 压缩不会删除原始历史，它生成一个新的模型读取视图。记忆也采用完整快照，并携带来源边界；后台生成期间如果源内容已经变化，较旧结果不能覆盖新的状态。当前 Editor 状态只投影到模型输入，不会作为聊天消息永久复制。
 
-在上下文治理这一部分，DeepSeek Harness 给出了一套清楚的 Session Event Log 和 Compaction 实现：模型消息由事件日志派生，压缩过程显式记录开始、摘要和结束。[Session](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md)、[Compaction](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/compaction.md) 这部分可以进入 StarCut 的替换实验，项目记忆和视频工程状态仍按现有边界保留。
+在上下文治理这一部分，DeepSeek Harness 给出了一套清楚的 Session Event Log 和 Compaction 实现：模型消息由事件日志派生，压缩过程显式记录开始、摘要和结束。[Session](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/session.md)、[Compaction](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/compaction.md) 与 StarCut 的 Session 历史和模型读取视图直接对应，也适合作为第一项接入实验。DeepSeek Harness 将模型、工具、Session、Agent Loop 和 Compaction 都放在可替换的插件边界上，这种组合方式可能减少 StarCut 为通用运行能力维护的适配层；项目记忆和视频工程状态仍然保持各自的事实边界。
 
 <!-- [研发待补 A-X1] 用长 Session 比较压缩前后 token、目标保持率、Tool Call/Result 配对完整性和恢复时间；分别评估用户长期、用户当日与项目记忆的命中和污染。 -->
 
-## 九、浏览器断开或服务重启后如何继续
+## 九、页面关闭或网络中断后，创作如何继续
 
 用户关闭页面、网络中断或服务滚动升级时，当前执行进程可能消失。下一次执行需要知道已经发生了什么、哪些输入还没有处理，以及哪个任务仍在等待。
 
-每次 Session Run 都从已提交历史和 Inbox 开始：
-
-```text
-恢复完整消息
-  → 领取 Inbox 输入
-  → 读取当前项目上下文
-  → 运行模型与工具
-  → 持久化完整结果
-  → 确认本批输入
-```
-
-输入在结果持久化以后才被确认。进程提前退出时，未确认输入会再次出现；结果已经保存但确认尚未完成时，下一次 Run 根据消息身份折叠重复内容。
+每次 Session Run 都从已经提交的历史和 Inbox 开始：领取尚未处理的输入，读取当前项目，运行模型与工具，保存完整结果，最后再确认本批输入。进程提前退出时，未确认输入会再次出现；结果已经保存但确认尚未完成时，下一次 Run 根据消息身份折叠重复内容。
 
 多个 Worker 可能同时发现同一个 Session 有新工作。Run Lease 选出唯一执行者，并在运行期间续约。旧 Worker 失去执行权以后无法继续提交结果。恢复扫描定期检查非空 Inbox、到期时间事件、WaitPort 和权威 Task，因此瞬时通知只影响响应速度，不决定任务是否最终被发现。
 
 ![一段 Agent 工作跨越多次短执行、异步等待、用户介入和进程重启](../assets/agent-loop/inner-outer-timeline.svg)
 
-*Session、Task 和项目持续存在，执行它们的 Process 可以结束并重建。*
+*Session、Task 和项目持续存在，负责执行的进程可以结束并重建。*
 
 <!-- [研发待补 A-R1] 在消息持久化、Inbox 确认、Task 完成、Lease 转移和客户端结果提交等边界注入故障，记录恢复延迟、重复执行和遗漏结果。 -->
 
@@ -246,11 +219,11 @@ StarCut 的 Video Agent Loop 将这些问题放进同一条视频创作链路：
 
 ## 结语
 
-回到开头的十秒视频：Agent 提交三项生成任务以后可以继续整理项目，也可以结束当前 Run；图片回来时，Monitor 把结果送入后续判断；用户在等待期间做出的修改已经留在项目中；新的编辑命令由当前有效的浏览器执行；窗口或服务中断以后，同一条创作链路沿着持久记录继续。
+回到开头那条缺少产品特写的视频：Agent 可以先提交图片或视频生成任务，再继续整理其他镜头；用户在等待期间做出的修改直接留在项目中；素材回来以后，Agent 从当前时间线继续判断；内置 Agent 或外部 Coding Agent 发出的编辑最终进入同一份项目；页面关闭、网络中断或服务更新，也不会让这条创作链路失去已经发生的事实。
 
-这就是 StarCut 对 Video Agent Loop 的理解。内循环负责一次模型能够连续完成的工作，外循环负责创作过程中后来发生的事实。Inbox、WaitPort、Monitor、Run Lease、MCP Canvas、SSE、WebSocket 和 Client Lease 都服务于这条链路中的具体问题。
+StarCut 的 Video Agent Loop 由此形成了一个清楚的边界：内循环完成当前能够连续进行的模型判断与工具调用，外循环接住后来发生的消息、任务结果和项目变化。Session 保存对话与执行历史，Task 保存媒体工作的权威状态，项目模型保存视频工程；一次 Run 可以结束，这三份状态仍然继续存在。
 
-用 StarCut 的业务链路来检验，DeepSeek Harness 当前公开的能力主要覆盖通用 Agent Loop、Session 和上下文治理，可以成为内循环的候选实现。媒体任务的持续感知、用户与 Agent 共用的项目状态、多窗口调度和浏览器执行仍然由 StarCut 的视频运行时处理。接入是否成立，取决于它能否在完整保留这些业务能力的前提下，真正减少系统概念和维护成本。
+DeepSeek Harness 当前公开的能力已经覆盖持久 Session Event Log、单一 Inbox、Background Jobs、UI 或 Editor 集成扩展点以及上下文压缩，并通过插件组织模型、工具和 Agent Loop。这些能力与 StarCut 的通用运行层有实质重合，具体结构见 [DeepSeek Harness Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md)。接下来的检验重点，是它的通用 Job、事件和插件边界能否承载媒体 Task、Monitor、共享项目状态与客户端调度，同时减少现有概念和适配代码。如果这些视频语义仍需在 Harness 之外重新建立一套运行时，插件化带来的收益就会相应缩小。
 
 ## 相关资料
 

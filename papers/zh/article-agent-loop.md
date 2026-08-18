@@ -1,4 +1,4 @@
-# Agent Loop：内循环完成当下，外循环跨越时间
+# Video Agent Loop：让 AI 在视频剪辑中持续感知与行动
 
 ![Agent Loop 封面：短暂内循环围绕唯一创作项目工作，持久外循环跨越消息、异步任务、休眠与人的接管](../assets/agent-loop/cover.png)
 

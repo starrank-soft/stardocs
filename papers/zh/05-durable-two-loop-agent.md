@@ -4,7 +4,7 @@
 >
 > 论文英文候选标题：*Durable Two-Loop Agents: Message-Driven Recovery, Monitored Tasks, and Semantic Canvas Execution*
 >
-> 面向公众的文章：[《Agent Loop：内循环完成当下，外循环跨越时间》](./article-agent-loop.md)
+> 面向公众的文章：[《Video Agent Loop：让 AI 在视频剪辑中持续感知与行动》](./article-agent-loop.md)
 >
 > 当前先以一篇完整长文发布；若后续内容量和实验结果确实需要，再按内外循环、Monitor 与 MCP Canvas 拆成系列，而不预先制造重复章节。
 >

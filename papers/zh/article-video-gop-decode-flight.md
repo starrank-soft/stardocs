@@ -6,23 +6,22 @@
 
 一张 4K RGBA 帧约 31.6 MiB，30 fps 接近每秒 1 GiB 的原始像素。只要这些帧穿过 IPC、落进 JavaScript 或 WASM 内存，再重新上传 GPU，前面获得的硬件解码优势很快就会被数据搬运抵消。这个弯路让高分辨率实时预览只剩下两个不可退让的原则：**硬件加速**与**零拷贝**。任何绕开硬件解码，或让全尺寸像素离开 GPU 主链路的方案，都会把瓶颈重新带回计算与搬运，无法持续提供丝滑的剪辑体验。
 
-## 一、浏览器实时预览的主链路：WebCodecs
+## 一、StarCut 的浏览器视频运行时
 
-![StarCut 实时视频预览从原生侧解码跨 IPC，收敛到按需读取压缩字节、由 WebCodecs 在浏览器侧解码](../assets/gop-flight/architecture-evolution.svg)
+![StarCut 浏览器视频运行时：多种媒体来源经过索引和 Range 读取进入 Video Worker，由 WebCodecs 解码并通过 VideoFrame 进入 GPU 合成](../assets/gop-flight/browser-preview-architecture.svg)
 
-*把压缩字节送到解码器附近，比把解码后的大像素跨进程搬回来更经济。*
+*结论先行：压缩字节进入浏览器，解码后的完整像素不再离开 GPU 路径。*
 
-StarCut 的实时预览最终收敛为一条浏览器内的数据链路：媒体索引在导入阶段生成，运行时按 Range 读取需要的压缩字节；解码留在 Web Worker，通过 WebCodecs 完成；输出保持为 `VideoFrame`，直接进入浏览器的合成与 GPU-backed 呈现路径。Web 端读取 HTTP 或 OPFS，桌面端通过 `starcut://` 把本地文件适配成同样的数据源；跨平台变化停在压缩字节之前，后面的解码、调度和呈现完全一致。
+StarCut 把实时视频运行时完整放在浏览器里：HTTP、OPFS 和桌面本地文件先被适配成统一媒体源，侧车索引负责定位样本与 GOP，Video Worker 按 Range 读取压缩字节，通过 WebCodecs 硬件解码，再以 `VideoFrame` 进入帧缓存、OffscreenCanvas 和 GPU 合成。Web 与桌面只在媒体来源上不同，索引、调度、解码和呈现共享同一套实现。
 
-### 为什么不能直接使用 `<video>`
+浏览器优先首先是产品边界，而不只是技术偏好。链接就是入口，用户无需安装，项目更容易分享；Codex 等外部 Agent 也能直接进入同一创作环境。Full Native 可以做出丝滑体验，却会形成另一套产品、分发和 Agent 运行边界，不符合 StarCut 对创作软件的整体要求。
 
-`<video>` 可以硬件解码，却没有提供视频编辑器需要的三项能力：
+在这个边界内，另外两条常见路线也走不通：
 
-1. **Seek 没有帧级契约。** `currentTime` 表达的是一个时间请求，不是一个确定的媒体样本。应用无法指定目标 sample，也无法仅凭 `seeked` 确认解码器最终交付了哪一帧。对剪辑器来说，这不是精度稍差，而是无法把“目标帧准确到达”作为可验证的结果。
-2. **解码过程不可调度。** 从哪个随机访问点开始、哪些压缩包已经提交、旧目标是否仍在执行、相邻目标能否复用同一段 GOP，这些状态都封装在元素内部。Scrub 连续改变目标时，应用只能反复写入 `currentTime`，无法管理已经付出的解码工作。
-3. **输出帧不属于编辑器运行时。** `<video>` 不把解码器输出及其生命周期交给应用，当前画面无法自然进入统一的帧缓存，也难以同时服务多层原子合成与时间线缩略图。
+1. **Native 解码再交给 Web。** FFmpeg 可以很快，但完整像素必须穿过 IPC 进入 WebView，硬件解码获得的时间又被全帧搬运消耗掉。
+2. **直接使用 `<video>`。** `currentTime` 没有 sample 级准确契约，内部解码状态和输出帧也不归编辑器控制；精确 Seek、GOP 路线复用、多层原子合成和缩略图共享都无法建立在它上面。
 
-这些限制来自接口边界，不是给 `<video>` 再加几个参数就能解决。WebCodecs 把压缩样本输入、解码队列、`VideoFrame` 输出和资源释放交给应用，编辑器才能准确选择样本、组织 GOP 路线，并复用已经解出的帧。
+WebCodecs 同时满足了这三层边界：产品仍在浏览器，完整像素留在 GPU 主链路，编辑器又拿回了压缩样本、解码队列和 `VideoFrame` 的控制权。这不是在几种解码 API 中挑一个更快的，而是唯一能让 StarCut 的产品形态、数据路径和剪辑控制同时成立的方案。
 
 <!-- RESEARCH: Add a reproducible Native FFmpeg + RGBA IPC baseline against Range + WebCodecs, recording decoded resolution, IPC bytes, copies/readbacks, latency, CPU/GPU utilization, and power. -->
 

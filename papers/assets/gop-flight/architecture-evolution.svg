@@ -7,8 +7,8 @@
     <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1440" height="810" fill="url(#bg)"/>
-  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">实时预览的四次取舍：让大像素少过边界</text>
-  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">真正稳定的主链路，同时贴近硬件加速与少拷贝。</text>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">实时预览的四次取舍：让大像素不过边界</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">真正稳定的主链路，必须同时满足硬件加速与零拷贝。</text>
 
   <g font-family="system-ui, sans-serif">
     <g transform="translate(70 178)">
@@ -64,10 +64,10 @@
       <text x="152" y="282" fill="#bdeeff" font-size="14" text-anchor="middle">VideoFrame → GPU 路径</text>
       <text x="34" y="342" fill="#eaf9ff" font-size="17">应用拥有样本与缓存策略</text>
       <text x="34" y="370" fill="#eaf9ff" font-size="17">Web 与桌面共享同一运行时</text>
-      <rect x="34" y="388" width="236" height="24" rx="9" fill="#0c2234"/><text x="152" y="405" fill="#bdeeff" font-size="13" text-anchor="middle">硬件加速 · 少拷贝 · 可调度</text>
+      <rect x="34" y="388" width="236" height="24" rx="9" fill="#0c2234"/><text x="152" y="405" fill="#bdeeff" font-size="13" text-anchor="middle">硬件加速 · 零拷贝 · 可调度</text>
     </g>
   </g>
   <path d="M370 654H1060" stroke="#395a72" stroke-width="3" marker-end="url(#arrow)"/>
   <text x="715" y="688" fill="#8facbf" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">方案不是按“Native / Web”站队，而是不断把数据放回更合理的边界</text>
-  <g transform="translate(270 726)" font-family="system-ui, sans-serif" text-anchor="middle"><rect width="900" height="54" rx="14" fill="#10243a"/><text x="450" y="34" fill="#eaf6ff" font-size="19" font-weight="700">压缩字节可以跨边界 · 全尺寸像素尽量留在解码与显示一侧</text></g>
+  <g transform="translate(270 726)" font-family="system-ui, sans-serif" text-anchor="middle"><rect width="900" height="54" rx="14" fill="#10243a"/><text x="450" y="34" fill="#eaf6ff" font-size="19" font-weight="700">压缩字节可以跨边界 · 全尺寸像素必须留在解码与显示一侧</text></g>
 </svg>

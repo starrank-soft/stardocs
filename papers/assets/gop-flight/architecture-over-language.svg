@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
   <title id="title">语言性能与媒体架构的关系</title>
-  <desc id="desc">TypeScript 只负责需求和调度，WebCodecs 和 GPU 处理重计算；WASM 软件解码和 Tauri FFmpeg 的全帧传输会增加复制边界。</desc>
+  <desc id="desc">TypeScript 只负责需求和调度，WebCodecs 和 GPU 处理重计算；WASM 软件解码和 Tauri FFmpeg 的全帧传输破坏零拷贝主链路。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
@@ -21,7 +21,7 @@
     <path d="M598 348H648" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
     <rect x="658" y="302" width="224" height="92" rx="18" fill="#0c2234"/><text x="770" y="338" fill="#69d8ff" font-size="19" font-weight="700">WebCodecs</text><text x="770" y="368" fill="#8facbf" font-size="14">浏览器原生 / 硬件解码</text>
     <path d="M770 400V448" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
-    <rect x="568" y="458" width="314" height="112" rx="20" fill="#0c2234"/><text x="725" y="498" fill="#7ce0ae" font-size="20" font-weight="700">VideoFrame → Canvas / GPU</text><text x="725" y="530" fill="#a9c4d5" font-size="15">当前画面保持在显示一侧</text><text x="725" y="554" fill="#a9c4d5" font-size="15">用完及时 close()</text>
+    <rect x="568" y="458" width="314" height="112" rx="20" fill="#0c2234"/><text x="725" y="498" fill="#7ce0ae" font-size="20" font-weight="700">VideoFrame → Canvas / GPU</text><text x="725" y="530" fill="#a9c4d5" font-size="15">全尺寸像素不落地为中间 RGBA</text><text x="725" y="554" fill="#a9c4d5" font-size="15">用完及时 close()</text>
     <rect x="112" y="458" width="388" height="112" rx="20" fill="#0c2234"/><text x="306" y="498" fill="#ffcc86" font-size="20" font-weight="700">压缩字节跨边界</text><text x="306" y="530" fill="#a9c4d5" font-size="15">starcut:// · OPFS · HTTP Range</text><text x="306" y="554" fill="#a9c4d5" font-size="15">传输量远小于完整像素</text>
     <path d="M508 514H558" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
   </g>
@@ -41,7 +41,7 @@
     <path d="M1160 496H1266" stroke="#e07979" stroke-width="4" stroke-dasharray="7 6" marker-end="url(#redArrow)"/>
     <text x="1034" y="538" fill="#f7e8eb" font-size="15">完整帧经过 IPC 再进入 WebView</text>
   </g>
-  <rect x="1006" y="590" width="324" height="34" rx="10" fill="#4a2931"/><text x="1168" y="613" fill="#f0bcc3" font-size="15" text-anchor="middle" font-family="system-ui, sans-serif">语言更快，数据流仍然很贵</text>
+  <rect x="1006" y="590" width="324" height="34" rx="10" fill="#4a2931"/><text x="1168" y="613" fill="#f0bcc3" font-size="15" text-anchor="middle" font-family="system-ui, sans-serif">破坏零拷贝，不能成为主链路</text>
 
-  <g transform="translate(214 694)" font-family="system-ui, sans-serif" text-anchor="middle"><rect width="1012" height="70" rx="18" fill="#10243a" stroke="#294a63"/><text x="506" y="30" fill="#8facbf" font-size="15">架构原则</text><text x="506" y="56" fill="#eaf6ff" font-size="20" font-weight="800">传决策与压缩数据，不传一场像素洪水</text></g>
+  <g transform="translate(214 694)" font-family="system-ui, sans-serif" text-anchor="middle"><rect width="1012" height="70" rx="18" fill="#10243a" stroke="#294a63"/><text x="506" y="30" fill="#8facbf" font-size="15">零拷贝红线</text><text x="506" y="56" fill="#eaf6ff" font-size="20" font-weight="800">只传决策与压缩数据，不把完整像素搬回 CPU</text></g>
 </svg>

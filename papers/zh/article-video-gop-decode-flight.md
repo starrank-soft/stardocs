@@ -18,10 +18,6 @@ StarCut 的实时预览最终收敛为一条浏览器内的数据链路：媒体
 
 浏览器原生 `<video>` 同样能够使用硬件解码，也是顺序播放的优秀方案。编辑器需要的控制面更细：一次 Seek 最终选择了哪个样本，快速连续 Seek 中哪些旧目标应该放弃，多层视频何时可以作为同一画面提交，已经解出的帧怎样与时间线缩略图共享。`<video>` 的目标是把媒体稳定播出来，它把这些策略封装在内部；单次 Seek 通常可以接受，连续 Scrub 时却很难稳定获得样本级反馈。WebCodecs 把压缩样本、解码队列和 `VideoFrame` 生命周期开放出来，调度问题因此回到应用手中。
 
-零拷贝描述的是**解码后的全尺寸像素主链路**，不是要求整个程序里不存在一次内存复制。索引、控制消息、压缩包和小尺寸缩略图都可以按各自成本正常传递；它们不是持续吞吐 4K30 画面的性能主线。架构首先要分清什么是洪水，什么只是几封信，不能因为边角数据允许复制，就降低像素主线的标准。
-
-这条主线的契约很明确：硬件解码得到的 `VideoFrame` 不落地成中间 RGBA，不穿过 Native IPC，不进入 WASM 线性内存，也不在呈现前被 JavaScript readback；它直接进入 Canvas / GPU 合成，用完立即 `close()`。无法维持这条路径的平台只能降级，不能成为丝滑预览的主链路。
-
 <!-- RESEARCH: Add a reproducible Native FFmpeg + RGBA IPC baseline against Range + WebCodecs, recording decoded resolution, IPC bytes, copies/readbacks, latency, CPU/GPU utilization, and power. -->
 
 ## 二、语言不是瓶颈，架构才是瓶颈
@@ -38,13 +34,15 @@ WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理�
 
 看起来反直觉的是，StarCut 的实时视频控制面仍然可以使用纯 TypeScript。原因不是 TypeScript 突然比 Rust 更快，而是它只做自己擅长的事：计算时间需求、合并 GOP 路线、分配解码器、决定缓存驻留，并管理 `VideoFrame` 生命周期。压缩数据解析由 MediaBunny 等成熟组件完成，重解码由 WebCodecs 交给浏览器与硬件，最终合成继续留在 Canvas / GPU 路径。TypeScript 不循环处理 4K 像素，也不实现 H.264 或 HEVC 解码器。
 
-StarCut 真正要验证的，是浏览器在合理架构下同样能够获得成熟桌面剪辑软件那种跟手的播放与 Scrub。方法并不含糊：跨边界只传压缩数据和控制信息，解码后的完整像素不离开 GPU 主链路；已经付出的 GOP 工作必须复用；有限的 GPU 只保留此刻最有价值的帧。不要指望用 Rust、WASM 或 Native 逃避架构问题。用更快的语言实现一条错误的数据流，得到的仍然是一条错误的数据流。
+StarCut 要验证的，是浏览器在合理架构下同样能够获得成熟桌面剪辑软件那种跟手的播放与 Scrub。不要指望用 Rust、WASM 或 Native 逃避架构问题；用更快的语言实现一条错误的数据流，得到的仍然是一条错误的数据流。
 
 ### 零拷贝不是一个 API，而是一条不绕路的数据拓扑
 
 ![StarCut 零拷贝数据路径：主线程只处理界面，控制状态通过 SAB 发布，视频 Worker 直接读取媒体 Range 并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 直达 AudioWorklet](../assets/gop-flight/zero-copy-data-paths.svg)
 
 *生产者直接连接消费者；主线程不充当媒体数据的中转站。*
+
+这里的零拷贝特指解码后的全尺寸像素主链路。硬件解码得到的 `VideoFrame` 不落地成中间 RGBA，不穿过 Native IPC，也不进入 WASM 线性内存，而是直接进入 Canvas / GPU 合成。索引、控制消息、压缩包和小尺寸缩略图仍按各自成本正常传递，不能因为边角数据允许复制，就降低像素主线的标准。
 
 如果 Video Worker 取一段 GOP 还要先请求主线程，再由主线程读取媒体，最后把字节转回 Worker，那么压缩数据虽然比 RGBA 小，主线程仍然会成为所有解码路线共同经过的收费站。StarCut 的 Video Worker 直接对已经解析好的媒体地址发起 Range 请求：Web 环境读取 HTTP 或 OPFS，桌面环境读取 `starcut://` 提供的本地文件适配。主线程只负责界面、素材地址和工程变化，不转运媒体字节。
 
@@ -94,7 +92,7 @@ StarCut 选择直接面对用户原始视频中的长 GOP。交互难度由低�
 
 *时间线给出的是目标时刻；压缩视频决定了抵达目标所需的真实路线。*
 
-视频通常按 GOP（Group of Pictures）组织。GOP 内只有部分帧能够独立开始解码，其他帧需要引用前面的图像。于是，时间上的一次随机访问会变成三个步骤：
+把前面的帧依赖放进一次实际的随机访问，时间线上的目标时刻会变成三个步骤：
 
 1. 根据目标时刻找到对应的媒体样本；
 2. 向前寻找它所属 GOP 的关键样本；
@@ -158,8 +156,6 @@ GOP Flight 不是把一次 Seek 包装成一个任务，也不是多开几个 `V
 2. **纯规划器**把工程时间投影到源媒体时间，量化到真实样本，按来源与样本去重，再按照真实随机访问点划分 GOP 路线。它只计算“需要什么”，不持有解码器状态。
 3. **运行协调器**把新路线与正在行驶的 Flight 对照。能继续向前的路线更新到站表，仍有价值的在途输出继续等待，已经无关的推测工作停止追加，只有失效或资源压力才破坏物理解码状态。
 4. **物理 Flight**保存一趟路线已经付出的成本：GOP 压缩字节、解码器参考状态、当前推进位置、已提交但尚未输出的样本，以及等待交付的目标站点。当前画面、Scrub 预测和缩略图都可以成为沿途乘客。
-
-Flight 是否已经覆盖一个目标，不能只查帧缓存。系统同时观察三种状态：已经物化的缓存帧、已经提交给解码器但仍在途的输出，以及仍可继续向前的温热路线。缺少中间这一层，解码输入队列暂时归零时，规划器就可能误以为目标无人负责，再发一趟重复的车；只看路线而不看物化结果，又会把“承诺到达”错当成“已经交付”。
 
 这四层建立了几条硬约束：同一来源、同一 GOP 的公共前缀，在一趟 Flight 足以服务时不应重复解码；最新需求是唯一有效的需求事实；在途输出算作覆盖，但不算完成；近似画面可以改善反馈，不能取消精确解码义务；温热路线的复用必须服从解码器、I/O 与帧内存预算。后面的播放、Scrub、缩略图与车队策略，都是这些约束在不同现场里的展开。
 
@@ -338,8 +334,6 @@ Play 和单次 Seek 适合检查基础正确性，真正拉开调度差异的是
 
 这些数字来自开发环境中的 pilot traces，能够说明共享网格、前台优先和路线复用值得继续验证，但还不能替代正式实验。投稿或形成严谨结论前，还需要冻结硬件、浏览器版本、视频集合、GOP 分布和交互轨迹，增加无状态 Seek、按模式分离队列、无在途覆盖、无温热路线等基线，并报告重复次数和置信区间。零拷贝主链路也需要单独记录全帧 readback、主线程长任务和跨边界字节，才能把架构判断从常识推导推进到可复现实验。
 
-真正有说服力的对比，还应把“看起来一样流畅”背后的工作量放在一起：相同交互质量下，Flight 是否减少了 GOP 前缀重复、解码器 reset、Range 字节和无效输出；相同资源预算下，它是否让更多输入得到及时反馈并最终准确收敛。
-
 <!-- RESEARCH: Current values are development traces from packages/editor/av/video/PERFORMANCE_BASELINE.md. Before publication, freeze commit, hardware, browser, corpus, interaction traces, repetitions, and confidence intervals. -->
 
 ## 十、相关工作与边界
@@ -358,12 +352,19 @@ Play 和单次 Seek 适合检查基础正确性，真正拉开调度差异的是
 
 ## 十一、结语
 
-视频编辑器里的每一次播放、跳转和拖动，最终都要回到同一个物理事实：从正确的关键帧出发，沿依赖顺序抵达目标。GOP Flight 把这条路线变成可规划、可更新、可复用的运行对象，再让当前画面、运动预测和缩略图共享沿途的结果。
-
 我们借用高铁，是因为它有起点、有路线、有站点、有时刻表，也有有限的车和轨道。编辑器的性能同样来自组织：什么现在必须到达，什么可以顺路交付，目标改变后哪些工作仍有价值，以及资源紧张时谁先通行。
 
 当这些问题由同一份时序需求回答，播放、Seek、Scrub 和缩略图就不再是四套彼此争抢的解码功能，而成为同一张视频运行图上的不同旅程。
 
 GOP Flight 也不只存在于架构图和性能 trace 里，它已经运行在上线的 [StarCut](https://starcut.io) 浏览器视频编辑器中。打开一个普通的长 GOP 视频，快速拖动播放头、来回 Scrub，再缩放和滚动时间线；这些看似简单的操作，就是本文整套数据路径与调度设计每天接受检验的现场。
 
-如果你也想看看浏览器能不能把视频剪辑做到足够丝滑，可以直接打开 [starcut.io](https://starcut.io) 体验。架构最终不是由语言、框架或图表证明的，产品是否跟手，才是它真正的运行结果。
+<div style="width:min(1120px,calc(100vw - 40px));margin:1.5em 0 .6em;margin-left:50%;transform:translateX(-50%)">
+  <video controls playsinline preload="metadata" poster="../assets/gop-flight/starcut-scrub-demo-poster.jpg" width="1920" height="1072" aria-label="StarCut 多层时间线快速 Scrub 演示" style="display:block;width:100%;height:auto;background:#000;border-radius:4px">
+    <source src="../assets/gop-flight/starcut-scrub-demo.mp4" type="video/mp4">
+    你的浏览器暂不支持 HTML5 视频播放。
+  </video>
+</div>
+
+*StarCut 实际运行：在多层时间线中快速 Scrub，并持续刷新预览画面与时间线缩略图。*
+
+如果你也想试试浏览器里的丝滑剪辑，可以直接打开 [starcut.io](https://starcut.io) 体验。

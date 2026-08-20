@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
-  <title id="title">StarCut 浏览器视频运行时整体架构</title>
-  <desc id="desc">HTTP、OPFS 和桌面本地文件统一为媒体来源，SCIX 索引与 Range 读取把压缩 GOP 送入 Video Worker，GOP Flight 通过 WebCodecs 解码，VideoFrame 进入缓存、缩略图与 OffscreenCanvas GPU 合成。编辑器通过 Control SAB 向 Worker 发布最新时序状态。</desc>
+  <title id="title">StarCut 统一解码管线</title>
+  <desc id="desc">Web 与 Tauri 将 HTTP、OPFS 和本地文件适配为统一媒体来源，SCIX 索引与 Range 读取把压缩 GOP 送入 Video Worker，GOP Flight 通过 WebCodecs 解码，VideoFrame 进入缓存、缩略图与 OffscreenCanvas GPU 合成。编辑器通过 Control SAB 向 Worker 发布最新时序状态。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1e31"/></linearGradient>
     <linearGradient id="runtime" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10283d"/><stop offset="1" stop-color="#12364a"/></linearGradient>
@@ -9,15 +9,15 @@
     <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1440" height="810" fill="url(#bg)"/>
-  <text x="70" y="72" fill="#eef8ff" font-size="34" font-weight="800" font-family="system-ui, sans-serif">StarCut 浏览器视频运行时</text>
-  <text x="70" y="112" fill="#8facbf" font-size="19" font-family="system-ui, sans-serif">不同平台只适配压缩媒体来源；索引、调度、硬件解码与 GPU 呈现共享同一条主链路。</text>
+  <text x="70" y="72" fill="#eef8ff" font-size="34" font-weight="800" font-family="system-ui, sans-serif">StarCut 统一解码管线</text>
+  <text x="70" y="112" fill="#8facbf" font-size="19" font-family="system-ui, sans-serif">Web 与 Tauri 只适配媒体来源；索引、调度、硬件解码与 GPU 呈现共享同一套实现。</text>
 
   <g font-family="system-ui, sans-serif">
     <rect x="70" y="150" width="1300" height="500" rx="30" fill="url(#runtime)" stroke="#3c6b83" stroke-width="2"/>
-    <text x="106" y="195" fill="#bdeeff" font-size="16" font-weight="700">BROWSER MEDIA RUNTIME</text>
+    <text x="106" y="195" fill="#bdeeff" font-size="16" font-weight="700">SHARED VIDEO RUNTIME</text>
     <g text-anchor="middle" font-size="14" font-weight="700">
       <rect x="1132" y="172" width="84" height="34" rx="11" fill="#0d2234" stroke="#3d6179"/><text x="1174" y="194" fill="#bdeeff">Web</text>
-      <rect x="1228" y="172" width="106" height="34" rx="11" fill="#0d2234" stroke="#3d6179"/><text x="1281" y="194" fill="#bdeeff">Desktop</text>
+      <rect x="1228" y="172" width="106" height="34" rx="11" fill="#0d2234" stroke="#3d6179"/><text x="1281" y="194" fill="#bdeeff">Tauri</text>
     </g>
 
     <g transform="translate(104 244)">
@@ -25,7 +25,7 @@
       <text x="105" y="38" fill="#eef8ff" font-size="20" font-weight="800" text-anchor="middle">Media Sources</text>
       <rect x="24" y="60" width="162" height="28" rx="9" fill="#0d1f31"/><text x="105" y="79" fill="#a9c4d5" font-size="13" text-anchor="middle">HTTP Range</text>
       <rect x="24" y="98" width="162" height="28" rx="9" fill="#0d1f31"/><text x="105" y="117" fill="#a9c4d5" font-size="13" text-anchor="middle">OPFS</text>
-      <rect x="24" y="136" width="162" height="28" rx="9" fill="#0d1f31"/><text x="105" y="155" fill="#a9c4d5" font-size="13" text-anchor="middle">desktop starcut://</text>
+      <rect x="24" y="136" width="162" height="28" rx="9" fill="#0d1f31"/><text x="105" y="155" fill="#a9c4d5" font-size="13" text-anchor="middle">Tauri starcut://</text>
     </g>
 
     <path d="M322 334H354" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
@@ -90,7 +90,7 @@
   </g>
 
   <g transform="translate(70 682)" font-family="system-ui, sans-serif" text-anchor="middle">
-    <rect width="410" height="78" rx="18" fill="#11263a" stroke="#2f5068"/><text x="205" y="29" fill="#8facbf" font-size="13">产品边界</text><text x="205" y="56" fill="#eef8ff" font-size="17" font-weight="800">Browser-first · 链接即入口</text>
+    <rect width="410" height="78" rx="18" fill="#11263a" stroke="#2f5068"/><text x="205" y="29" fill="#8facbf" font-size="13">平台边界</text><text x="205" y="56" fill="#eef8ff" font-size="17" font-weight="800">Web / Tauri · 共享一套运行时</text>
     <rect x="445" width="410" height="78" rx="18" fill="#11263a" stroke="#2f5068"/><text x="650" y="29" fill="#8facbf" font-size="13">数据边界</text><text x="650" y="56" fill="#eef8ff" font-size="17" font-weight="800">只移动压缩字节 · 完整像素留在 GPU</text>
     <rect x="890" width="410" height="78" rx="18" fill="#11263a" stroke="#2f5068"/><text x="1095" y="29" fill="#8facbf" font-size="13">控制边界</text><text x="1095" y="56" fill="#eef8ff" font-size="17" font-weight="800">sample · queue · VideoFrame 归编辑器</text>
   </g>

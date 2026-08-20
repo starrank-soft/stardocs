@@ -6,15 +6,15 @@
 
 一张 4K RGBA 帧约 31.6 MiB，30 fps 接近每秒 1 GiB 的原始像素。只要这些帧穿过 IPC、落进 JavaScript 或 WASM 内存，再重新上传 GPU，前面获得的硬件解码优势很快就会被数据搬运抵消。这个弯路让高分辨率实时预览只剩下两个不可退让的原则：**硬件加速**与**零拷贝**。任何绕开硬件解码，或让全尺寸像素离开 GPU 主链路的方案，都会把瓶颈重新带回计算与搬运，无法持续提供丝滑的剪辑体验。
 
-## 一、StarCut 的浏览器视频运行时
+## 一、解码管线的选择
 
-![StarCut 浏览器视频运行时：多种媒体来源经过索引和 Range 读取进入 Video Worker，由 WebCodecs 解码并通过 VideoFrame 进入 GPU 合成](../assets/gop-flight/browser-preview-architecture.svg)
+![StarCut 统一解码管线：Web 与 Tauri 适配不同媒体来源，共享索引、调度、WebCodecs 解码和 GPU 呈现](../assets/gop-flight/browser-preview-architecture.svg)
 
-*结论先行：压缩字节进入浏览器，解码后的完整像素不再离开 GPU 路径。*
+*结论先行：Web 与 Tauri 只适配不同的媒体来源，后面的解码管线完全共享。*
 
-StarCut 把实时视频运行时完整放在浏览器里：HTTP、OPFS 和桌面本地文件先被适配成统一媒体源，侧车索引负责定位样本与 GOP，Video Worker 按 Range 读取压缩字节，通过 WebCodecs 硬件解码，再以 `VideoFrame` 进入帧缓存、OffscreenCanvas 和 GPU 合成。Web 与桌面只在媒体来源上不同，索引、调度、解码和呈现共享同一套实现。
+StarCut 采用一条 Web 与 Tauri 共用的解码管线。Web 端从 HTTP 或 OPFS 读取媒体，Tauri 端通过 `starcut://` 暴露本地文件；进入统一媒体源以后，侧车索引负责定位样本与 GOP，Video Worker 按 Range 读取压缩字节，通过 WebCodecs 硬件解码，再以 `VideoFrame` 进入帧缓存、OffscreenCanvas 和 GPU 合成。
 
-浏览器优先首先是产品边界，而不只是技术偏好。链接就是入口，用户无需安装，项目更容易分享；Codex 等外部 Agent 也能直接进入同一创作环境。Full Native 可以做出丝滑体验，却会形成另一套产品、分发和 Agent 运行边界，不符合 StarCut 对创作软件的整体要求。
+这条共享管线首先服从产品边界。Web 让链接成为入口，用户无需安装，项目更容易分享，Codex 等外部 Agent 也能直接进入同一创作环境；Tauri 则补充本地文件与桌面能力。Full Native 可以做出丝滑体验，却意味着再维护一套编辑器与 Agent 运行环境，不符合 StarCut 的整体架构。
 
 在这个边界内，另外两条常见路线也走不通：
 

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
-  <title id="title">零拷贝数据路径</title>
+  <title id="title">主线程不做中转站</title>
   <desc id="desc">主线程只处理界面与控制。SAB 直接向视频和音频 Worker 发布状态，视频 Worker 直接从 HTTP、OPFS 或桌面文件适配器读取压缩字节并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 环形缓冲区直接向 AudioWorklet 交付 PCM，大对象通过 Transferable 转移所有权。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0a1e31"/></linearGradient>
@@ -8,8 +8,8 @@
     <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1440" height="810" fill="url(#bg)"/>
-  <text x="72" y="76" fill="#eef8ff" font-size="34" font-weight="800" font-family="system-ui, sans-serif">零拷贝不是一个 API，而是一条不绕路的数据拓扑</text>
-  <text x="72" y="118" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">主线程负责界面；媒体数据在生产者与消费者之间点对点移动。</text>
+  <text x="72" y="76" fill="#eef8ff" font-size="34" font-weight="800" font-family="system-ui, sans-serif">主线程不做中转站：让数据直接抵达消费者</text>
+  <text x="72" y="118" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">媒体读取、控制状态和音频各走自己的直达通道。</text>
 
   <g font-family="system-ui, sans-serif">
     <rect x="70" y="188" width="248" height="402" rx="26" fill="#14273a" stroke="#38556e" stroke-width="2"/>

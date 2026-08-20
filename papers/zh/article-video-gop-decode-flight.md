@@ -28,31 +28,27 @@ WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理�
 
 *压缩字节进入 Worker；解码后的完整像素不离开 GPU 主链路。*
 
-硬件加速来自 WebCodecs。它把压缩视频交给系统可用的视频解码器，在支持的设备上沿硬件路径输出 `VideoFrame`。TypeScript 不计算 H.264 或 HEVC，也不逐像素还原画面；它只决定此刻需要哪些压缩样本，并把它们送入解码器。
+硬件加速来自 WebCodecs。它把压缩样本交给系统可用的视频解码器，在支持的设备上沿硬件路径输出 `VideoFrame`。
 
-零拷贝来自数据路径。媒体读取与解码都在 Video Worker 中进行，解码器输出的 `VideoFrame` 直接进入帧缓存和 OffscreenCanvas / GPU 合成，不落地为中间 RGBA，不穿过 Native IPC，也不回到主线程搬运。主线程只提交播放位置、画布尺寸和工程变化，完整像素始终留在媒体与 GPU 一侧。
+零拷贝来自数据路径。媒体读取与解码都在 Video Worker 中进行，`VideoFrame` 直接进入帧缓存和 OffscreenCanvas / GPU 合成，不落地为中间 RGBA，也不穿过 Native IPC。
 
 Web 与 Tauri 只在媒体入口处分开。Web 从 HTTP 或 OPFS 读取素材，Tauri 通过本地文件协议提供同样的压缩数据；进入 Video Worker 以后，两端共享 WebCodecs、`VideoFrame` 与 GPU 呈现管线。硬件加速解决“谁来做重计算”，零拷贝解决“计算结果走哪条路”，两者缺一不可。
 
-Full Native 是另一条能够做出丝滑体验的路线。Swift / Metal 或 Rust 可以把解码与渲染留在同一个原生图形环境，但它会让 Web 与桌面拥有两套编辑器运行时。这里选择由 Tauri 适配本地文件、由 WebCodecs 统一承担实时解码，目的不是回避 Native，而是让同一条高性能管线同时服务两种产品入口。
+Swift / Metal 或 Rust 全 Native 可以把解码与渲染留在同一个图形环境，却会让 Web 与桌面拥有两套编辑器运行时。Tauri 因此只适配本地文件，实时解码继续复用 WebCodecs 管线。
 
-### 零拷贝不是一个 API，而是一条不绕路的数据拓扑
+### 主线程不做中转站：让数据直接抵达消费者
 
 ![零拷贝数据路径：主线程只处理界面，控制状态通过 SAB 发布，视频 Worker 直接读取媒体 Range 并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 直达 AudioWorklet](../assets/gop-flight/zero-copy-data-paths.svg)
 
-*生产者直接连接消费者；主线程不充当媒体数据的中转站。*
+*压缩媒体、控制状态和音频各走自己的直达通道。*
 
-这里的零拷贝特指解码后的全尺寸像素主链路。硬件解码得到的 `VideoFrame` 不落地成中间 RGBA，不穿过 Native IPC，也不进入 WASM 线性内存，而是直接进入 Canvas / GPU 合成。索引、控制消息、压缩包和小尺寸缩略图仍按各自成本正常传递，不能因为边角数据允许复制，就降低像素主线的标准。
-
-WebCodecs 也不能简单放在主线程里使用。Range 读取、解码调度、输出回调和画面合成会与指针事件、时间线布局和界面更新争抢同一条线程；解码速度再快，主线程仍可能被媒体工作拖住。Video Worker 因此同时拥有媒体读取、解码器和 OffscreenCanvas，主线程只发布最新控制状态。
-
-如果 Video Worker 取一段 GOP 还要先请求主线程，再由主线程读取媒体，最后把字节转回 Worker，那么压缩数据虽然比 RGBA 小，主线程仍然会成为所有解码路线共同经过的收费站。Video Worker 因此直接对已经解析好的媒体地址发起 Range 请求：Web 环境读取 HTTP 或 OPFS，桌面环境读取 `starcut://` 提供的本地文件适配。主线程只负责界面、素材地址和工程变化，不转运媒体字节。
+把 WebCodecs 放进 Worker 只是第一步。如果 Video Worker 取一段 GOP 仍要先请求主线程，再由主线程读取媒体、把字节转回来，主线程依然是所有解码路线共同经过的收费站。Video Worker 因此同时拥有媒体读取、解码器和 OffscreenCanvas：Web 环境直接读取 HTTP 或 OPFS，桌面环境直接读取 `starcut://`；主线程只发布播放位置、画布和工程变化，不读取媒体，也不转运解码结果。
 
 播放头又是另一类数据。它更新频繁，Worker 真正需要的是“此刻最新的位置”，而不是按顺序处理主线程积压的每一条旧消息。一块共享控制内存持续发布 Playhead、Seek 序号、播放状态和时间线视口。主线程用 Atomics 提交新版本，Video Worker 与 Audio Worker 直接等待变化；没有每帧结构化序列化，没有消息队列，也不需要轮询。
 
-音频链路遵循同样的拓扑。Audio Worker 把混合后的 PCM 写进 SAB 环形缓冲区，AudioWorklet 从同一块内存直接消费；主线程不接收、不转发，也不复制音频块。Worker 之间如果需要交换连续数据，也应使用 SAB 或点对点 `MessagePort`，而不是默认经由主线程路由。
+音频链路遵循同样的拓扑。Audio Worker 把混合后的 PCM 写进 SAB 环形缓冲区，AudioWorklet 从同一块内存直接消费；Worker 之间交换连续数据时使用共享内存或点对点 `MessagePort`，不默认经由主线程转发。
 
-数据确实需要跨线程时，协议按数据性质选择：高频共享状态进入 SAB；`OffscreenCanvas`、`ImageBitmap` 和 `ArrayBuffer` 这类大对象通过 Transferable 转移所有权；工程操作、任务结果等小而有语义的信息才使用普通消息。缩略图无需先编码成 PNG 或 WebP、到了另一端再解码，媒体索引也无需复制一份 backing store。发送方交出对象，接收方成为新的拥有者——这和 Rust 的 move 在思想上相似：所有权沿数据流前进，而不是两边各留一份。
+数据确实需要跨线程时，再按性质选择协议：高频共享状态进入 SAB；`OffscreenCanvas`、`ImageBitmap` 和 `ArrayBuffer` 通过 Transferable 转移所有权；小而有语义的工程操作和任务结果使用普通消息。发送方交出对象、接收方成为新的拥有者，这和 Rust 的 move 相似：所有权沿数据流前进，而不是两边各留一份。
 
 这套原则并不是“所有东西都要放进 SAB”。共享内存适合持续变化的共同状态，Transferable 适合单一拥有者的大对象，普通消息适合小命令。架构的高度不在于选中了哪个 API，而在于先认清数据是谁产生、谁消费、是否需要共享，然后为它安排一条没有多余节点的路径。
 

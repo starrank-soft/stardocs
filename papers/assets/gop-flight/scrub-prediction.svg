@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">Scrub 的运动预测与停留收敛</title>
+  <desc id="desc">快速拖动时沿运动方向布置十个稀疏预测点，反向留保护区，八十毫秒停留后精确收敛。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <linearGradient id="motion" x1="0" x2="1"><stop stop-color="#385b72"/><stop offset=".45" stop-color="#69d8ff"/><stop offset="1" stop-color="#b7a1ff"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">Scrub 是一段运动，不是一串互不相干的 Seek</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">速度决定向前看多远，停留让系统回到准确目标。</text>
+
+  <rect x="70" y="176" width="1300" height="286" rx="24" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="220" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">移动阶段</text>
+  <line x1="130" y1="336" x2="1305" y2="336" stroke="url(#motion)" stroke-width="7" stroke-linecap="round"/>
+  <g fill="#46677d"><circle cx="168" cy="336" r="8"/><circle cx="226" cy="336" r="8"/></g>
+  <path d="M240 300H390" stroke="#7898ad" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="315" y="282" fill="#8facbf" font-size="16" text-anchor="middle" font-family="system-ui, sans-serif">反向保护</text>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(430 336)"><circle r="37" fill="#69d8ff" filter="url(#glow)"/><text y="7" fill="#062238" font-size="20" font-weight="800">NOW</text><text y="72" fill="#bdeeff" font-size="16">当前精确点</text></g>
+    <g fill="#b7a1ff"><circle cx="515" cy="336" r="9"/><circle cx="585" cy="336" r="9"/><circle cx="660" cy="336" r="9"/><circle cx="742" cy="336" r="9"/><circle cx="830" cy="336" r="9"/><circle cx="925" cy="336" r="9"/><circle cx="1027" cy="336" r="9"/><circle cx="1136" cy="336" r="9"/><circle cx="1252" cy="336" r="9"/></g>
+    <text x="884" y="288" fill="#d9ceff" font-size="18">最多 10 个方向性预测站点</text>
+  </g>
+  <path d="M490 250 C720 190 1060 198 1280 248" fill="none" stroke="#b7a1ff" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="874" y="210" fill="#d9ceff" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">速度与加速度越高，预测覆盖越远</text>
+  <rect x="100" y="392" width="560" height="44" rx="12" fill="#132d42"/><text x="380" y="420" fill="#a9c4d5" font-size="16" text-anchor="middle" font-family="system-ui, sans-serif">邻近缓存帧可先反馈，但不能消除当前精确需求</text>
+
+  <path d="M720 462V522" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="70" y="530" width="1300" height="190" rx="24" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="574" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">80ms 没有新输入：进入停留</text>
+  <line x1="200" y1="645" x2="1240" y2="645" stroke="#35566e" stroke-width="5"/>
+  <g fill="#344e61" opacity=".6"><circle cx="330" cy="645" r="8"/><circle cx="470" cy="645" r="8"/><circle cx="940" cy="645" r="8"/><circle cx="1080" cy="645" r="8"/></g>
+  <g transform="translate(720 645)" font-family="system-ui, sans-serif" text-anchor="middle"><circle r="40" fill="#7ce0ae" filter="url(#glow)"/><path d="M-8-12V12M8-12V12" stroke="#073222" stroke-width="7"/><text y="68" fill="#b7f1d1" font-size="18" font-weight="700">精确收敛到停留位置</text></g>
+  <text x="720" y="772" fill="#7898ad" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">预测范围、呈现误差与最终精确义务分别受约束</text>
+</svg>

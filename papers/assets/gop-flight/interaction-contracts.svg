@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">四种视频交互的呈现契约</title>
+  <desc id="desc">播放、Seek、移动 Scrub 和停留 Scrub 对精确性与响应方式有不同约束。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0c1b2d"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">同一套解码路线，四种画面交付契约</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">精确解码义务始终存在；运动阶段可以采用受限的近似呈现。</text>
+
+  <g font-family="system-ui, sans-serif">
+    <g transform="translate(70 182)">
+      <rect width="300" height="448" rx="24" fill="#0f2033" stroke="#31536d"/>
+      <circle cx="54" cy="58" r="25" fill="#69d8ff"/><path d="M47 44L66 58L47 72z" fill="#062238"/>
+      <text x="94" y="66" fill="#eaf6ff" font-size="25" font-weight="700">播放</text>
+      <text x="34" y="126" fill="#8facbf" font-size="17">目标</text><text x="34" y="160" fill="#dff6ff" font-size="20">连续向前的完整画面</text>
+      <line x1="34" y1="192" x2="266" y2="192" stroke="#294a63"/>
+      <text x="34" y="234" fill="#8facbf" font-size="17">呈现</text><text x="34" y="268" fill="#7ee3ff" font-size="20" font-weight="700">准确 FrameSet</text>
+      <text x="34" y="332" fill="#8facbf" font-size="17">调度</text><text x="34" y="366" fill="#dff6ff" font-size="18">当前点优先</text><text x="34" y="398" fill="#dff6ff" font-size="18">前方窗口预取</text>
+    </g>
+    <g transform="translate(404 182)">
+      <rect width="300" height="448" rx="24" fill="#0f2033" stroke="#31536d"/>
+      <circle cx="54" cy="58" r="25" fill="#ffb454"/><path d="M43 58H66M56 48L66 58L56 68" fill="none" stroke="#241605" stroke-width="4"/>
+      <text x="94" y="66" fill="#eaf6ff" font-size="25" font-weight="700">Seek</text>
+      <text x="34" y="126" fill="#8facbf" font-size="17">目标</text><text x="34" y="160" fill="#dff6ff" font-size="20">确认位置的一帧</text>
+      <line x1="34" y1="192" x2="266" y2="192" stroke="#294a63"/>
+      <text x="34" y="234" fill="#8facbf" font-size="17">呈现</text><text x="34" y="268" fill="#ffd08e" font-size="20" font-weight="700">必须准确</text>
+      <text x="34" y="332" fill="#8facbf" font-size="17">调度</text><text x="34" y="366" fill="#dff6ff" font-size="18">目标 GOP 最高优先</text><text x="34" y="398" fill="#dff6ff" font-size="18">邻近帧不可结案</text>
+    </g>
+    <g transform="translate(738 182)">
+      <rect width="300" height="448" rx="24" fill="#12304a" stroke="#69d8ff" stroke-width="2" filter="url(#glow)"/>
+      <circle cx="54" cy="58" r="25" fill="#b7a1ff"/><path d="M39 58H69M42 49L33 58L42 67M66 49L75 58L66 67" fill="none" stroke="#24164b" stroke-width="3"/>
+      <text x="94" y="66" fill="#eaf6ff" font-size="25" font-weight="700">移动 Scrub</text>
+      <text x="34" y="126" fill="#9dc0d4" font-size="17">目标</text><text x="34" y="160" fill="#eaf9ff" font-size="20">持续跟随手势</text>
+      <line x1="34" y1="192" x2="266" y2="192" stroke="#315d79"/>
+      <text x="34" y="234" fill="#9dc0d4" font-size="17">呈现</text><text x="34" y="268" fill="#d9ceff" font-size="20" font-weight="700">误差受限的邻近帧</text>
+      <text x="34" y="332" fill="#9dc0d4" font-size="17">调度</text><text x="34" y="366" fill="#eaf9ff" font-size="18">当前点 + 方向预测</text><text x="34" y="398" fill="#eaf9ff" font-size="18">精确义务继续存在</text>
+    </g>
+    <g transform="translate(1072 182)">
+      <rect width="298" height="448" rx="24" fill="#0f2033" stroke="#31536d"/>
+      <circle cx="54" cy="58" r="25" fill="#7ce0ae"/><rect x="45" y="48" width="7" height="20" fill="#073222"/><rect x="57" y="48" width="7" height="20" fill="#073222"/>
+      <text x="94" y="66" fill="#eaf6ff" font-size="25" font-weight="700">Scrub 停留</text>
+      <text x="34" y="126" fill="#8facbf" font-size="17">目标</text><text x="34" y="160" fill="#dff6ff" font-size="20">确认停下的位置</text>
+      <line x1="34" y1="192" x2="264" y2="192" stroke="#294a63"/>
+      <text x="34" y="234" fill="#8facbf" font-size="17">呈现</text><text x="34" y="268" fill="#b7f1d1" font-size="20" font-weight="700">收敛到准确帧</text>
+      <text x="34" y="332" fill="#8facbf" font-size="17">调度</text><text x="34" y="366" fill="#dff6ff" font-size="18">预测窗口退场</text><text x="34" y="398" fill="#dff6ff" font-size="18">回到精确点</text>
+    </g>
+  </g>
+  <rect x="180" y="684" width="1080" height="74" rx="18" fill="#10243a" stroke="#294a63"/>
+  <text x="720" y="714" fill="#8facbf" font-size="16" text-anchor="middle" font-family="system-ui, sans-serif">多层视频的共同底线</text>
+  <text x="720" y="744" fill="#eaf6ff" font-size="20" font-weight="700" text-anchor="middle" font-family="system-ui, sans-serif">只有完整 FrameSet 一起到达，画面才整体前进</text>
+</svg>

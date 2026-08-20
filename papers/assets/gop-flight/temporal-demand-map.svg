@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">统一时序需求运行图</title>
+  <desc id="desc">播放、Seek、Scrub 与缩略图先汇入一份时序需求，再投影到源媒体并规划 GOP Flight。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">先统一“想看什么”，再决定“怎样解码”</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">交互可以不同，但最终都落到源媒体上的样本需求。</text>
+
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g><rect x="70" y="178" width="250" height="104" rx="18" fill="#10243a" stroke="#31536d"/><text x="195" y="222" fill="#dff6ff" font-size="22" font-weight="700">播放 Play</text><text x="195" y="254" fill="#8facbf" font-size="16">当前点 + 向前窗口</text></g>
+    <g><rect x="70" y="314" width="250" height="104" rx="18" fill="#10243a" stroke="#31536d"/><text x="195" y="358" fill="#dff6ff" font-size="22" font-weight="700">跳转 Seek</text><text x="195" y="390" fill="#8facbf" font-size="16">一个精确目标</text></g>
+    <g><rect x="70" y="450" width="250" height="104" rx="18" fill="#10243a" stroke="#31536d"/><text x="195" y="494" fill="#dff6ff" font-size="22" font-weight="700">拖动 Scrub</text><text x="195" y="526" fill="#8facbf" font-size="16">当前点 + 运动预测</text></g>
+    <g><rect x="70" y="586" width="250" height="104" rx="18" fill="#10243a" stroke="#31536d"/><text x="195" y="630" fill="#dff6ff" font-size="22" font-weight="700">缩略图 Grid</text><text x="195" y="662" fill="#8facbf" font-size="16">可见范围均匀采样</text></g>
+  </g>
+
+  <g stroke="#69d8ff" stroke-width="3" fill="none" marker-end="url(#arrow)" opacity=".9"><path d="M320 230 C395 230 410 330 470 350"/><path d="M320 366 H470"/><path d="M320 502 C395 502 410 410 470 390"/><path d="M320 638 C406 638 418 456 474 410"/></g>
+
+  <rect x="470" y="250" width="360" height="300" rx="26" fill="#12304a" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
+  <text x="650" y="308" fill="#eaf9ff" font-size="27" font-weight="800" text-anchor="middle" font-family="system-ui, sans-serif">统一时序需求</text>
+  <text x="650" y="342" fill="#9dc0d4" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">全局时间 · 运动状态 · 可见范围 · 合成层</text>
+  <line x1="520" y1="370" x2="780" y2="370" stroke="#315d79"/>
+  <g font-family="ui-monospace, monospace" font-size="19" text-anchor="middle">
+    <rect x="520" y="398" width="110" height="52" rx="12" fill="#0b1b2b"/><text x="575" y="431" fill="#ffcc86">point</text>
+    <rect x="670" y="398" width="110" height="52" rx="12" fill="#0b1b2b"/><text x="725" y="431" fill="#7ee3ff">stream</text>
+    <rect x="520" y="474" width="110" height="52" rx="12" fill="#0b1b2b"/><text x="575" y="507" fill="#b7a1ff">range</text>
+    <rect x="670" y="474" width="110" height="52" rx="12" fill="#0b1b2b"/><text x="725" y="507" fill="#7ce0ae">grid</text>
+  </g>
+
+  <path d="M830 400 H930" stroke="#69d8ff" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <text x="880" y="382" fill="#8facbf" font-size="16" text-anchor="middle" font-family="system-ui, sans-serif">Clip 投影</text>
+
+  <rect x="930" y="178" width="438" height="512" rx="24" fill="#0f2033" stroke="#294a63"/>
+  <text x="1149" y="222" fill="#eaf6ff" font-size="25" font-weight="700" text-anchor="middle" font-family="system-ui, sans-serif">源媒体运行图</text>
+  <g font-family="system-ui, sans-serif">
+    <text x="976" y="274" fill="#8facbf" font-size="17">Source A</text><line x1="1060" y1="268" x2="1320" y2="268" stroke="#385d78" stroke-width="4"/>
+    <circle cx="1110" cy="268" r="13" fill="#ffb454"/><rect x="1160" y="254" width="120" height="28" rx="14" fill="#1a6386"/><circle cx="1305" cy="268" r="8" fill="#7ce0ae"/>
+    <text x="976" y="374" fill="#8facbf" font-size="17">Source B</text><line x1="1060" y1="368" x2="1320" y2="368" stroke="#385d78" stroke-width="4"/>
+    <circle cx="1218" cy="368" r="13" fill="#ffb454"/><circle cx="1148" cy="368" r="8" fill="#b7a1ff"/>
+    <text x="976" y="474" fill="#8facbf" font-size="17">Source C</text><line x1="1060" y1="468" x2="1320" y2="468" stroke="#385d78" stroke-width="4"/>
+    <g fill="#7ce0ae"><circle cx="1090" cy="468" r="7"/><circle cx="1145" cy="468" r="7"/><circle cx="1200" cy="468" r="7"/><circle cx="1255" cy="468" r="7"/><circle cx="1310" cy="468" r="7"/></g>
+  </g>
+  <rect x="978" y="538" width="342" height="102" rx="16" fill="#102b42" stroke="#34617e"/>
+  <text x="1149" y="580" fill="#dff6ff" font-size="20" font-weight="700" text-anchor="middle" font-family="system-ui, sans-serif">按样本去重 · 按 GOP 合并</text>
+  <text x="1149" y="612" fill="#8facbf" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">生成少量 GOP Flight</text>
+  <g font-family="system-ui, sans-serif" font-size="16"><circle cx="480" cy="746" r="7" fill="#ffb454"/><text x="496" y="752" fill="#a9c4d5">精确点</text><rect x="594" y="739" width="34" height="14" rx="7" fill="#1a6386"/><text x="640" y="752" fill="#a9c4d5">连续窗口</text><circle cx="762" cy="746" r="7" fill="#7ce0ae"/><text x="778" y="752" fill="#a9c4d5">网格点</text></g>
+</svg>

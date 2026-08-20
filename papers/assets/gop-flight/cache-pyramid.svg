@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">视频运行时多级缓存</title>
+  <desc id="desc">源文件、压缩 GOP、RAM 像素和 GPU VideoFrame 形成从大容量低成本到小容量高速度的分层缓存。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <linearGradient id="pyramid" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#1a3447"/><stop offset=".35" stop-color="#1f5366"/><stop offset=".7" stop-color="#287a86"/><stop offset="1" stop-color="#69d8ff"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">GPU 不是仓库：越快的缓存，容量越宝贵</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">Flight 减少重复路线，多级缓存保留路线留下的不同形态。</text>
+
+  <g transform="translate(90 176)" font-family="system-ui, sans-serif" text-anchor="middle">
+    <path d="M520 0L690 142H350z" fill="#2f93a4" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
+    <text x="520" y="58" fill="#eaf9ff" font-size="22" font-weight="800">GPU 活跃层</text><text x="520" y="88" fill="#c2f1f6" font-size="15">原生 VideoFrame</text><text x="520" y="115" fill="#0a3240" font-size="14" font-weight="700">最快 · 最小</text>
+    <path d="M350 158H690L820 278H220z" fill="#246f7c" stroke="#4fb3c4" stroke-width="2"/>
+    <text x="520" y="207" fill="#e0f7f9" font-size="22" font-weight="800">RAM 温热层</text><text x="520" y="238" fill="#a9d8dd" font-size="15">回读像素 · 稀疏锚点</text><text x="520" y="264" fill="#0b3038" font-size="14" font-weight="700">较快 · 较大</text>
+    <path d="M220 294H820L950 414H90z" fill="#1d5064" stroke="#3a819a" stroke-width="2"/>
+    <text x="520" y="343" fill="#dff3f8" font-size="22" font-weight="800">GOP 压缩层</text><text x="520" y="374" fill="#9bc1ce" font-size="15">已读取的压缩字节</text><text x="520" y="400" fill="#0b2935" font-size="14" font-weight="700">便于重放 · 容量更大</text>
+    <path d="M90 430H950L1040 550H0z" fill="#183546" stroke="#315d79" stroke-width="2"/>
+    <text x="520" y="478" fill="#dcebf2" font-size="22" font-weight="800">文件层</text><text x="520" y="510" fill="#91aebd" font-size="15">原始媒体 · SourceIndex · Range</text><text x="520" y="536" fill="#7898ad" font-size="14" font-weight="700">最慢 · 最大 · 权威来源</text>
+  </g>
+
+  <g font-family="system-ui, sans-serif">
+    <rect x="1020" y="186" width="350" height="150" rx="22" fill="#291d27" stroke="#7e4d58"/>
+    <text x="1052" y="230" fill="#f7e8eb" font-size="20" font-weight="700">为什么不能全放 GPU</text>
+    <text x="1052" y="269" fill="#f0bcc3" font-size="29" font-weight="800">4K RGBA ≈ 31.6 MiB / 帧</text>
+    <text x="1052" y="306" fill="#b6949b" font-size="16">16 帧 ≈ 506 MiB · 30fps 不到 0.6s</text>
+
+    <rect x="1020" y="370" width="350" height="142" rx="22" fill="#0f2033" stroke="#31536d"/>
+    <text x="1052" y="412" fill="#eaf6ff" font-size="20" font-weight="700">迁移也不是免费</text>
+    <text x="1052" y="450" fill="#bdeeff" font-size="17">GPU → RAM：copyTo() readback</text>
+    <text x="1052" y="482" fill="#bdeeff" font-size="17">RAM → GPU：重建并再次上传</text>
+
+    <rect x="1020" y="546" width="350" height="164" rx="22" fill="#123b55" stroke="#69d8ff" stroke-width="2"/>
+    <text x="1052" y="588" fill="#eaf9ff" font-size="20" font-weight="700">需求决定驻留</text>
+    <text x="1052" y="624" fill="#dff6ff" font-size="16">当前 FrameSet → GPU</text>
+    <text x="1052" y="652" fill="#dff6ff" font-size="16">Seek 邻域 / 锚点 → RAM</text>
+    <text x="1052" y="680" fill="#dff6ff" font-size="16">可重走路线 → 压缩 GOP</text>
+  </g>
+  <path d="M960 592H1008" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="720" y="772" fill="#7898ad" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">如果所有帧都能永久热驻留，调度几乎没有意义；有限资源让“留谁、赶谁、何时再来”成为核心问题</text>
+</svg>

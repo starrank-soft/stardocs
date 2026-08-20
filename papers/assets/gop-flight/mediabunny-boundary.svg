@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">MediaBunny、StarCut fork、SCIX 与 GOP Flight 的职责边界</title>
+  <desc id="desc">MediaBunny 负责容器解析和编码兼容，StarCut fork 补齐精确字节范围与 DTS，导入时生成 SCIX，运行时由 GOP Flight 处理项目级调度。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">MediaBunny 负责读懂媒体，StarCut 负责安排媒体工作</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">我们复用它的兼容性，在包级索引和编辑器调度之间划出清楚边界。</text>
+
+  <g font-family="system-ui, sans-serif">
+    <rect x="70" y="182" width="360" height="448" rx="26" fill="#0f2033" stroke="#31536d"/>
+    <text x="250" y="234" fill="#eaf6ff" font-size="26" font-weight="800" text-anchor="middle">MediaBunny 上游</text>
+    <text x="250" y="268" fill="#8facbf" font-size="16" text-anchor="middle">成熟的媒体兼容层</text>
+    <g text-anchor="middle">
+      <rect x="110" y="310" width="280" height="66" rx="14" fill="#102b42"/><text x="250" y="338" fill="#dff6ff" font-size="18">容器解析</text><text x="250" y="362" fill="#8facbf" font-size="14">MP4 · MOV · MP3 · FLAC · OGG…</text>
+      <rect x="110" y="394" width="280" height="66" rx="14" fill="#102b42"/><text x="250" y="422" fill="#dff6ff" font-size="18">Packet / Sample API</text><text x="250" y="446" fill="#8facbf" font-size="14">时间戳 · 时长 · Key / Delta</text>
+      <rect x="110" y="478" width="280" height="66" rx="14" fill="#102b42"/><text x="250" y="506" fill="#dff6ff" font-size="18">WebCodecs 兼容</text><text x="250" y="530" fill="#8facbf" font-size="14">Decoder config · packet adaptation</text>
+    </g>
+    <text x="250" y="590" fill="#7ce0ae" font-size="17" font-weight="700" text-anchor="middle">这一层我们直接复用</text>
+
+    <path d="M430 406H490" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+    <rect x="498" y="182" width="418" height="448" rx="26" fill="#123b55" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
+    <text x="707" y="234" fill="#eaf9ff" font-size="26" font-weight="800" text-anchor="middle">StarCut 的窄范围 Fork</text>
+    <text x="707" y="268" fill="#9dcbe0" font-size="16" text-anchor="middle">补齐可直接调度的 packet index</text>
+    <g text-anchor="middle">
+      <rect x="544" y="310" width="150" height="72" rx="14" fill="#0c2234"/><text x="619" y="340" fill="#ffcc86" font-size="19" font-weight="700">offset + length</text><text x="619" y="365" fill="#8facbf" font-size="14">源字节地址</text>
+      <rect x="720" y="310" width="150" height="72" rx="14" fill="#0c2234"/><text x="795" y="340" fill="#b7a1ff" font-size="19" font-weight="700">DTS + order</text><text x="795" y="365" fill="#8facbf" font-size="14">准确解码顺序</text>
+      <rect x="544" y="404" width="150" height="72" rx="14" fill="#0c2234"/><text x="619" y="434" fill="#7ce0ae" font-size="19" font-weight="700">PTS · duration</text><text x="619" y="459" fill="#8facbf" font-size="14">呈现时间</text>
+      <rect x="720" y="404" width="150" height="72" rx="14" fill="#0c2234"/><text x="795" y="434" fill="#69d8ff" font-size="19" font-weight="700">key · codec</text><text x="795" y="459" fill="#8facbf" font-size="14">随机访问与配置</text>
+      <rect x="544" y="506" width="326" height="72" rx="14" fill="#0c2234"/><text x="707" y="536" fill="#dff6ff" font-size="18" font-weight="700">metadata-only 完整索引</text><text x="707" y="561" fill="#8facbf" font-size="14">缺字段时明确拒绝，不靠猜测</text>
+    </g>
+
+    <path d="M916 406H976" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+    <rect x="984" y="182" width="386" height="448" rx="26" fill="#0f2033" stroke="#31536d"/>
+    <text x="1177" y="234" fill="#eaf6ff" font-size="26" font-weight="800" text-anchor="middle">StarCut 运行时</text>
+    <text x="1177" y="268" fill="#8facbf" font-size="16" text-anchor="middle">项目级时序与资源调度</text>
+    <g text-anchor="middle">
+      <rect x="1030" y="310" width="294" height="70" rx="14" fill="#102b42"/><text x="1177" y="339" fill="#dff6ff" font-size="18">SCIX SourceIndex</text><text x="1177" y="364" fill="#8facbf" font-size="14">同步 time → sample → GOP</text>
+      <rect x="1030" y="400" width="294" height="70" rx="14" fill="#102b42"/><text x="1177" y="429" fill="#dff6ff" font-size="18">统一需求</text><text x="1177" y="454" fill="#8facbf" font-size="14">Play · Seek · Scrub · Grid</text>
+      <rect x="1030" y="490" width="294" height="70" rx="14" fill="#102b42"/><text x="1177" y="519" fill="#dff6ff" font-size="18">GOP Flight 车队</text><text x="1177" y="544" fill="#8facbf" font-size="14">合并路线 · 缓存 · 资源预算</text>
+    </g>
+    <text x="1177" y="594" fill="#69d8ff" font-size="17" font-weight="700" text-anchor="middle">这一层属于编辑器现场</text>
+  </g>
+
+  <g transform="translate(172 690)" font-family="system-ui, sans-serif" text-anchor="middle"><rect width="1096" height="72" rx="18" fill="#10243a" stroke="#294a63"/><text x="548" y="31" fill="#8facbf" font-size="15">边界原则</text><text x="548" y="57" fill="#eaf6ff" font-size="19" font-weight="700">容器与编码兼容交给 MediaBunny · 跨来源、跨交互调度留在编辑器运行时</text></g>
+</svg>

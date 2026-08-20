@@ -8,7 +8,7 @@
 
 | 编号 | 论文母稿 | 面向公众的文章 | 当前定位 |
 |---|---|---|---|
-| 01 | [班车式解码：统一时序需求与 GOP Flight 调度](./01-gop-shuttle.md) | 为什么视频编辑器的解码器应该像班车，而不是像出租车 | 多媒体系统与调度优化 |
+| 01 | [班车式解码：统一时序需求与 GOP Flight 调度](./01-gop-shuttle.md) | [Video GOP Decode Flight：像调度高铁一样实现丝滑剪辑](./article-video-gop-decode-flight.md) | 多媒体系统与调度优化 |
 | 02 | [REST-Edit：面向 AI 的轻量级、流式、语义化精确编辑协议](./02-rest-edit.md) | 让 AI 像改代码一样精确剪视频 | 协议与 Agent 接口优化 |
 | 03 | [Edit-as-Code：让 AI 像 Coding Agent 一样完成视频剪辑](./03-edit-as-code.md) | [Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图](./article-edit-video-as-code.md)（面向技术同学） | Agent-Computer Interface 与创作系统 |
 | 04 | [单时钟可寻址 Motion Graphics](./04-single-clock-motion-graphics.md) | 让同一份 MG 同时服务实时预览、缩略图和最终导出 | 浏览器图形运行时 |

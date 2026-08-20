@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">需求变化时协调现有 Flight</title>
+  <desc id="desc">旧目标切换到新目标后，保留仍有价值的路线和在途帧，停止无价值的后续提交。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">目标变了，先看已经在路上的工作还能不能用</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">更新到站表，保留有效前缀；只有越界或资源压力才破坏物理路线。</text>
+
+  <rect x="70" y="174" width="1300" height="180" rx="22" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="218" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">需求快照</text>
+  <g font-family="system-ui, sans-serif">
+    <rect x="190" y="244" width="350" height="70" rx="16" fill="#1a3347" stroke="#47647a"/><text x="365" y="273" fill="#a9c4d5" font-size="17" text-anchor="middle">上一刻：目标 A · B · C</text><text x="365" y="298" fill="#748fa2" font-size="14" text-anchor="middle">鼠标继续向右</text>
+    <path d="M560 279H700" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+    <text x="630" y="262" fill="#69d8ff" font-size="16" text-anchor="middle">新输入到达</text>
+    <rect x="720" y="244" width="460" height="70" rx="16" fill="#123b55" stroke="#69d8ff" stroke-width="2" filter="url(#glow)"/><text x="950" y="273" fill="#e6f9ff" font-size="17" text-anchor="middle">当前：目标 C · D · E</text><text x="950" y="298" fill="#9acbe0" font-size="14" text-anchor="middle">C 仍有价值，A/B 已离场，D/E 新增</text>
+  </g>
+
+  <rect x="70" y="394" width="1300" height="284" rx="22" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="438" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">现有 Flight</text>
+  <line x1="150" y1="554" x2="1280" y2="554" stroke="#37607c" stroke-width="7" stroke-linecap="round"/>
+  <line x1="150" y1="554" x2="738" y2="554" stroke="#69d8ff" stroke-width="7" stroke-linecap="round"/>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(170 554)"><circle r="29" fill="#ffb454"/><text y="7" fill="#201506" font-size="18" font-weight="800">K</text></g>
+    <g transform="translate(340 554)"><circle r="25" fill="#263847" stroke="#627483" stroke-width="2"/><text y="6" fill="#8899a6" font-size="17">A</text><path d="M-15-15L15 15M15-15L-15 15" stroke="#e07979" stroke-width="3"/></g>
+    <g transform="translate(520 554)"><circle r="25" fill="#263847" stroke="#627483" stroke-width="2"/><text y="6" fill="#8899a6" font-size="17">B</text><path d="M-15-15L15 15M15-15L-15 15" stroke="#e07979" stroke-width="3"/></g>
+    <g transform="translate(720 554)"><circle r="35" fill="#69d8ff" filter="url(#glow)"/><text y="7" fill="#062238" font-size="20" font-weight="800">C</text><text y="70" fill="#bdeeff" font-size="16">在途输出</text></g>
+    <g transform="translate(920 554)"><circle r="31" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="7" fill="#bdeeff" font-size="19">D</text><text y="70" fill="#bdeeff" font-size="16">新目标</text></g>
+    <g transform="translate(1120 554)"><circle r="31" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="7" fill="#bdeeff" font-size="19">E</text><text y="70" fill="#bdeeff" font-size="16">新目标</text></g>
+    <path d="M738 508L778 532L738 576z" fill="#69d8ff" filter="url(#glow)"/>
+    <text x="760" y="488" fill="#69d8ff" font-size="17">当前解码游标</text>
+  </g>
+  <path d="M720 354V386" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+  <g font-family="system-ui, sans-serif" font-size="16"><circle cx="172" cy="735" r="7" fill="#69d8ff"/><text x="190" y="741" fill="#a9c4d5">保留：有效路线、在途输出、温热检查点</text><circle cx="664" cy="735" r="7" fill="#e07979"/><text x="682" y="741" fill="#a9c4d5">停止：已失效目标的后续提交</text><circle cx="1066" cy="735" r="7" fill="#ffb454"/><text x="1084" y="741" fill="#a9c4d5">硬终止：来源失效或资源回收</text></g>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">编码依赖与视频编辑交互难度</title>
+  <desc id="desc">上半部分展示 I P B 帧的 GOP 依赖和全 I 帧的空间取舍，下半部分展示从全 I 帧、播放、跳转到 Scrub 和时间线缩略图的难度阶梯。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <linearGradient id="stairs" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#7ce0ae"/><stop offset=".52" stop-color="#69d8ff"/><stop offset="1" stop-color="#b7a1ff"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">压缩省下来的空间，会在随机访问时变成路线</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">全 I 帧最容易剪；长 GOP 更适合存储，也更考验调度。</text>
+
+  <rect x="70" y="170" width="810" height="264" rx="24" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="214" fill="#eaf6ff" font-size="22" font-weight="700" font-family="system-ui, sans-serif">一个典型 GOP 的依赖</text>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(150 316)"><circle r="38" fill="#ffb454"/><text y="8" fill="#241605" font-size="23" font-weight="800">I</text><text y="70" fill="#ffd08e" font-size="15">独立起点</text></g>
+    <g transform="translate(300 316)"><circle r="31" fill="#69d8ff"/><text y="8" fill="#062238" font-size="21" font-weight="800">P</text><text y="70" fill="#bdeeff" font-size="15">引用过去</text></g>
+    <g transform="translate(450 316)"><circle r="31" fill="#b7a1ff"/><text y="8" fill="#24164b" font-size="21" font-weight="800">B</text><text y="70" fill="#d9ceff" font-size="15">前后引用</text></g>
+    <g transform="translate(600 316)"><circle r="31" fill="#b7a1ff"/><text y="8" fill="#24164b" font-size="21" font-weight="800">B</text><text y="70" fill="#d9ceff" font-size="15">前后引用</text></g>
+    <g transform="translate(750 316)"><circle r="31" fill="#69d8ff"/><text y="8" fill="#062238" font-size="21" font-weight="800">P</text><text y="70" fill="#bdeeff" font-size="15">引用过去</text></g>
+  </g>
+  <g stroke="#45677d" stroke-width="3" fill="none" marker-end="url(#arrow)"><path d="M190 292Q240 250 270 292"/><path d="M330 304Q380 272 418 304"/><path d="M332 328Q445 386 568 328"/><path d="M482 292Q600 220 718 292"/><path d="M632 304Q680 272 718 304"/></g>
+
+  <rect x="920" y="170" width="450" height="264" rx="24" fill="#0f2033" stroke="#294a63"/>
+  <text x="1145" y="214" fill="#eaf6ff" font-size="22" font-weight="700" text-anchor="middle" font-family="system-ui, sans-serif">全 I 帧代理的取舍</text>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="970" y="252" width="160" height="116" rx="18" fill="#123b35" stroke="#5ab98f"/><text x="1050" y="286" fill="#b7f1d1" font-size="18" font-weight="700">每帧可直达</text><g fill="#7ce0ae"><circle cx="1000" cy="326" r="12"/><circle cx="1034" cy="326" r="12"/><circle cx="1068" cy="326" r="12"/><circle cx="1102" cy="326" r="12"/></g><text x="1050" y="354" fill="#8fc7aa" font-size="14">解码 Happy Path</text>
+    <path d="M1148 310H1192" stroke="#ffb454" stroke-width="3" marker-end="url(#arrow)"/>
+    <rect x="1210" y="252" width="112" height="116" rx="18" fill="#352c1d" stroke="#806b3d"/><text x="1266" y="286" fill="#ffd08e" font-size="18" font-weight="700">空间变大</text><rect x="1234" y="314" width="64" height="34" rx="7" fill="#ffb454"/><text x="1266" y="338" fill="#241605" font-size="15" font-weight="800">× N</text>
+  </g>
+
+  <text x="72" y="498" fill="#eaf6ff" font-size="24" font-weight="700" font-family="system-ui, sans-serif">真实项目里的难度阶梯</text>
+  <g font-family="system-ui, sans-serif">
+    <path d="M90 710V660H310V610H550V558H800V506H1060V454H1350V710z" fill="#10283d" stroke="url(#stairs)" stroke-width="3"/>
+    <text x="198" y="684" fill="#b7f1d1" font-size="19" font-weight="700" text-anchor="middle">全 I 帧</text><text x="198" y="706" fill="#789b8a" font-size="13" text-anchor="middle">任意位置直达</text>
+    <text x="430" y="634" fill="#bdeeff" font-size="19" font-weight="700" text-anchor="middle">Play</text><text x="430" y="656" fill="#7898ad" font-size="13" text-anchor="middle">顺序向前</text>
+    <text x="675" y="582" fill="#bdeeff" font-size="19" font-weight="700" text-anchor="middle">Jump / Seek</text><text x="675" y="604" fill="#7898ad" font-size="13" text-anchor="middle">换 GOP 起点</text>
+    <text x="930" y="530" fill="#d9ceff" font-size="19" font-weight="700" text-anchor="middle">Scrub</text><text x="930" y="552" fill="#9487bd" font-size="13" text-anchor="middle">移动 · 反向 · 停留</text>
+    <text x="1205" y="478" fill="#d9ceff" font-size="19" font-weight="700" text-anchor="middle">Timeline Zoom / Scroll</text><text x="1205" y="500" fill="#9487bd" font-size="13" text-anchor="middle">全局网格换站</text>
+  </g>
+  <path d="M180 754H1260" stroke="#6d7f8c" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="720" y="785" fill="#8facbf" font-size="16" text-anchor="middle" font-family="system-ui, sans-serif">随机访问频率、方向变化与需求广度逐步增加</text>
+</svg>

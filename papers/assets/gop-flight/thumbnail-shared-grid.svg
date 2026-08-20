@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">缩略图与前台共享解码网格</title>
+  <desc id="desc">时间线生成低优先级网格需求，前台 Flight 可以顺路交付缩略图，Worker 缩放后传给可见时间线。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">缩略图是一组低优先级站点，不是第二套播放器</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">前台 Flight 路过网格样本时顺路交付；前台稳定后，网格再独立补齐。</text>
+
+  <rect x="70" y="176" width="1300" height="164" rx="22" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="218" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">可见时间线 + 25% overscan</text>
+  <g transform="translate(118 244)">
+    <rect width="1204" height="66" rx="12" fill="#0a1725" stroke="#31536d"/>
+    <rect x="176" y="8" width="852" height="50" rx="9" fill="#16364d" stroke="#69d8ff" stroke-width="2"/>
+    <g stroke="#7ce0ae" stroke-width="3"><line x1="236" y1="18" x2="236" y2="49"/><line x1="376" y1="18" x2="376" y2="49"/><line x1="516" y1="18" x2="516" y2="49"/><line x1="656" y1="18" x2="656" y2="49"/><line x1="796" y1="18" x2="796" y2="49"/><line x1="936" y1="18" x2="936" y2="49"/></g>
+    <text x="602" y="44" fill="#b7f1d1" font-size="16" text-anchor="middle" font-family="system-ui, sans-serif">按当前刻度产生均匀 grid</text>
+  </g>
+
+  <path d="M720 340V388" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="70" y="396" width="820" height="260" rx="22" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="440" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">共享 GOP Flight</text>
+  <line x1="130" y1="544" x2="828" y2="544" stroke="#41627a" stroke-width="7" stroke-linecap="round"/>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(154 544)"><circle r="30" fill="#ffb454"/><text y="7" fill="#201506" font-size="19" font-weight="800">K</text></g>
+    <g transform="translate(328 544)"><circle r="31" fill="#69d8ff" filter="url(#glow)"/><text y="7" fill="#062238" font-size="18" font-weight="800">P</text><text y="64" fill="#bdeeff" font-size="15">当前画面</text></g>
+    <g transform="translate(500 544)"><circle r="27" fill="#7ce0ae" filter="url(#glow)"/><text y="7" fill="#073222" font-size="18" font-weight="800">G</text><text y="64" fill="#b7f1d1" font-size="15">顺路命中</text></g>
+    <g transform="translate(666 544)"><circle r="23" fill="#173a54" stroke="#7ce0ae" stroke-width="3"/><text y="6" fill="#b7f1d1" font-size="17">G</text></g>
+    <g transform="translate(810 544)"><circle r="23" fill="#173a54" stroke="#7ce0ae" stroke-width="3"/><text y="6" fill="#b7f1d1" font-size="17">G</text></g>
+  </g>
+  <rect x="110" y="620" width="730" height="30" rx="10" fill="#132d42"/><text x="475" y="641" fill="#a9c4d5" font-size="15" text-anchor="middle" font-family="system-ui, sans-serif">当前画面缺失时，后续 grid 站点退让</text>
+
+  <path d="M890 526H944" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="952" y="396" width="418" height="260" rx="22" fill="#12304a" stroke="#69d8ff" stroke-width="2"/>
+  <text x="1161" y="440" fill="#eaf9ff" font-size="21" font-weight="700" text-anchor="middle" font-family="system-ui, sans-serif">Worker 一次性处理</text>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="1000" y="474" width="140" height="66" rx="13" fill="#0c2234"/><text x="1070" y="502" fill="#dff6ff" font-size="17">Cover 裁切</text><text x="1070" y="525" fill="#8facbf" font-size="14">保持构图</text>
+    <path d="M1144 507H1180" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
+    <rect x="1188" y="474" width="134" height="66" rx="13" fill="#0c2234"/><text x="1255" y="502" fill="#dff6ff" font-size="17">50 × 30</text><text x="1255" y="525" fill="#8facbf" font-size="14">ImageBitmap</text>
+    <rect x="1000" y="574" width="322" height="54" rx="13" fill="#0c2234"/><text x="1161" y="608" fill="#b7f1d1" font-size="17">6,000 bytes RGBA · 传给主线程</text>
+  </g>
+  <g transform="translate(126 710)" font-family="system-ui, sans-serif"><rect width="1188" height="52" rx="13" fill="#10243a"/><text x="594" y="33" fill="#dff6ff" font-size="18" text-anchor="middle">可见 Tile 固定资源 · 离开视口释放 · 邻近帧可占位但不消除准确网格目标</text></g>
+</svg>

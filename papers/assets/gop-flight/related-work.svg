@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">GOP Flight 与相关工作的边界</title>
+  <desc id="desc">标准和研究分别提供底层解码、字节访问、准确 Seek、Scrub 预览和渐进加载，GOP Flight 负责编辑器运行时的统一需求协调。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">我们站在成熟机制之上，研究编辑器怎样把它们组织起来</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">GOP、关键帧、Range、预取与缩略图都已有积累；贡献边界在运行时协调。</text>
+
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(70 188)"><rect width="250" height="130" rx="20" fill="#0f2033" stroke="#31536d"/><text x="125" y="48" fill="#69d8ff" font-size="22" font-weight="700">WebCodecs</text><text x="125" y="82" fill="#a9c4d5" font-size="16">底层解码队列</text><text x="125" y="106" fill="#748fa2" font-size="14">Worker · reset · flush</text></g>
+    <g transform="translate(350 188)"><rect width="250" height="130" rx="20" fill="#0f2033" stroke="#31536d"/><text x="125" y="48" fill="#ffb454" font-size="22" font-weight="700">HTTP Range</text><text x="125" y="82" fill="#a9c4d5" font-size="16">按字节随机访问</text><text x="125" y="106" fill="#748fa2" font-size="14">只读取相关 GOP</text></g>
+    <g transform="translate(630 188)"><rect width="250" height="130" rx="20" fill="#0f2033" stroke="#31536d"/><text x="125" y="48" fill="#7ce0ae" font-size="22" font-weight="700">Accurate Seek</text><text x="125" y="82" fill="#a9c4d5" font-size="16">关键帧预取与丢弃</text><text x="125" y="106" fill="#748fa2" font-size="14">Gao et al. · 2011</text></g>
+    <g transform="translate(910 188)"><rect width="250" height="130" rx="20" fill="#0f2033" stroke="#31536d"/><text x="125" y="48" fill="#b7a1ff" font-size="22" font-weight="700">Scrub Preview</text><text x="125" y="82" fill="#a9c4d5" font-size="16">低清代理与缓存网格</text><text x="125" y="106" fill="#748fa2" font-size="14">Swift · Swifter</text></g>
+    <g transform="translate(1190 188)"><rect width="180" height="130" rx="20" fill="#0f2033" stroke="#31536d"/><text x="90" y="48" fill="#e07979" font-size="20" font-weight="700">渐进加载</text><text x="90" y="82" fill="#a9c4d5" font-size="15">粗到细覆盖</text><text x="90" y="106" fill="#748fa2" font-size="13">Spread Loading</text></g>
+  </g>
+
+  <g stroke="#69d8ff" stroke-width="3" fill="none" marker-end="url(#arrow)" opacity=".85"><path d="M195 318 C195 410 540 400 600 466"/><path d="M475 318 C475 390 610 400 650 454"/><path d="M755 318V438"/><path d="M1035 318 C1035 390 900 400 855 454"/><path d="M1280 318 C1280 410 970 405 900 466"/></g>
+
+  <rect x="330" y="454" width="780" height="232" rx="30" fill="#123b55" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
+  <text x="720" y="514" fill="#eaf9ff" font-size="29" font-weight="800" text-anchor="middle" font-family="system-ui, sans-serif">GOP Flight · 编辑器运行时组织层</text>
+  <line x1="410" y1="542" x2="1030" y2="542" stroke="#315d79"/>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="402" y="572" width="190" height="70" rx="14" fill="#0c2234"/><text x="497" y="601" fill="#dff6ff" font-size="17">统一时序需求</text><text x="497" y="625" fill="#8facbf" font-size="14">跨交互投影</text>
+    <rect x="625" y="572" width="190" height="70" rx="14" fill="#0c2234"/><text x="720" y="601" fill="#dff6ff" font-size="17">同 GOP 路线复用</text><text x="720" y="625" fill="#8facbf" font-size="14">目标可替换</text>
+    <rect x="848" y="572" width="190" height="70" rx="14" fill="#0c2234"/><text x="943" y="601" fill="#dff6ff" font-size="17">精确 / 近似分离</text><text x="943" y="625" fill="#8facbf" font-size="14">义务不丢失</text>
+  </g>
+  <text x="720" y="746" fill="#7898ad" font-size="18" text-anchor="middle" font-family="system-ui, sans-serif">定位：调度与运行时设计，不是新的编解码算法</text>
+</svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">一趟 GOP Flight 的组成</title>
+  <desc id="desc">从需求目标站表到 SourceIndex、GOP Range 读取、WebCodecs、帧缓存和多个消费者。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0a1b2c"/></linearGradient>
+    <linearGradient id="route" x1="0" x2="1"><stop stop-color="#ffb454"/><stop offset=".2" stop-color="#6ad9ff"/><stop offset="1" stop-color="#2f6f97"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">一趟 Flight：一次前向解码，多处到站交付</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">到站表会更新，已经建立的物理解码路线可以继续使用。</text>
+
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <rect x="70" y="188" width="224" height="112" rx="18" fill="#10243a" stroke="#31536d"/><text x="182" y="232" fill="#e6f7ff" font-size="21" font-weight="700">需求目标站</text><text x="182" y="266" fill="#8facbf" font-size="16">A · B · C</text>
+    <rect x="350" y="188" width="224" height="112" rx="18" fill="#10243a" stroke="#31536d"/><text x="462" y="232" fill="#e6f7ff" font-size="21" font-weight="700">媒体索引</text><text x="462" y="266" fill="#8facbf" font-size="16">样本 · GOP · 字节</text>
+    <rect x="630" y="188" width="224" height="112" rx="18" fill="#10243a" stroke="#31536d"/><text x="742" y="232" fill="#e6f7ff" font-size="21" font-weight="700">Range 读取</text><text x="742" y="266" fill="#8facbf" font-size="16">只取相关 GOP</text>
+    <rect x="910" y="188" width="224" height="112" rx="18" fill="#12304a" stroke="#69d8ff" stroke-width="2"/><text x="1022" y="232" fill="#eaf9ff" font-size="21" font-weight="700">Decoder Flight</text><text x="1022" y="266" fill="#9dcbe0" font-size="16">游标 · 参考状态 · 在途输出</text>
+    <rect x="1190" y="188" width="180" height="112" rx="18" fill="#10243a" stroke="#31536d"/><text x="1280" y="232" fill="#e6f7ff" font-size="21" font-weight="700">帧缓存</text><text x="1280" y="266" fill="#8facbf" font-size="16">物化覆盖</text>
+  </g>
+  <g stroke="#69d8ff" stroke-width="3" fill="none" marker-end="url(#arrow)"><path d="M294 244H342"/><path d="M574 244H622"/><path d="M854 244H902"/><path d="M1134 244H1182"/></g>
+
+  <rect x="70" y="370" width="1064" height="286" rx="24" fill="#0f2033" stroke="#294a63"/>
+  <text x="104" y="416" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">同一个 GOP 内的前向路线</text>
+  <line x1="128" y1="530" x2="1080" y2="530" stroke="url(#route)" stroke-width="8" stroke-linecap="round"/>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(150 530)"><circle r="34" fill="#ffb454" filter="url(#glow)"/><text y="7" fill="#201506" font-size="20" font-weight="800">K</text><text y="67" fill="#ffd79e" font-size="16">真实关键样本</text></g>
+    <g transform="translate(320 530)"><circle r="20" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="15">1</text></g>
+    <g transform="translate(465 530)"><circle r="31" fill="#69d8ff" filter="url(#glow)"/><text y="7" fill="#062238" font-size="19" font-weight="800">A</text><text y="66" fill="#bdeeff" font-size="16">当前画面</text></g>
+    <g transform="translate(610 530)"><circle r="20" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="15">4</text></g>
+    <g transform="translate(755 530)"><circle r="31" fill="#7ce0ae" filter="url(#glow)"/><text y="7" fill="#073222" font-size="19" font-weight="800">B</text><text y="66" fill="#b7f1d1" font-size="16">缩略图</text></g>
+    <g transform="translate(900 530)"><circle r="20" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="15">7</text></g>
+    <g transform="translate(1050 530)"><circle r="31" fill="#b7a1ff" filter="url(#glow)"/><text y="7" fill="#211547" font-size="19" font-weight="800">C</text><text y="66" fill="#d9ceff" font-size="16">Scrub 预测</text></g>
+  </g>
+  <path d="M150 465 Q600 390 1050 465" fill="none" stroke="#ffb454" stroke-width="3"/>
+  <text x="600" y="452" fill="#ffd79e" font-size="18" text-anchor="middle" font-family="system-ui, sans-serif">同一段 GOP 前缀只需经过一次</text>
+
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <path d="M1280 300V402" stroke="#69d8ff" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+    <rect x="1190" y="410" width="180" height="72" rx="14" fill="#17334b" stroke="#315d79"/><text x="1280" y="454" fill="#e5f7ff" font-size="18">当前合成画面</text>
+    <rect x="1190" y="500" width="180" height="72" rx="14" fill="#17334b" stroke="#315d79"/><text x="1280" y="544" fill="#e5f7ff" font-size="18">Scrub 反馈</text>
+    <rect x="1190" y="590" width="180" height="72" rx="14" fill="#17334b" stroke="#315d79"/><text x="1280" y="634" fill="#e5f7ff" font-size="18">时间线缩略图</text>
+  </g>
+  <text x="720" y="750" fill="#7898ad" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">目标描述“还要去哪里” · Flight 保存“已经走到哪里”</text>
+</svg>

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">从目标时刻到 GOP 解码路线</title>
+  <desc id="desc">时间线目标帧位于 GOP 内部，必须从关键帧读取字节并经过依赖帧才能输出。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0c1b2d"/></linearGradient>
+    <linearGradient id="rail" x1="0" x2="1"><stop stop-color="#ffb454"/><stop offset=".24" stop-color="#69d8ff"/><stop offset="1" stop-color="#2c688f"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="82" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">一帧在时间线上是一个点，在压缩视频里是一段路</text>
+  <text x="72" y="126" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">目标时刻只说明想看什么；媒体索引负责找出从哪里开始、需要走多远。</text>
+
+  <rect x="72" y="184" width="1296" height="154" rx="20" fill="#0f2033" stroke="#28445b"/>
+  <text x="106" y="226" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">编辑器时间线</text>
+  <line x1="120" y1="279" x2="1320" y2="279" stroke="#41627a" stroke-width="4"/>
+  <g fill="#6f8ba0" font-family="system-ui, sans-serif" font-size="16" text-anchor="middle">
+    <text x="180" y="314">0s</text><text x="420" y="314">2s</text><text x="660" y="314">4s</text><text x="900" y="314">6s</text><text x="1140" y="314">8s</text>
+  </g>
+  <g stroke="#41627a" stroke-width="3"><line x1="180" y1="265" x2="180" y2="293"/><line x1="420" y1="265" x2="420" y2="293"/><line x1="660" y1="265" x2="660" y2="293"/><line x1="900" y1="265" x2="900" y2="293"/><line x1="1140" y1="265" x2="1140" y2="293"/></g>
+  <line x1="930" y1="206" x2="930" y2="298" stroke="#ffb454" stroke-width="4" filter="url(#glow)"/>
+  <path d="M918 206h24l-12 16z" fill="#ffb454"/>
+  <text x="950" y="242" fill="#ffd79e" font-size="18" font-weight="700" font-family="system-ui, sans-serif">目标时刻 6.25s</text>
+
+  <path d="M930 338 C930 390 1000 383 1000 426" fill="none" stroke="#69d8ff" stroke-width="3" stroke-dasharray="8 8"/>
+  <text x="1018" y="390" fill="#69d8ff" font-size="17" font-family="system-ui, sans-serif">SourceIndex 定位</text>
+
+  <rect x="72" y="426" width="1296" height="276" rx="20" fill="#0f2033" stroke="#28445b"/>
+  <text x="106" y="470" fill="#8facbf" font-size="18" font-family="system-ui, sans-serif">源媒体 GOP · 解码输入按 DTS 顺序</text>
+  <line x1="152" y1="584" x2="1288" y2="584" stroke="url(#rail)" stroke-width="8" stroke-linecap="round"/>
+  <g font-family="system-ui, sans-serif" text-anchor="middle">
+    <g transform="translate(178 584)"><circle r="34" fill="#ffb454" filter="url(#glow)"/><text y="7" fill="#1d160b" font-size="20" font-weight="800">K</text><text y="64" fill="#ffd79e" font-size="17">关键帧起点</text></g>
+    <g transform="translate(354 584)"><circle r="25" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="17">1</text></g>
+    <g transform="translate(520 584)"><circle r="25" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="17">2</text></g>
+    <g transform="translate(686 584)"><circle r="25" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="17">3</text></g>
+    <g transform="translate(852 584)"><circle r="25" fill="#173a54" stroke="#69d8ff" stroke-width="3"/><text y="6" fill="#bdeeff" font-size="17">4</text></g>
+    <g transform="translate(1000 584)"><circle r="38" fill="#69d8ff" filter="url(#glow)"/><text y="7" fill="#062238" font-size="20" font-weight="800">T</text><text y="68" fill="#bdeeff" font-size="17" font-weight="700">目标帧</text></g>
+    <g transform="translate(1164 584)"><circle r="25" fill="#173a54" stroke="#315672" stroke-width="3"/><text y="6" fill="#7898ad" font-size="17">6</text></g>
+    <g transform="translate(1288 584)"><circle r="25" fill="#173a54" stroke="#315672" stroke-width="3"/><text y="6" fill="#7898ad" font-size="17">7</text></g>
+  </g>
+  <path d="M178 525 Q589 450 1000 525" fill="none" stroke="#ffb454" stroke-width="3" marker-end="url(#none)"/>
+  <text x="589" y="512" fill="#ffd79e" font-size="18" text-anchor="middle" font-family="system-ui, sans-serif">Range 读取这一段字节，再沿依赖顺序前进</text>
+  <text x="720" y="756" fill="#7898ad" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">PTS 决定画面何时呈现；DTS 决定压缩样本以什么顺序送入解码器</text>
+</svg>

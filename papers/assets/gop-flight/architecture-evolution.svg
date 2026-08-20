@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">StarCut 实时视频预览方案的收敛过程</title>
+  <desc id="desc">从原生桌面和 Tauri FFmpeg 像素 IPC，经过原生 video 元素，最终收敛为文件 Range 服务加 Worker WebCodecs 和 GPU VideoFrame。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">实时预览的四次取舍：让大像素少过边界</text>
+  <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">真正稳定的主链路，同时贴近硬件加速与少拷贝。</text>
+
+  <g font-family="system-ui, sans-serif">
+    <g transform="translate(70 178)">
+      <rect width="300" height="432" rx="24" fill="#0f2033" stroke="#31536d"/>
+      <circle cx="54" cy="54" r="24" fill="#7ce0ae"/><text x="54" y="62" fill="#073222" font-size="22" font-weight="800" text-anchor="middle">1</text>
+      <text x="92" y="62" fill="#eaf6ff" font-size="23" font-weight="700">全 Native</text>
+      <text x="34" y="118" fill="#b7f1d1" font-size="19" font-weight="700">体验：很丝滑</text>
+      <text x="34" y="154" fill="#8facbf" font-size="16">硬件解码 → GPU 合成</text>
+      <path d="M48 220H252" stroke="#7ce0ae" stroke-width="7" stroke-linecap="round"/>
+      <g fill="#7ce0ae"><circle cx="58" cy="220" r="12"/><circle cx="122" cy="220" r="12"/><circle cx="186" cy="220" r="12"/><circle cx="246" cy="220" r="12"/></g>
+      <text x="34" y="282" fill="#8facbf" font-size="16">取舍</text>
+      <text x="34" y="318" fill="#dff6ff" font-size="17">独立的 UI 与运行栈</text>
+      <text x="34" y="348" fill="#dff6ff" font-size="17">难与 Web 创作环境统一</text>
+      <rect x="34" y="374" width="232" height="34" rx="10" fill="#122c40"/><text x="150" y="397" fill="#a9c4d5" font-size="14" text-anchor="middle">原理成立，产品边界不合适</text>
+    </g>
+
+    <g transform="translate(402 178)">
+      <rect width="300" height="432" rx="24" fill="#291d27" stroke="#7e4d58"/>
+      <circle cx="54" cy="54" r="24" fill="#e07979"/><text x="54" y="62" fill="#3a1016" font-size="22" font-weight="800" text-anchor="middle">2</text>
+      <text x="92" y="62" fill="#f7e8eb" font-size="23" font-weight="700">Tauri + FFmpeg</text>
+      <text x="34" y="118" fill="#f0bcc3" font-size="19" font-weight="700">解码快，交付慢</text>
+      <text x="34" y="154" fill="#b6949b" font-size="16">Native 解码 → RGBA IPC</text>
+      <rect x="38" y="192" width="84" height="54" rx="12" fill="#3b2931"/><text x="80" y="225" fill="#f7e8eb" font-size="15" text-anchor="middle">FFmpeg</text>
+      <path d="M128 219H214" stroke="#e07979" stroke-width="7" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+      <rect x="220" y="192" width="48" height="54" rx="10" fill="#3b2931"/><text x="244" y="225" fill="#f7e8eb" font-size="14" text-anchor="middle">GPU</text>
+      <text x="170" y="276" fill="#e07979" font-size="15" font-weight="700" text-anchor="middle">4K30 ≈ 1 GiB/s 像素</text>
+      <text x="34" y="318" fill="#f7e8eb" font-size="17">IPC 与重复复制成为瓶颈</text>
+      <text x="34" y="348" fill="#f7e8eb" font-size="17">缩略图可用，预览不划算</text>
+      <rect x="34" y="374" width="232" height="34" rx="10" fill="#3b2931"/><text x="150" y="397" fill="#f0bcc3" font-size="14" text-anchor="middle">大像素跨错了边界</text>
+    </g>
+
+    <g transform="translate(734 178)">
+      <rect width="300" height="432" rx="24" fill="#0f2033" stroke="#31536d"/>
+      <circle cx="54" cy="54" r="24" fill="#ffb454"/><text x="54" y="62" fill="#241605" font-size="22" font-weight="800" text-anchor="middle">3</text>
+      <text x="92" y="62" fill="#eaf6ff" font-size="23" font-weight="700">原生 &lt;video&gt;</text>
+      <text x="34" y="118" fill="#ffd08e" font-size="19" font-weight="700">Play 很成熟</text>
+      <text x="34" y="154" fill="#8facbf" font-size="16">硬件路径由浏览器管理</text>
+      <rect x="40" y="194" width="220" height="64" rx="14" fill="#132d42"/><path d="M115 209L145 226L115 243z" fill="#ffb454"/><text x="174" y="232" fill="#dff6ff" font-size="16">currentTime</text>
+      <text x="34" y="304" fill="#8facbf" font-size="16">编辑器缺少</text>
+      <text x="34" y="336" fill="#dff6ff" font-size="17">样本级控制 · 帧所有权</text>
+      <text x="34" y="366" fill="#dff6ff" font-size="17">多层原子提交 · 缩略图复用</text>
+      <rect x="34" y="384" width="232" height="24" rx="9" fill="#352c1d"/><text x="150" y="401" fill="#ffd08e" font-size="13" text-anchor="middle">顺序播放强，连续 Scrub 弱</text>
+    </g>
+
+    <g transform="translate(1066 178)">
+      <rect width="304" height="432" rx="24" fill="#123b55" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
+      <circle cx="54" cy="54" r="24" fill="#69d8ff"/><text x="54" y="62" fill="#062238" font-size="22" font-weight="800" text-anchor="middle">4</text>
+      <text x="92" y="62" fill="#eaf9ff" font-size="23" font-weight="700">Range + WebCodecs</text>
+      <text x="34" y="118" fill="#bdeeff" font-size="19" font-weight="700">最终实时主链路</text>
+      <text x="34" y="154" fill="#9dcbe0" font-size="16">只跨边界传压缩字节</text>
+      <g text-anchor="middle"><rect x="30" y="190" width="74" height="56" rx="12" fill="#0c2234"/><text x="67" y="224" fill="#dff6ff" font-size="14">Range</text><path d="M108 218H142" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/><rect x="150" y="190" width="116" height="56" rx="12" fill="#0c2234"/><text x="208" y="214" fill="#dff6ff" font-size="14">Worker</text><text x="208" y="234" fill="#69d8ff" font-size="13">WebCodecs</text></g>
+      <path d="M54 296H250" stroke="#69d8ff" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow)"/>
+      <text x="152" y="282" fill="#bdeeff" font-size="14" text-anchor="middle">VideoFrame → GPU 路径</text>
+      <text x="34" y="342" fill="#eaf9ff" font-size="17">应用拥有样本与缓存策略</text>
+      <text x="34" y="370" fill="#eaf9ff" font-size="17">Web 与桌面共享同一运行时</text>
+      <rect x="34" y="388" width="236" height="24" rx="9" fill="#0c2234"/><text x="152" y="405" fill="#bdeeff" font-size="13" text-anchor="middle">硬件加速 · 少拷贝 · 可调度</text>
+    </g>
+  </g>
+  <path d="M370 654H1060" stroke="#395a72" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="715" y="688" fill="#8facbf" font-size="17" text-anchor="middle" font-family="system-ui, sans-serif">方案不是按“Native / Web”站队，而是不断把数据放回更合理的边界</text>
+  <g transform="translate(270 726)" font-family="system-ui, sans-serif" text-anchor="middle"><rect width="900" height="54" rx="14" fill="#10243a"/><text x="450" y="34" fill="#eaf6ff" font-size="19" font-weight="700">压缩字节可以跨边界 · 全尺寸像素尽量留在解码与显示一侧</text></g>
+</svg>

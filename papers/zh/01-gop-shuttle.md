@@ -1,7 +1,7 @@
 # 班车式解码：统一时序需求与 GOP Flight 调度
 
 **中文 Paper 题目：**《班车式解码：面向浏览器视频编辑器的统一时序需求协调与 GOP Flight 调度》  
-**中文文章题目：**《为什么视频编辑器的解码器应该像班车，而不是像出租车》  
+**中文文章题目：**《Video GOP Decode Flight：像调度高铁一样实现丝滑剪辑》
 **英文工作题目：** *GOPFlight: Demand-Reconciled Scheduling for Play, Seek, Scrub, and Thumbnails in Browser Video Editors*  
 **状态：** 中文母稿，2026 年 8 月
 
@@ -292,4 +292,3 @@ Live_{t+1} = Reconcile(Live_t, F_{t+1})
 3. Justin Matejka et al. *Swifter: Improved Online Video Scrubbing*. https://doi.org/10.1145/2470654.2466149
 4. Carl Gutwin et al. *Improving Early Navigation in Time-Lapse Video with Spread Loading*. https://doi.org/10.1145/3290605.3300785
 5. Dominik Winecki and Arnab Nandi. *Vega-Video: Integrating Video into the Grammar of Graphics*. https://arxiv.org/abs/2604.24958
-

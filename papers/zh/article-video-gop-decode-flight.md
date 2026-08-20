@@ -6,33 +6,33 @@
 
 一张 4K RGBA 帧约 31.6 MiB，30 fps 接近每秒 1 GiB 的原始像素。只要这些帧穿过 IPC、落进 JavaScript 或 WASM 内存，再重新上传 GPU，前面获得的硬件解码优势很快就会被数据搬运抵消。这个弯路让实时预览链路收敛到两个不可退让的原则：**硬件加速**与**零拷贝**。不满足这两条的方案，可以承担离线处理或兼容回退，但不能成为丝滑预览的主链路。
 
-## 一、从 Tauri + FFmpeg 到浏览器内的 WebCodecs
+## 一、浏览器实时预览的主链路：WebCodecs
 
-![StarCut 实时视频预览从原生侧解码跨 IPC，收敛到 Tauri 提供文件与 Range、WebCodecs 在浏览器侧解码](../assets/gop-flight/architecture-evolution.svg)
+![StarCut 实时视频预览从原生侧解码跨 IPC，收敛到按需读取压缩字节、由 WebCodecs 在浏览器侧解码](../assets/gop-flight/architecture-evolution.svg)
 
 *把压缩字节送到解码器附近，比把解码后的大像素跨进程搬回来更经济。*
 
-StarCut 最终让 Tauri 在实时预览中退回一个更简单、也更合适的位置：本地文件服务。它解析项目内的素材地址，按 Range 返回需要的压缩字节；媒体索引在导入阶段生成，实时运行时直接查询。解码留在 Web Worker，通过 WebCodecs 完成；输出保持为 `VideoFrame`，直接进入浏览器的合成与 GPU-backed 呈现路径。Tauri/FFmpeg 仍然适合导入、索引、抽取音频和转码等离线任务，只是不再负责播放、Seek 和 Scrub 的逐帧交互解码。
+StarCut 的实时预览最终收敛为一条浏览器内的数据链路：媒体索引在导入阶段生成，运行时按 Range 读取需要的压缩字节；解码留在 Web Worker，通过 WebCodecs 完成；输出保持为 `VideoFrame`，直接进入浏览器的合成与 GPU-backed 呈现路径。Web 端的字节可以来自远程 HTTP 或 OPFS；桌面端只需通过 `starcut://` 把本地文件适配成同样的 Range 数据源，后面的解码、调度与呈现无需改写。
 
-这条路径传输的是压缩视频包。相对于数十 MiB 的全尺寸像素，一个压缩样本通常小得多；同一套 Worker 架构也可以运行在纯 Web 环境，区别只是底层字节来自 `starcut://` 文件协议、OPFS 还是远程 HTTP。
+这条路径跨边界传输的是压缩视频包，而不是数十 MiB 的全尺寸像素。Tauri/FFmpeg 仍然适合桌面端的导入、索引、抽取音频和转码等离线任务，只是不再负责播放、Seek 和 Scrub 的逐帧交互解码。
 
 浏览器原生 `<video>` 同样能够使用硬件解码，也是顺序播放的优秀方案。编辑器需要的控制面更细：一次 Seek 最终选择了哪个样本，快速连续 Seek 中哪些旧目标应该放弃，多层视频何时可以作为同一画面提交，已经解出的帧怎样与时间线缩略图共享。`<video>` 的目标是把媒体稳定播出来，它把这些策略封装在内部；单次 Seek 通常可以接受，连续 Scrub 时却很难稳定获得样本级反馈。WebCodecs 把压缩样本、解码队列和 `VideoFrame` 生命周期开放出来，调度问题因此回到应用手中。
 
 零拷贝描述的是**解码后的全尺寸像素主链路**，不是要求整个程序里不存在一次内存复制。索引、控制消息、压缩包和小尺寸缩略图都可以按各自成本正常传递；它们不是持续吞吐 4K30 画面的性能主线。架构首先要分清什么是洪水，什么只是几封信，不能因为边角数据允许复制，就降低像素主线的标准。
 
-这条主线的契约很明确：硬件解码得到的 `VideoFrame` 不落地成中间 RGBA，不穿过 Tauri IPC，不进入 WASM 线性内存，也不在呈现前被 JavaScript readback；它直接进入 Canvas / GPU 合成，用完立即 `close()`。无法维持这条路径的平台只能降级，不能成为丝滑预览的主链路。
+这条主线的契约很明确：硬件解码得到的 `VideoFrame` 不落地成中间 RGBA，不穿过 Native IPC，不进入 WASM 线性内存，也不在呈现前被 JavaScript readback；它直接进入 Canvas / GPU 合成，用完立即 `close()`。无法维持这条路径的平台只能降级，不能成为丝滑预览的主链路。
 
 <!-- RESEARCH: Add a reproducible Native FFmpeg + RGBA IPC baseline against Range + WebCodecs, recording decoded resolution, IPC bytes, copies/readbacks, latency, CPU/GPU utilization, and power. -->
 
 ## 二、语言不是瓶颈，架构才是瓶颈
 
-![TypeScript 只负责时序需求与调度，WebCodecs 和 GPU 承担重计算；WASM 像素内存与 Tauri IPC 都会引入全帧复制边界](../assets/gop-flight/architecture-over-language.svg)
+![TypeScript 只负责时序需求与调度，WebCodecs 和 GPU 承担重计算；WASM 像素内存与 Native IPC 都会引入全帧复制边界](../assets/gop-flight/architecture-over-language.svg)
 
 *把决策留在 TypeScript，把像素重活交给原生媒体与 GPU 管线。*
 
 做高性能媒体系统时，很容易先把问题归因于语言：JavaScript 不够快，那就换 Rust；浏览器不够快，那就上 WASM 或 Native。这个判断只有在比较同一段 CPU 计算时才成立。视频预览首先是一个物流问题：解码是否走硬件、全尺寸像素有没有离开 GPU 路径、同一 GOP 被重复解了几遍，以及 GPU 资源是否及时释放，往往比调度代码本身跑快多少更重要。
 
-这其实是一个不需要 benchmark 也能理解的常识：搬一张 32 MiB 的完整画面，与给几十个时间点排优先级，根本不是同一数量级。把后一个队列用 Rust 写快一倍，抵消不了前一个画面多搬一次。Rust 在 Tauri 侧可以很快完成 FFmpeg 解码，但像素仍要经过 IPC 进入 WebView；典型的 WASM 软件解码器会把结果写进线性内存，随后还要交给浏览器并上传 GPU。两条路径都在最重的数据上增加了边界。
+这其实是一个不需要 benchmark 也能理解的常识：搬一张 32 MiB 的完整画面，与给几十个时间点排优先级，根本不是同一数量级。把后一个队列用 Rust 写快一倍，抵消不了前一个画面多搬一次。即使用 Native 侧的 FFmpeg 很快完成解码，只要像素还要经过 Bridge 进入 WebView，主链路仍然绕了远路；典型的 WASM 软件解码器则会把结果写进线性内存，随后再交给浏览器并上传 GPU。两条路径都在最重的数据上增加了边界。
 
 WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理，也可以与 WebCodecs 组合；它并不天然拥有浏览器的硬件视频解码和 GPU 表面。只要最终仍由 WebCodecs 提供硬件能力，性能优势来自媒体管线的放置，而不是 `.wasm` 这个后缀。
 
@@ -42,11 +42,11 @@ StarCut 真正要验证的，是浏览器在合理架构下同样能够获得成
 
 ### 零拷贝不是一个 API，而是一条不绕路的数据拓扑
 
-![StarCut 零拷贝数据路径：主线程只处理界面，控制状态通过 SAB 发布，视频 Worker 直接读取 Tauri Range 并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 直达 AudioWorklet](../assets/gop-flight/zero-copy-data-paths.svg)
+![StarCut 零拷贝数据路径：主线程只处理界面，控制状态通过 SAB 发布，视频 Worker 直接读取媒体 Range 并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 直达 AudioWorklet](../assets/gop-flight/zero-copy-data-paths.svg)
 
 *生产者直接连接消费者；主线程不充当媒体数据的中转站。*
 
-如果 Video Worker 取一段 GOP 还要先请求主线程，再由主线程调用 Tauri，最后把字节转回 Worker，那么压缩数据虽然比 RGBA 小，主线程仍然会成为所有解码路线共同经过的收费站。StarCut 的 Video Worker 直接通过 `fetch(starcut://...)` 向 Tauri 文件服务发起 Range 请求，Rust 返回压缩 GOP，主线程只负责告诉 Worker 素材地址和工程变化。
+如果 Video Worker 取一段 GOP 还要先请求主线程，再由主线程读取媒体，最后把字节转回 Worker，那么压缩数据虽然比 RGBA 小，主线程仍然会成为所有解码路线共同经过的收费站。StarCut 的 Video Worker 直接对已经解析好的媒体地址发起 Range 请求：Web 环境读取 HTTP 或 OPFS，桌面环境读取 `starcut://` 提供的本地文件适配。主线程只负责界面、素材地址和工程变化，不转运媒体字节。
 
 播放头又是另一类数据。它更新频繁，Worker 真正需要的是“此刻最新的位置”，而不是按顺序处理主线程积压的每一条旧消息。StarCut 用一块共享控制内存发布 Playhead、Seek 序号、播放状态和时间线视口。主线程用 Atomics 提交新版本，Video Worker 与 Audio Worker 直接等待变化；没有每帧结构化序列化，没有消息队列，也不需要轮询。
 
@@ -106,7 +106,7 @@ StarCut 选择直接面对用户原始视频中的长 GOP。交互难度由低�
 
 这也是后续所有调度的物理边界：交互可以任意跳转，解码路线仍必须尊重压缩视频的依赖顺序。
 
-## 六、为什么没有把整条解码链路交给 MediaBunny
+### MediaBunny 负责读懂媒体，调度仍然留在编辑器
 
 ![MediaBunny 负责容器和编码兼容，StarCut fork 补齐物理包索引，SCIX 与 GOP Flight 负责运行时调度](../assets/gop-flight/mediabunny-boundary.svg)
 
@@ -130,7 +130,26 @@ StarCut 的 fork 增加了 metadata-only 的完整 packet index，补齐 decode 
 
 <!-- RESEARCH: Track upstream MediaBunny support for exact source byte ranges, decode timestamps, complete metadata-only packet indexes, and HEVC random-access metadata; upstream the narrow fork where API and container guarantees align. -->
 
-## 七、播放、Seek、Scrub 和缩略图如何进入同一张运行图
+## 六、GOP Flight：让不同需求共乘一条路线
+
+![GOP Flight 核心设计：时序需求经过纯规划器生成目标路线，再由协调器复用正在运行的物理 Flight](../assets/gop-flight/gop-flight-core-model.svg)
+
+*需求可以随交互不断替换，已经付出的读取、解码与参考帧状态则应尽量沿用。*
+
+GOP Flight 不是把一次 Seek 包装成一个任务，也不是多开几个 `VideoDecoder`。它建立了一层介于“用户此刻想看哪里”和“压缩视频实际上要怎样解”之间的运行时：上层可以不断改变目标，下层持续维护已经启程的解码路线，二者通过协调而不是反复重启连接起来。
+
+这套设计可以分成四层理解：
+
+1. **时序需求**记录当前真实意图。播放头、方向、速度、可见范围和视频层共同形成一份不可变快照；新快照会替换旧快照，历史意图不会无限累积。
+2. **纯规划器**把工程时间投影到源媒体时间，量化到真实样本，按来源与样本去重，再按照真实随机访问点划分 GOP 路线。它只计算“需要什么”，不持有解码器状态。
+3. **运行协调器**把新路线与正在行驶的 Flight 对照。能继续向前的路线更新到站表，仍有价值的在途输出继续等待，已经无关的推测工作停止追加，只有失效或资源压力才破坏物理解码状态。
+4. **物理 Flight**保存一趟路线已经付出的成本：GOP 压缩字节、解码器参考状态、当前推进位置、已提交但尚未输出的样本，以及等待交付的目标站点。当前画面、Scrub 预测和缩略图都可以成为沿途乘客。
+
+Flight 是否已经覆盖一个目标，不能只查帧缓存。系统同时观察三种状态：已经物化的缓存帧、已经提交给解码器但仍在途的输出，以及仍可继续向前的温热路线。缺少中间这一层，解码输入队列暂时归零时，规划器就可能误以为目标无人负责，再发一趟重复的车；只看路线而不看物化结果，又会把“承诺到达”错当成“已经交付”。
+
+这四层建立了几条硬约束：同一来源、同一 GOP 的公共前缀，在一趟 Flight 足以服务时不应重复解码；最新需求是唯一有效的需求事实；在途输出算作覆盖，但不算完成；近似画面可以改善反馈，不能取消精确解码义务；温热路线的复用必须服从解码器、I/O 与帧内存预算。后面的播放、Scrub、缩略图与车队策略，都是这些约束在不同现场里的展开。
+
+### 先把交互翻译成时序需求
 
 ![全局时间线上的播放、Seek、Scrub 和缩略图需求被投影为统一的源媒体需求](../assets/gop-flight/temporal-demand-map.svg)
 
@@ -153,7 +172,7 @@ StarCut 先在全局时间线上形成一份不可变的时序需求快照。它
 
 统一需求还有一个重要作用：调度、缓存和呈现看到的是同一份时序事实。否则很容易出现调度器已经追向新位置，呈现层仍按旧的 Scrub 规则选帧，或者缓存把马上要用的帧当作普通后台结果淘汰。
 
-## 八、一趟 GOP Flight 怎样抵达多个目标帧
+### 一趟 Flight 怎样抵达多个目标帧
 
 ![一次 GOP Flight 从索引定位和 Range 读取开始，经解码路线向缓存与呈现交付多个目标帧](../assets/gop-flight/flight-anatomy.svg)
 
@@ -167,7 +186,7 @@ StarCut 先在全局时间线上形成一份不可变的时序需求快照。它
 
 这里需要区分“到站表”和“正在行驶的车”。需求规划每次都可以产生新的到站表，物理 Flight 却不应跟着整条重建。前者是当前想要什么，后者是为这些目标已经付出了哪些读取和解码成本。把两者分开，需求才能更新，路线也才能复用。
 
-## 九、播放头变了，正在路上的 Flight 怎么办
+### 目标改变时，正在路上的 Flight 怎么办
 
 ![新旧需求在运行时进行协调，保留仍有价值的在途结果和温热路线](../assets/gop-flight/demand-reconcile.svg)
 
@@ -186,7 +205,7 @@ WebCodecs 的输入队列归零，不代表所有输出已经出现。为避免�
 
 同样，`reset` 和 `flush` 也不是普通的路线切换按钮。它们会改变解码器的参考状态，下一次输入往往必须重新从关键样本开始。Flight 因此优先通过更新目标和停止后续提交来改道，把硬重置留给真正需要破坏现有路线的边界。
 
-## 十、播放、Seek 与 Scrub 为什么有不同的画面契约
+## 七、播放、Seek 与 Scrub 为什么有不同的画面契约
 
 ![播放、Seek、移动 Scrub 和停留 Scrub 分别采用连续、精确、受限近似和精确收敛契约](../assets/gop-flight/interaction-contracts.svg)
 
@@ -207,7 +226,7 @@ WebCodecs 的输入队列归零，不代表所有输出已经出现。为避免�
 
 多层视频还需要一个更严格的规则：画面以完整 FrameSet 原子呈现。如果当前合成需要三层视频，而新时刻只有两层到达，编辑器会暂时保留上一份完整画面，而不是把不同时刻的层拼在一起。这避免了高层已经前进、底层仍停在旧位置的视觉撕裂。
 
-## 十一、快速 Scrub 怎样跟上鼠标，又在停下时变准确
+### 快速 Scrub 怎样跟上鼠标，又在停下时变准确
 
 ![Scrub 根据速度和加速度在运动方向布置稀疏预测站点，并在停留后回到精确目标](../assets/gop-flight/scrub-prediction.svg)
 
@@ -223,11 +242,11 @@ Scrub 不是一连串互不相关的 Seek。播放头的位置、速度和加速
 
 <!-- RESEARCH: Add parameter-sensitivity and user studies for prediction target count, dwell threshold, and presentation error under different GOP lengths and timeline scales. -->
 
-## 十二、GPU 放不下所有帧：多级缓存怎样分工
+## 八、有限资源下如何管理缓存、缩略图与 Flight 车队
 
 ![源文件、压缩 GOP、RAM 像素与 GPU VideoFrame 组成按成本和热度分层的视频缓存](../assets/gop-flight/cache-pyramid.svg)
 
-*越靠近屏幕的资源越快、越贵、容量越小；调度决定哪些帧值得留在哪一层。*
+*越靠近屏幕的资源越快、越贵、容量越小；调度决定哪些帧值得留下，以及哪些后台工作此刻可以发车。*
 
 如果 GPU 足够大，能够永久保存所有已经解出的帧，很多调度问题都会消失：一次解码以后，播放、Seek、Scrub 和缩略图都直接查缓存即可。真实设备给不了这个前提。
 
@@ -248,7 +267,7 @@ GPU 帧被降级到 RAM 需要 `copyTo()`，RAM 帧重新呈现又要构造 `Vid
 
 <!-- RESEARCH: Measure GPU/RAM/GOP cache policy ablations, including readback cost, promotion latency, decoder output-pool stalls, peak residency, and useful-hit ratio by demand class. -->
 
-## 十三、时间线缩略图为什么不需要第二套解码器
+### 时间线缩略图为什么不需要第二套解码器
 
 ![时间线网格与前台播放、Seek 和 Scrub 共享同一批 GOP Flight 与解码结果](../assets/gop-flight/thumbnail-shared-grid.svg)
 
@@ -262,7 +281,7 @@ GPU 帧被降级到 RAM 需要 `copyTo()`，RAM 帧重新呈现又要构造 `Vid
 
 共享解码并不意味着缩略图可以随时争抢资源。当前画面缺失时，网格规划会退让；播放仍有连续窗口要补齐时，缩略图也不会占满解码车道。复用发生在共同路线与共同输出上，优先级仍由观看现场决定。
 
-## 十四、车多不等于调度好：Flight 车队怎样受资源约束
+### 车多不等于调度好：Flight 车队怎样受资源约束
 
 ![多条 GOP Flight 在解码器、后台并发、I/O、帧缓存和 GOP 字节预算之间接受统一调度](../assets/gop-flight/fleet-budgets.svg)
 
@@ -276,15 +295,22 @@ StarCut 当前允许最多六个驻留解码器，但通常只让两条后台或
 
 资源预算被分开管理：驻留解码器数量、活跃 Flight 数量、Range I/O、压缩 GOP 字节、解码帧字节和推测目标数量各自有边界。不能因为内存还有余量就无限增加并行解码，也不能因为有空闲解码器就让缩略图淹没网络。这个分离让调度器知道真正紧张的是什么，而不是用一个模糊的“缓存大小”代替所有成本。
 
-## 十五、怎样考验一套视频解码调度
+## 九、怎样考验一套浏览器视频运行时
 
 ![GOP Flight 用高速往返 Scrub 与时间线 Zoom Scroll 两组工作负载考验前台反馈、精确收敛和后台网格更新](../assets/gop-flight/evaluation-workloads.svg)
 
-*Scrub 检验连续随机访问；Timeline Zoom / Scroll 检验大范围网格更新。两者会把调度推到最困难的位置。*
+*Scrub 检验连续随机访问；Timeline Zoom / Scroll 检验大范围网格更新。两者会同时暴露数据绕路与重复解码。*
 
-Play 和单次 Seek 是基础正确性检查，真正拉开调度差异的是两类连续操作。第一类是 Scrub：播放头高速移动、反向再停下，系统既要持续给出画面，又要在停止后准确收敛。第二类是 Timeline Zoom / Scroll：可见范围和刻度不断变化，缩略图网格大面积换站，同时播放或当前画面仍应保持优先。
+这套运行时包含两项彼此独立的主张。第一项是数据路径：完整像素留在浏览器的解码与 GPU 合成一侧，主线程和跨端 Bridge 不参与逐帧搬运。第二项是解码调度：需求变化时复用同一 GOP 已经付出的读取与解码工作，而不是把每个目标都当作一次新的 Seek。只测最终帧率，会把两种收益混在一起；它们需要分别建立基线。
 
-评估 GOP Flight 不能只看一个 benchmark 数字，至少需要同时回答五个问题：
+| 验证对象 | 合理基线 | 关键观测 |
+|---|---|---|
+| 零拷贝数据主链路 | WebCodecs 后回读完整像素；桌面环境可增加 Native RGBA Bridge 作为历史基线 | 全帧 readback / copy 次数、跨边界字节、主线程长任务、CPU/GPU 占用、反馈延迟 |
+| GOP Flight 调度 | 每个目标独立随机访问；播放、Scrub 与缩略图使用分离队列 | 重复 GOP 前缀、提交样本数、Range 字节、decoder reset、无效输出、峰值驻留 |
+
+Play 和单次 Seek 适合检查基础正确性，真正拉开调度差异的是两类连续操作。第一类是 Scrub：播放头高速移动、反向再停下，系统既要持续给出画面，又要在停止后准确收敛。第二类是 Timeline Zoom / Scroll：可见范围和刻度不断变化，缩略图网格大面积换站，同时播放或当前画面仍应保持优先。两类轨迹还应与不同 GOP 长度、分辨率、编码格式和视频层数交叉，避免只对一种素材得出结论。
+
+评估交互结果至少需要同时回答五个问题：
 
 - 移动 Scrub 有多少输入能够快速得到视觉反馈；
 - 停止 Scrub 或完成 Seek 后，精确帧是否稳定到达；
@@ -296,13 +322,13 @@ Play 和单次 Seek 是基础正确性检查，真正拉开调度差异的是两
 
 目前的开发 trace 已经验证了一些方向。在一组移动 Scrub 场景中，三次运行的中位反馈覆盖约为 61.3%，最大饥饿约 65 毫秒，停止后的精确帧在三次运行中均到达。三层视频播放的近期运行中，精确合成帧覆盖从早期的 91.1% 提升到约 97.5%–98.0%。缩略图网格预热后，同一组 Scrub trace 的反馈覆盖由约 27%–31% 提升到约 47%–49%，最大饥饿从 192–218 毫秒下降到 59–71 毫秒。
 
-这些数字来自开发环境中的 pilot traces，能够说明共享网格、前台优先和路线复用值得继续验证，但还不能替代正式实验。投稿或形成严谨结论前，还需要冻结硬件、浏览器版本、视频集合、GOP 分布和交互轨迹，增加无状态 Seek、按模式分离队列、无在途覆盖、无温热路线等基线，并报告重复次数和置信区间。
+这些数字来自开发环境中的 pilot traces，能够说明共享网格、前台优先和路线复用值得继续验证，但还不能替代正式实验。投稿或形成严谨结论前，还需要冻结硬件、浏览器版本、视频集合、GOP 分布和交互轨迹，增加无状态 Seek、按模式分离队列、无在途覆盖、无温热路线等基线，并报告重复次数和置信区间。零拷贝主链路也需要单独记录全帧 readback、主线程长任务和跨边界字节，才能把架构判断从常识推导推进到可复现实验。
 
 真正有说服力的对比，还应把“看起来一样流畅”背后的工作量放在一起：相同交互质量下，Flight 是否减少了 GOP 前缀重复、解码器 reset、Range 字节和无效输出；相同资源预算下，它是否让更多输入得到及时反馈并最终准确收敛。
 
 <!-- RESEARCH: Current values are development traces from packages/editor/av/video/PERFORMANCE_BASELINE.md. Before publication, freeze commit, hardware, browser, corpus, interaction traces, repetitions, and confidence intervals. -->
 
-## 十六、相关工作与边界
+## 十、相关工作与边界
 
 ![WebCodecs、HTTP Range、低延迟 Seek、Scrub 预览研究与 GOP Flight 的关系](../assets/gop-flight/related-work.svg)
 
@@ -316,7 +342,7 @@ Play 和单次 Seek 是基础正确性检查，真正拉开调度差异的是两
 
 <!-- RESEARCH: Add final bibliography entries for Gao et al. NOSSDAV 2011 (DOI 10.1145/1989240.1989266), Swift (DOI 10.1145/2207676.2207766), Swifter (DOI 10.1145/2470654.2466149), Spread Loading (DOI 10.1145/3290605.3300785), and Schoeffmann CVPRW 2025. -->
 
-## 结语
+## 十一、结语
 
 视频编辑器里的每一次播放、跳转和拖动，最终都要回到同一个物理事实：从正确的关键帧出发，沿依赖顺序抵达目标。GOP Flight 把这条路线变成可规划、可更新、可复用的运行对象，再让当前画面、运动预测和缩略图共享沿途的结果。
 

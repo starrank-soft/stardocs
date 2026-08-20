@@ -6,30 +6,7 @@
 
 一张 4K RGBA 帧约 31.6 MiB，30 fps 接近每秒 1 GiB 的原始像素。只要这些帧穿过 IPC、落进 JavaScript 或 WASM 内存，再重新上传 GPU，前面获得的硬件解码优势很快就会被数据搬运抵消。这个弯路让高分辨率实时预览只剩下两个不可退让的原则：**硬件加速**与**零拷贝**。任何绕开硬件解码，或让全尺寸像素离开 GPU 主链路的方案，都会把瓶颈重新带回计算与搬运，无法持续提供丝滑的剪辑体验。
 
-## 一、解码管线的选择
-
-![统一解码管线：Web 与 Tauri 适配不同媒体来源，共享索引、调度、WebCodecs 解码和 GPU 呈现](../assets/gop-flight/browser-preview-architecture.svg)
-
-*结论先行：Web 与 Tauri 只适配不同的媒体来源，后面的解码管线完全共享。*
-
-最终采用的管线由四个角色组成。素材进入项目时先生成包含 sample、DTS、PTS、关键帧和源字节范围的 SCIX 侧车索引：Web 端由 MediaBunny fork 建立，Tauri 端由 Rust/FFmpeg 索引器建立，两端遵守同一份索引契约；Video Worker 根据当前时序需求查询 SCIX，直接 Range 读取所需 GOP，并负责 Flight 调度；WebCodecs 接收压缩样本，调用硬件解码器输出 `VideoFrame`；帧缓存与 OffscreenCanvas 再把这些 GPU 可用的画面交给最终合成。MediaBunny 与 FFmpeg 负责在导入阶段把媒体读明白，WebCodecs 负责实时解码，Worker 则把读取、调度、解码和呈现组织成一条不经过主线程中转的管线。
-
-Web 与 Tauri 只在媒体入口处分开。Web 从 HTTP 或 OPFS 读取素材，Tauri 通过 `starcut://` 暴露本地文件；进入统一媒体源以后，索引、GOP Flight、WebCodecs、帧缓存与 GPU 合成都复用同一套实现。这样既保留链接即入口的 Web 产品形态，也能在桌面环境直接使用本地文件。
-
-这条管线并不是因为其他技术“不够底层”，而是逐条排除以后，只有它同时满足硬件加速、零拷贝、精确控制和跨端复用。
-
-1. **为什么不用 `<video>`？** 它的目标是稳定播放媒体，而不是向编辑器开放解码现场。`currentTime` 没有 sample 级准确契约，内部 GOP 路线、解码队列和输出帧也不可控制；精确 Seek、多层原子合成、路线复用和缩略图共享都无法建立在它上面。
-2. **为什么不在主线程直接使用 WebCodecs？** 解码器虽然没变，Range 读取、调度、输出回调和画面合成却会与界面交互争抢同一条线程。把 OffscreenCanvas、媒体读取和完整解码运行时放进 Video Worker，主线程只发布最新状态，不参与逐帧工作。
-3. **为什么不用 FFmpeg 解码？** FFmpeg 的解码速度不是问题。只要最终画面仍由 WebView 呈现，Native 解出的完整像素就必须穿过 IPC，再上传 GPU；一张 4K 帧多走一次这条路，足以吞掉解码侧的优势。FFmpeg 因此不进入实时预览主链路。
-4. **为什么不用 FFmpeg.wasm 或其他 WASM 解码器？** 这类方案通常在 CPU 中解码，把像素写入 WASM 线性内存，再交给 Canvas 或 GPU。它既没有直接获得 WebCodecs 的硬件视频表面，又在最重的像素数据上增加了内存边界。换一种语言，没有改变这条数据路径。
-5. **为什么不直接用 Swift、Metal 或 Rust 写全 Native？** Full Native 当然可以丝滑，但会把 Web 与桌面拆成两套编辑器、两套渲染和两套 Agent 运行环境。这里需要的不是只在一个平台上跑得快，而是同一条高性能管线同时服务 Web 与 Tauri。
-6. **为什么不把整条管线交给 MediaBunny？** MediaBunny 擅长容器解析、编码兼容和 packet 读取，却不知道项目中有哪些 Clip 正在参与合成，也不知道播放、Scrub、时间线缩略图和 GPU 预算此刻如何竞争。它位于媒体能力层；项目级时序需求和 GOP 调度仍由编辑器掌握。
-
-最终分工很明确：MediaBunny 与 FFmpeg 在导入阶段解析并索引媒体，Native 适配本地文件，Worker 隔离实时运行时，WebCodecs 完成硬件解码，`VideoFrame` 与 OffscreenCanvas 保住 GPU 主链路。选择的结果不是某一个库，而是一条完整的数据路径。
-
-<!-- RESEARCH: Add a reproducible Native FFmpeg + RGBA IPC baseline against Range + WebCodecs, recording decoded resolution, IPC bytes, copies/readbacks, latency, CPU/GPU utilization, and power. -->
-
-## 二、语言不是瓶颈，架构才是瓶颈
+## 一、语言不是瓶颈，架构才是瓶颈
 
 ![TypeScript 只负责时序需求与调度，WebCodecs 和 GPU 承担重计算；WASM 像素内存与 Native IPC 都会引入全帧复制边界](../assets/gop-flight/architecture-over-language.svg)
 
@@ -37,11 +14,27 @@ Web 与 Tauri 只在媒体入口处分开。Web 从 HTTP 或 OPFS 读取素材�
 
 做高性能媒体系统时，很容易先把问题归因于语言：JavaScript 不够快，那就换 Rust；浏览器不够快，那就上 WASM 或 Native。这个判断只有在比较同一段 CPU 计算时才成立。视频预览首先是一个物流问题：解码是否走硬件、全尺寸像素有没有离开 GPU 路径、同一 GOP 被重复解了几遍，以及 GPU 资源是否及时释放，往往比调度代码本身跑快多少更重要。
 
-这其实是一个不需要 benchmark 也能理解的常识：搬一张 32 MiB 的完整画面，与给几十个时间点排优先级，根本不是同一数量级。把后一个队列用 Rust 写快一倍，抵消不了前一个画面多搬一次。即使用 Native 侧的 FFmpeg 很快完成解码，只要像素还要经过 Bridge 进入 WebView，主链路仍然绕了远路；典型的 WASM 软件解码器则会把结果写进线性内存，随后再交给浏览器并上传 GPU。两条路径都在最重的数据上增加了边界。
+前面的 4K 帧数据已经说明了这种数量级差异：给几十个时间点排优先级，与搬运一张完整画面不是同一种工作。把调度队列用更快的语言重写，抵消不了全尺寸像素多走一次内存或 IPC 边界。架构首先要决定重计算由谁承担，以及最重的数据沿哪条路流动。
+
+### 硬件加速与零拷贝决定了解码管线
+
+![硬件加速与零拷贝主链路：Web 与 Tauri 提供压缩媒体，Video Worker 通过 WebCodecs 硬件解码，VideoFrame 直接进入 GPU 合成](../assets/gop-flight/browser-preview-architecture.svg)
+
+*压缩字节进入 Worker；解码后的完整像素不离开 GPU 主链路。*
+
+硬件加速来自 WebCodecs。它把压缩视频交给系统可用的视频解码器，在支持的设备上沿硬件路径输出 `VideoFrame`。TypeScript 不计算 H.264 或 HEVC，也不逐像素还原画面；它只决定此刻需要哪些压缩样本，并把它们送入解码器。
+
+零拷贝来自数据路径。媒体读取与解码都在 Video Worker 中进行，解码器输出的 `VideoFrame` 直接进入帧缓存和 OffscreenCanvas / GPU 合成，不落地为中间 RGBA，不穿过 Native IPC，也不回到主线程搬运。主线程只提交播放位置、画布尺寸和工程变化，完整像素始终留在媒体与 GPU 一侧。
+
+Web 与 Tauri 只在媒体入口处分开。Web 从 HTTP 或 OPFS 读取素材，Tauri 通过本地文件协议提供同样的压缩数据；进入 Video Worker 以后，两端共享 WebCodecs、`VideoFrame` 与 GPU 呈现管线。硬件加速解决“谁来做重计算”，零拷贝解决“计算结果走哪条路”，两者缺一不可。
+
+即使用 Native 侧的 FFmpeg 很快完成解码，只要画面最终仍由 WebView 呈现，完整像素就必须经过 Bridge 再上传 GPU；FFmpeg 的速度没有问题，数据路线不符合实时预览主链路。典型的 FFmpeg.wasm 或其他 WASM 软件解码器则把结果写入线性内存，再交给 Canvas 或 GPU，同样在最重的数据上增加了边界。
 
 WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理，也可以与 WebCodecs 组合；它并不天然拥有浏览器的硬件视频解码和 GPU 表面。只要最终仍由 WebCodecs 提供硬件能力，性能优势来自媒体管线的放置，而不是 `.wasm` 这个后缀。
 
-看起来反直觉的是，实时视频控制面仍然可以使用纯 TypeScript。原因不是 TypeScript 突然比 Rust 更快，而是它只做自己擅长的事：计算时间需求、合并 GOP 路线、分配解码器、决定缓存驻留，并管理 `VideoFrame` 生命周期。媒体索引已经在导入阶段生成，重解码由 WebCodecs 交给浏览器与硬件，最终合成继续留在 Canvas / GPU 路径。TypeScript 不循环处理 4K 像素，也不实现 H.264 或 HEVC 解码器。
+Full Native 是另一条能够做出丝滑体验的路线。Swift / Metal 或 Rust 可以把解码与渲染留在同一个原生图形环境，但它会让 Web 与桌面拥有两套编辑器运行时。这里选择由 Tauri 适配本地文件、由 WebCodecs 统一承担实时解码，目的不是回避 Native，而是让同一条高性能管线同时服务两种产品入口。
+
+看起来反直觉的是，实时视频控制面仍然可以使用纯 TypeScript。原因不是 TypeScript 突然比 Rust 更快，而是它只做自己擅长的事：计算时间需求、合并 GOP 路线、分配解码器、决定缓存驻留，并管理 `VideoFrame` 生命周期。媒体索引已经在导入阶段生成，视频解码由 WebCodecs 交给浏览器与硬件，最终合成继续留在 Canvas / GPU 路径。TypeScript 不循环处理 4K 像素，也不实现 H.264 或 HEVC 解码器。
 
 我们要验证的，是同一套 Web 技术运行时在合理架构下能够获得成熟桌面剪辑软件那种跟手的播放与 Scrub。不要指望用 Rust、WASM 或 Native 逃避架构问题；用更快的语言实现一条错误的数据流，得到的仍然是一条错误的数据流。
 
@@ -53,6 +46,8 @@ WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理�
 
 这里的零拷贝特指解码后的全尺寸像素主链路。硬件解码得到的 `VideoFrame` 不落地成中间 RGBA，不穿过 Native IPC，也不进入 WASM 线性内存，而是直接进入 Canvas / GPU 合成。索引、控制消息、压缩包和小尺寸缩略图仍按各自成本正常传递，不能因为边角数据允许复制，就降低像素主线的标准。
 
+WebCodecs 也不能简单放在主线程里使用。Range 读取、解码调度、输出回调和画面合成会与指针事件、时间线布局和界面更新争抢同一条线程；解码速度再快，主线程仍可能被媒体工作拖住。Video Worker 因此同时拥有媒体读取、解码器和 OffscreenCanvas，主线程只发布最新控制状态。
+
 如果 Video Worker 取一段 GOP 还要先请求主线程，再由主线程读取媒体，最后把字节转回 Worker，那么压缩数据虽然比 RGBA 小，主线程仍然会成为所有解码路线共同经过的收费站。Video Worker 因此直接对已经解析好的媒体地址发起 Range 请求：Web 环境读取 HTTP 或 OPFS，桌面环境读取 `starcut://` 提供的本地文件适配。主线程只负责界面、素材地址和工程变化，不转运媒体字节。
 
 播放头又是另一类数据。它更新频繁，Worker 真正需要的是“此刻最新的位置”，而不是按顺序处理主线程积压的每一条旧消息。一块共享控制内存持续发布 Playhead、Seek 序号、播放状态和时间线视口。主线程用 Atomics 提交新版本，Video Worker 与 Audio Worker 直接等待变化；没有每帧结构化序列化，没有消息队列，也不需要轮询。
@@ -63,7 +58,9 @@ WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理�
 
 这套原则并不是“所有东西都要放进 SAB”。共享内存适合持续变化的共同状态，Transferable 适合单一拥有者的大对象，普通消息适合小命令。架构的高度不在于选中了哪个 API，而在于先认清数据是谁产生、谁消费、是否需要共享，然后为它安排一条没有多余节点的路径。
 
-## 三、视频为什么不能从任意一帧开始解码
+<!-- RESEARCH: Add a reproducible Native FFmpeg + RGBA IPC baseline against Range + WebCodecs, recording decoded resolution, IPC bytes, copies/readbacks, latency, CPU/GPU utilization, and power. -->
+
+## 二、视频为什么不能从任意一帧开始解码
 
 ![I、P、B 帧与 GOP 的基本原理：I 帧保存独立画面，P 帧引用过去，B 帧可以引用前后，随机访问需要回到可用起点](../assets/gop-flight/video-compression-primer.svg)
 
@@ -77,7 +74,9 @@ WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理�
 
 B 帧还会带来另一个区别。压缩包进入解码器的顺序由 DTS 描述，画面应该出现在时间线上的位置由 PTS 描述；存在前后引用时，两者可能不同。H.264、HEVC 等编码又有开放 GOP、CRA/RASL 和不同的随机访问规则。因此，编辑器不能把文件中的第 N 个 packet 直接当作屏幕上的第 N 帧，也不能只看到一个 `isKey` 就假设它一定是完整起点。
 
-## 四、为什么顺着播放很舒服，来回拖动却很难
+这也解释了为什么不能直接依赖 `<video>`。它会在内部处理这些依赖，编辑器却拿不到真实 sample、解码队列和输出帧；`currentTime` 也没有 sample 级准确契约。普通播放器只需要把画面连续播出来，剪辑器还要精确 Seek、同时合成多个视频层，并让 Scrub 与缩略图复用已经解过的 GOP，`<video>` 没有提供这些控制边界。
+
+## 三、为什么顺着播放很舒服，来回拖动却很难
 
 ![I、P、B 帧依赖、全 I 帧与长 GOP 的空间取舍，以及从播放到 Scrub 的解码难度阶梯](../assets/gop-flight/codec-difficulty-ladder.svg)
 
@@ -95,7 +94,7 @@ B 帧还会带来另一个区别。压缩包进入解码器的顺序由 DTS 描�
 
 这篇文章的大部分调度设计，都在处理后三种情况，尤其是 Scrub 和时间线缩略图。它们会把有限的解码器、GPU 帧、内存和 I/O 同时拉向不同位置。
 
-## 五、一次随机访问到底要走多远
+## 四、一次随机访问到底要走多远
 
 ![目标帧位于 GOP 内部时，解码器必须从关键帧出发并经过中间依赖帧](../assets/gop-flight/gop-route.svg)
 
@@ -151,7 +150,7 @@ GOP 没有一个适用于所有视频的固定上限，它由编码器配置、�
 
 <!-- RESEARCH: Track upstream MediaBunny support for exact source byte ranges, decode timestamps, complete metadata-only packet indexes, and HEVC random-access metadata; upstream the narrow fork where API and container guarantees align. -->
 
-## 六、GOP Flight：让不同需求共乘一条路线
+## 五、GOP Flight：让不同需求共乘一条路线
 
 ![GOP Flight 核心设计：时序需求经过纯规划器生成目标路线，再由协调器复用正在运行的物理 Flight](../assets/gop-flight/gop-flight-core-model.svg)
 
@@ -224,7 +223,7 @@ WebCodecs 的输入队列归零，不代表所有输出已经出现。为避免�
 
 同样，`reset` 和 `flush` 也不是普通的路线切换按钮。它们会改变解码器的参考状态，下一次输入往往必须重新从关键样本开始。Flight 因此优先通过更新目标和停止后续提交来改道，把硬重置留给真正需要破坏现有路线的边界。
 
-## 七、播放、Seek 与 Scrub 为什么有不同的画面契约
+## 六、播放、Seek 与 Scrub 为什么有不同的画面契约
 
 ![播放、Seek、移动 Scrub 和停留 Scrub 分别采用连续、精确、受限近似和精确收敛契约](../assets/gop-flight/interaction-contracts.svg)
 
@@ -261,7 +260,7 @@ Scrub 不是一连串互不相关的 Seek。播放头的位置、速度和加速
 
 <!-- RESEARCH: Add parameter-sensitivity and user studies for prediction target count, dwell threshold, and presentation error under different GOP lengths and timeline scales. -->
 
-## 八、有限资源下如何管理缓存、缩略图与 Flight 车队
+## 七、有限资源下如何管理缓存、缩略图与 Flight 车队
 
 ![源文件、压缩 GOP、RAM 像素与 GPU VideoFrame 组成按成本和热度分层的视频缓存](../assets/gop-flight/cache-pyramid.svg)
 
@@ -314,7 +313,7 @@ GPU 帧被降级到 RAM 需要 `copyTo()`，RAM 帧重新呈现又要构造 `Vid
 
 资源预算被分开管理：驻留解码器数量、活跃 Flight 数量、Range I/O、压缩 GOP 字节、解码帧字节和推测目标数量各自有边界。不能因为内存还有余量就无限增加并行解码，也不能因为有空闲解码器就让缩略图淹没网络。这个分离让调度器知道真正紧张的是什么，而不是用一个模糊的“缓存大小”代替所有成本。
 
-## 九、怎样考验一套视频解码管线
+## 八、怎样考验一套视频解码管线
 
 ![GOP Flight 用高速往返 Scrub 与时间线 Zoom Scroll 两组工作负载考验前台反馈、精确收敛和后台网格更新](../assets/gop-flight/evaluation-workloads.svg)
 
@@ -345,7 +344,7 @@ Play 和单次 Seek 适合检查基础正确性，真正拉开调度差异的是
 
 <!-- RESEARCH: Current values are development traces from packages/editor/av/video/PERFORMANCE_BASELINE.md. Before publication, freeze commit, hardware, browser, corpus, interaction traces, repetitions, and confidence intervals. -->
 
-## 十、相关工作与边界
+## 九、相关工作与边界
 
 ![WebCodecs、HTTP Range、低延迟 Seek、Scrub 预览研究与 GOP Flight 的关系](../assets/gop-flight/related-work.svg)
 
@@ -359,7 +358,7 @@ Play 和单次 Seek 适合检查基础正确性，真正拉开调度差异的是
 
 <!-- RESEARCH: Add final bibliography entries for Gao et al. NOSSDAV 2011 (DOI 10.1145/1989240.1989266), Swift (DOI 10.1145/2207676.2207766), Swifter (DOI 10.1145/2470654.2466149), Spread Loading (DOI 10.1145/3290605.3300785), and Schoeffmann CVPRW 2025. -->
 
-## 十一、结语
+## 十、结语
 
 我们借用高铁，是因为它有起点、有路线、有站点、有时刻表，也有有限的车和轨道。编辑器的性能同样来自组织：什么现在必须到达，什么可以顺路交付，目标改变后哪些工作仍有价值，以及资源紧张时谁先通行。
 

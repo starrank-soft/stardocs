@@ -21,7 +21,7 @@ StarCut 采用一条 Web 与 Tauri 共用的解码管线。Web 端从 HTTP 或 O
 1. **Native 解码再交给 Web。** FFmpeg 可以很快，但完整像素必须穿过 IPC 进入 WebView，硬件解码获得的时间又被全帧搬运消耗掉。
 2. **直接使用 `<video>`。** `currentTime` 没有 sample 级准确契约，内部解码状态和输出帧也不归编辑器控制；精确 Seek、GOP 路线复用、多层原子合成和缩略图共享都无法建立在它上面。
 
-WebCodecs 同时满足了这三层边界：产品仍在浏览器，完整像素留在 GPU 主链路，编辑器又拿回了压缩样本、解码队列和 `VideoFrame` 的控制权。这不是在几种解码 API 中挑一个更快的，而是唯一能让 StarCut 的产品形态、数据路径和剪辑控制同时成立的方案。
+WebCodecs 同时满足了这三层边界：Web 与 Tauri 共享实现，完整像素留在 GPU 主链路，编辑器又拿回了压缩样本、解码队列和 `VideoFrame` 的控制权。这不是在几种解码 API 中挑一个更快的，而是唯一能让 StarCut 的产品形态、数据路径和剪辑控制同时成立的方案。
 
 <!-- RESEARCH: Add a reproducible Native FFmpeg + RGBA IPC baseline against Range + WebCodecs, recording decoded resolution, IPC bytes, copies/readbacks, latency, CPU/GPU utilization, and power. -->
 
@@ -310,13 +310,13 @@ StarCut 当前允许最多六个驻留解码器，但通常只让两条后台或
 
 资源预算被分开管理：驻留解码器数量、活跃 Flight 数量、Range I/O、压缩 GOP 字节、解码帧字节和推测目标数量各自有边界。不能因为内存还有余量就无限增加并行解码，也不能因为有空闲解码器就让缩略图淹没网络。这个分离让调度器知道真正紧张的是什么，而不是用一个模糊的“缓存大小”代替所有成本。
 
-## 九、怎样考验一套浏览器视频运行时
+## 九、怎样考验一套视频解码管线
 
 ![GOP Flight 用高速往返 Scrub 与时间线 Zoom Scroll 两组工作负载考验前台反馈、精确收敛和后台网格更新](../assets/gop-flight/evaluation-workloads.svg)
 
 *Scrub 检验连续随机访问；Timeline Zoom / Scroll 检验大范围网格更新。两者会同时暴露数据绕路与重复解码。*
 
-这套运行时包含两项彼此独立的主张。第一项是数据路径：完整像素留在浏览器的解码与 GPU 合成一侧，主线程和跨端 Bridge 不参与逐帧搬运。第二项是解码调度：需求变化时复用同一 GOP 已经付出的读取与解码工作，而不是把每个目标都当作一次新的 Seek。只测最终帧率，会把两种收益混在一起；它们需要分别建立基线。
+这套管线包含两项彼此独立的主张。第一项是数据路径：完整像素留在解码与 GPU 合成一侧，主线程和跨端 Bridge 不参与逐帧搬运。第二项是解码调度：需求变化时复用同一 GOP 已经付出的读取与解码工作，而不是把每个目标都当作一次新的 Seek。只测最终帧率，会把两种收益混在一起；它们需要分别建立基线。
 
 | 验证对象 | 合理基线 | 关键观测 |
 |---|---|---|
@@ -351,7 +351,7 @@ Play 和单次 Seek 适合检查基础正确性，真正拉开调度差异的是
 
 [Gao 等人](https://doi.org/10.1145/1989240.1989266)在 2011 年研究了高压缩视频中的准确低延迟 Seek，通过预取和丢弃降低从关键帧抵达目标帧的等待；[Swift](https://doi.org/10.1145/2207676.2207766)、[Swifter](https://doi.org/10.1145/2470654.2466149) 与 [Spread Loading](https://doi.org/10.1145/3290605.3300785) 等工作分别探索了低清预览、预缓存网格和由粗到细的交互式视频加载。近期针对[交互视频检索](https://openaccess.thecvf.com/content/CVPR2025W/IViSE/html/Schoeffmann_AI-based_Video_Content_Understanding_for_Automatic_and_Interactive_Multimedia_Retrieval_CVPRW_2025_paper.html)的实验也继续比较关键帧 Scrub、低分辨率低 GOP 代理和逐帧预览的取舍。
 
-这些工作共同说明：关键帧随机访问、预取、低清预览、缩略图和缓存都不是新问题。GOP Flight 的设计重点，是把编辑器中不断切换的多种时序需求投影到同一批源样本，在同一 GOP 内协调路线，并明确区分在途覆盖、物化缓存、近似呈现和精确义务。它更接近一套面向浏览器编辑器的运行时组织方法，而不是一种新的编解码算法。
+这些工作共同说明：关键帧随机访问、预取、低清预览、缩略图和缓存都不是新问题。GOP Flight 的设计重点，是把编辑器中不断切换的多种时序需求投影到同一批源样本，在同一 GOP 内协调路线，并明确区分在途覆盖、物化缓存、近似呈现和精确义务。它更接近一套面向视频编辑器的运行时组织方法，而不是一种新的编解码算法。
 
 <!-- RESEARCH: Add final bibliography entries for Gao et al. NOSSDAV 2011 (DOI 10.1145/1989240.1989266), Swift (DOI 10.1145/2207676.2207766), Swifter (DOI 10.1145/2470654.2466149), Spread Loading (DOI 10.1145/3290605.3300785), and Schoeffmann CVPRW 2025. -->
 

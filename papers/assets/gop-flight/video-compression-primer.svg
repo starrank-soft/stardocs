@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">I、P、B 帧与 GOP 的基本原理</title>
+  <desc id="desc">I 帧保存独立画面，P 帧引用过去的参考画面，B 帧可以引用前后参考画面。多个相互依赖的帧组成 GOP，因此随机访问通常要回到可独立解码的起点，再沿依赖顺序前进。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0a1f34"/></linearGradient>
+    <marker id="blueArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <marker id="orangeArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffb85c"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="76" fill="#eef8ff" font-size="34" font-weight="800" font-family="system-ui, sans-serif">视频为什么不能从任意一帧开始解码</text>
+  <text x="72" y="118" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">编码器不重复保存每张完整画面，而是把时间上的相似性变成依赖关系。</text>
+
+  <g font-family="system-ui, sans-serif">
+    <g transform="translate(70 178)">
+      <rect width="360" height="286" rx="26" fill="#173b4e" stroke="#69d8ff" stroke-width="2" filter="url(#glow)"/>
+      <circle cx="58" cy="58" r="28" fill="#ffb85c"/>
+      <text x="58" y="67" fill="#14202a" font-size="26" font-weight="900" text-anchor="middle">I</text>
+      <text x="102" y="66" fill="#eef8ff" font-size="25" font-weight="800">独立画面</text>
+      <rect x="42" y="102" width="276" height="106" rx="16" fill="#0b2537"/>
+      <rect x="64" y="122" width="232" height="66" rx="10" fill="#245371"/>
+      <circle cx="112" cy="150" r="17" fill="#ffcf7d"/>
+      <path d="M72 178L130 138L170 168L220 120L288 178Z" fill="#64b4cf" opacity=".85"/>
+      <text x="180" y="242" fill="#bdeeff" font-size="17" font-weight="700" text-anchor="middle">自己就能解码</text>
+      <text x="180" y="268" fill="#8facbf" font-size="14" text-anchor="middle">随机访问的起点 · 数据相对更多</text>
+    </g>
+
+    <g transform="translate(540 178)">
+      <rect width="360" height="286" rx="26" fill="#172c42" stroke="#47728e" stroke-width="2"/>
+      <circle cx="58" cy="58" r="28" fill="#69d8ff"/>
+      <text x="58" y="67" fill="#10202d" font-size="26" font-weight="900" text-anchor="middle">P</text>
+      <text x="102" y="66" fill="#eef8ff" font-size="25" font-weight="800">引用过去</text>
+      <rect x="42" y="112" width="92" height="76" rx="13" fill="#245371"/>
+      <path d="M136 150H218" stroke="#69d8ff" stroke-width="4" marker-end="url(#blueArrow)"/>
+      <rect x="226" y="112" width="92" height="76" rx="13" fill="#183b52"/>
+      <rect x="252" y="132" width="30" height="28" rx="5" fill="#ffb85c"/>
+      <text x="180" y="224" fill="#bdeeff" font-size="17" font-weight="700" text-anchor="middle">记录相对参考帧的变化</text>
+      <text x="180" y="254" fill="#8facbf" font-size="14" text-anchor="middle">文件更小 · 必须先有过去的参考画面</text>
+    </g>
+
+    <g transform="translate(1010 178)">
+      <rect width="360" height="286" rx="26" fill="#30283c" stroke="#82668d" stroke-width="2"/>
+      <circle cx="58" cy="58" r="28" fill="#b99ae5"/>
+      <text x="58" y="67" fill="#241a2e" font-size="26" font-weight="900" text-anchor="middle">B</text>
+      <text x="102" y="66" fill="#eef8ff" font-size="25" font-weight="800">引用前后</text>
+      <rect x="40" y="122" width="72" height="60" rx="12" fill="#4d4263"/>
+      <rect x="248" y="122" width="72" height="60" rx="12" fill="#4d4263"/>
+      <rect x="144" y="122" width="72" height="60" rx="12" fill="#6a5279"/>
+      <path d="M120 152H138" stroke="#b99ae5" stroke-width="4" marker-end="url(#blueArrow)"/>
+      <path d="M240 152H222" stroke="#b99ae5" stroke-width="4" marker-end="url(#blueArrow)"/>
+      <text x="180" y="224" fill="#eadcff" font-size="17" font-weight="700" text-anchor="middle">可以同时依赖两侧参考帧</text>
+      <text x="180" y="254" fill="#b5a4c5" font-size="14" text-anchor="middle">压缩更高 · 解码次序可能不同于显示次序</text>
+    </g>
+  </g>
+
+  <g transform="translate(92 526)" font-family="system-ui, sans-serif">
+    <rect width="1256" height="204" rx="26" fill="#10263a" stroke="#31516a"/>
+    <text x="34" y="42" fill="#eef8ff" font-size="23" font-weight="800">一个 GOP：从可独立解码的起点，到下一个随机访问边界</text>
+    <g transform="translate(44 76)" text-anchor="middle" font-weight="800">
+      <rect x="0" y="0" width="96" height="60" rx="15" fill="#ffb85c"/><text x="48" y="38" fill="#17212a" font-size="24">I</text>
+      <rect x="140" y="0" width="96" height="60" rx="15" fill="#264d67"/><text x="188" y="38" fill="#dff6ff" font-size="24">B</text>
+      <rect x="280" y="0" width="96" height="60" rx="15" fill="#264d67"/><text x="328" y="38" fill="#dff6ff" font-size="24">B</text>
+      <rect x="420" y="0" width="96" height="60" rx="15" fill="#3b718c"/><text x="468" y="38" fill="#dff6ff" font-size="24">P</text>
+      <rect x="560" y="0" width="96" height="60" rx="15" fill="#264d67"/><text x="608" y="38" fill="#dff6ff" font-size="24">B</text>
+      <rect x="700" y="0" width="96" height="60" rx="15" fill="#264d67"/><text x="748" y="38" fill="#dff6ff" font-size="24">B</text>
+      <rect x="840" y="0" width="96" height="60" rx="15" fill="#3b718c"/><text x="888" y="38" fill="#dff6ff" font-size="24">P</text>
+      <rect x="1040" y="0" width="96" height="60" rx="15" fill="#ffb85c"/><text x="1088" y="38" fill="#17212a" font-size="24">I</text>
+    </g>
+    <path d="M140 158H1128" stroke="#69d8ff" stroke-width="3" marker-end="url(#blueArrow)"/>
+    <text x="628" y="188" fill="#bdeeff" font-size="16" text-anchor="middle">顺序播放沿依赖向前最自然；随机访问必须先回到可用起点，再解到目标</text>
+  </g>
+</svg>

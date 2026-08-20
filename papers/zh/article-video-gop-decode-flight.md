@@ -56,13 +56,25 @@ StarCut 真正要验证的，是浏览器在合理架构下同样能够获得成
 
 这套原则并不是“所有东西都要放进 SAB”。共享内存适合持续变化的共同状态，Transferable 适合单一拥有者的大对象，普通消息适合小命令。架构的高度不在于选中了哪个 API，而在于先认清数据是谁产生、谁消费、是否需要共享，然后为它安排一条没有多余节点的路径。
 
-## 三、全 I 帧最轻松，但项目存不起第二份视频
+## 三、视频为什么不能从任意一帧开始解码
+
+![I、P、B 帧与 GOP 的基本原理：I 帧保存独立画面，P 帧引用过去，B 帧可以引用前后，随机访问需要回到可用起点](../assets/gop-flight/video-compression-primer.svg)
+
+*编码器用帧之间的依赖换取更小的文件，编辑器则要在随机访问时偿还这笔成本。*
+
+如果视频把每个时刻都保存成一张完整图片，存储和带宽很快就会耗尽。实际编码会利用相邻画面的相似性：背景没有变化，就不必在每一帧里重新保存整个背景。
+
+从依赖关系看，可以先把压缩视频中的画面理解成三类。I 帧保存能够独立恢复的画面；P 帧引用过去的参考画面，只记录运动和变化；B 帧还可以同时引用前后两侧的参考画面。编码器把一段互相依赖的画面组织成 GOP（Group of Pictures），用更少的数据表达一段连续运动。
+
+这个结构非常适合从头向后播放。解码器已经握有前面的参考画面，只要继续接收后续压缩包即可。随机跳到 GOP 中间就不同了：目标帧往往只保存了“相对另一帧发生了什么”，不能脱离依赖单独恢复。编辑器必须先找到可用的随机访问起点，再沿依赖关系解到目标。
+
+B 帧还会带来另一个区别。压缩包进入解码器的顺序由 DTS 描述，画面应该出现在时间线上的位置由 PTS 描述；存在前后引用时，两者可能不同。H.264、HEVC 等编码又有开放 GOP、CRA/RASL 和不同的随机访问规则。因此，编辑器不能把文件中的第 N 个 packet 直接当作屏幕上的第 N 帧，也不能只看到一个 `isKey` 就假设它一定是完整起点。
+
+## 四、为什么顺着播放很舒服，来回拖动却很难
 
 ![I、P、B 帧依赖、全 I 帧与长 GOP 的空间取舍，以及从播放到 Scrub 的解码难度阶梯](../assets/gop-flight/codec-difficulty-ladder.svg)
 
 *编码越依赖前后帧，文件越紧凑，随机访问需要经过的路线也越长。*
-
-压缩视频中的帧大致可以从依赖关系理解：I 帧能够独立解码，P 帧引用之前的画面，B 帧还可能引用前后两侧。编码器把一组相关帧组织成 GOP；H.264、HEVC 等编码又有不同的随机访问点、重排深度和开放/封闭 GOP 规则。编辑器不能看到一个 `isKey` 就盲目发车，需要从媒体索引找到真实可用的随机访问起点，并按 DTS 输入，再根据输出帧的 PTS 归位。
 
 如果素材全部由 I 帧组成，任意位置都可以直接开始，几乎不再需要 GOP 路线调度。这是最轻松的路径，代价是压缩效率显著下降。专业软件可以预先转码为全帧内代理文件，以磁盘换取更稳定的剪辑体验；对浏览器和本地优先项目来说，为每个素材再保存一份大体积全 I 帧视频，会迅速消耗 OPFS 或本地硬盘预算，也延长素材可用前的等待。
 
@@ -76,7 +88,7 @@ StarCut 选择直接面对用户原始视频中的长 GOP。交互难度由低�
 
 这篇文章的大部分调度设计，都在处理后三种情况，尤其是 Scrub 和时间线缩略图。它们会把有限的解码器、GPU 帧、内存和 I/O 同时拉向不同位置。
 
-## 四、一帧为什么不能直接到达
+## 五、一次随机访问到底要走多远
 
 ![目标帧位于 GOP 内部时，解码器必须从关键帧出发并经过中间依赖帧](../assets/gop-flight/gop-route.svg)
 
@@ -94,7 +106,7 @@ StarCut 选择直接面对用户原始视频中的长 GOP。交互难度由低�
 
 这也是后续所有调度的物理边界：交互可以任意跳转，解码路线仍必须尊重压缩视频的依赖顺序。
 
-## 五、为什么没有把整条解码链路交给 MediaBunny
+## 六、为什么没有把整条解码链路交给 MediaBunny
 
 ![MediaBunny 负责容器和编码兼容，StarCut fork 补齐物理包索引，SCIX 与 GOP Flight 负责运行时调度](../assets/gop-flight/mediabunny-boundary.svg)
 
@@ -118,7 +130,7 @@ StarCut 的 fork 增加了 metadata-only 的完整 packet index，补齐 decode 
 
 <!-- RESEARCH: Track upstream MediaBunny support for exact source byte ranges, decode timestamps, complete metadata-only packet indexes, and HEVC random-access metadata; upstream the narrow fork where API and container guarantees align. -->
 
-## 六、播放、Seek、Scrub 和缩略图如何进入同一张运行图
+## 七、播放、Seek、Scrub 和缩略图如何进入同一张运行图
 
 ![全局时间线上的播放、Seek、Scrub 和缩略图需求被投影为统一的源媒体需求](../assets/gop-flight/temporal-demand-map.svg)
 
@@ -141,7 +153,7 @@ StarCut 先在全局时间线上形成一份不可变的时序需求快照。它
 
 统一需求还有一个重要作用：调度、缓存和呈现看到的是同一份时序事实。否则很容易出现调度器已经追向新位置，呈现层仍按旧的 Scrub 规则选帧，或者缓存把马上要用的帧当作普通后台结果淘汰。
 
-## 七、一趟 GOP Flight 怎样抵达多个目标帧
+## 八、一趟 GOP Flight 怎样抵达多个目标帧
 
 ![一次 GOP Flight 从索引定位和 Range 读取开始，经解码路线向缓存与呈现交付多个目标帧](../assets/gop-flight/flight-anatomy.svg)
 
@@ -155,7 +167,7 @@ StarCut 先在全局时间线上形成一份不可变的时序需求快照。它
 
 这里需要区分“到站表”和“正在行驶的车”。需求规划每次都可以产生新的到站表，物理 Flight 却不应跟着整条重建。前者是当前想要什么，后者是为这些目标已经付出了哪些读取和解码成本。把两者分开，需求才能更新，路线也才能复用。
 
-## 八、播放头变了，正在路上的 Flight 怎么办
+## 九、播放头变了，正在路上的 Flight 怎么办
 
 ![新旧需求在运行时进行协调，保留仍有价值的在途结果和温热路线](../assets/gop-flight/demand-reconcile.svg)
 
@@ -174,7 +186,7 @@ WebCodecs 的输入队列归零，不代表所有输出已经出现。为避免�
 
 同样，`reset` 和 `flush` 也不是普通的路线切换按钮。它们会改变解码器的参考状态，下一次输入往往必须重新从关键样本开始。Flight 因此优先通过更新目标和停止后续提交来改道，把硬重置留给真正需要破坏现有路线的边界。
 
-## 九、播放、Seek 与 Scrub 为什么有不同的画面契约
+## 十、播放、Seek 与 Scrub 为什么有不同的画面契约
 
 ![播放、Seek、移动 Scrub 和停留 Scrub 分别采用连续、精确、受限近似和精确收敛契约](../assets/gop-flight/interaction-contracts.svg)
 
@@ -195,7 +207,7 @@ WebCodecs 的输入队列归零，不代表所有输出已经出现。为避免�
 
 多层视频还需要一个更严格的规则：画面以完整 FrameSet 原子呈现。如果当前合成需要三层视频，而新时刻只有两层到达，编辑器会暂时保留上一份完整画面，而不是把不同时刻的层拼在一起。这避免了高层已经前进、底层仍停在旧位置的视觉撕裂。
 
-## 十、快速 Scrub 怎样跟上鼠标，又在停下时变准确
+## 十一、快速 Scrub 怎样跟上鼠标，又在停下时变准确
 
 ![Scrub 根据速度和加速度在运动方向布置稀疏预测站点，并在停留后回到精确目标](../assets/gop-flight/scrub-prediction.svg)
 
@@ -211,7 +223,7 @@ Scrub 不是一连串互不相关的 Seek。播放头的位置、速度和加速
 
 <!-- RESEARCH: Add parameter-sensitivity and user studies for prediction target count, dwell threshold, and presentation error under different GOP lengths and timeline scales. -->
 
-## 十一、GPU 放不下所有帧：多级缓存怎样分工
+## 十二、GPU 放不下所有帧：多级缓存怎样分工
 
 ![源文件、压缩 GOP、RAM 像素与 GPU VideoFrame 组成按成本和热度分层的视频缓存](../assets/gop-flight/cache-pyramid.svg)
 
@@ -236,7 +248,7 @@ GPU 帧被降级到 RAM 需要 `copyTo()`，RAM 帧重新呈现又要构造 `Vid
 
 <!-- RESEARCH: Measure GPU/RAM/GOP cache policy ablations, including readback cost, promotion latency, decoder output-pool stalls, peak residency, and useful-hit ratio by demand class. -->
 
-## 十二、时间线缩略图为什么不需要第二套解码器
+## 十三、时间线缩略图为什么不需要第二套解码器
 
 ![时间线网格与前台播放、Seek 和 Scrub 共享同一批 GOP Flight 与解码结果](../assets/gop-flight/thumbnail-shared-grid.svg)
 
@@ -250,7 +262,7 @@ GPU 帧被降级到 RAM 需要 `copyTo()`，RAM 帧重新呈现又要构造 `Vid
 
 共享解码并不意味着缩略图可以随时争抢资源。当前画面缺失时，网格规划会退让；播放仍有连续窗口要补齐时，缩略图也不会占满解码车道。复用发生在共同路线与共同输出上，优先级仍由观看现场决定。
 
-## 十三、车多不等于调度好：Flight 车队怎样受资源约束
+## 十四、车多不等于调度好：Flight 车队怎样受资源约束
 
 ![多条 GOP Flight 在解码器、后台并发、I/O、帧缓存和 GOP 字节预算之间接受统一调度](../assets/gop-flight/fleet-budgets.svg)
 
@@ -264,7 +276,7 @@ StarCut 当前允许最多六个驻留解码器，但通常只让两条后台或
 
 资源预算被分开管理：驻留解码器数量、活跃 Flight 数量、Range I/O、压缩 GOP 字节、解码帧字节和推测目标数量各自有边界。不能因为内存还有余量就无限增加并行解码，也不能因为有空闲解码器就让缩略图淹没网络。这个分离让调度器知道真正紧张的是什么，而不是用一个模糊的“缓存大小”代替所有成本。
 
-## 十四、怎样考验一套视频解码调度
+## 十五、怎样考验一套视频解码调度
 
 ![GOP Flight 用高速往返 Scrub 与时间线 Zoom Scroll 两组工作负载考验前台反馈、精确收敛和后台网格更新](../assets/gop-flight/evaluation-workloads.svg)
 
@@ -290,7 +302,7 @@ Play 和单次 Seek 是基础正确性检查，真正拉开调度差异的是两
 
 <!-- RESEARCH: Current values are development traces from packages/editor/av/video/PERFORMANCE_BASELINE.md. Before publication, freeze commit, hardware, browser, corpus, interaction traces, repetitions, and confidence intervals. -->
 
-## 十五、相关工作与边界
+## 十六、相关工作与边界
 
 ![WebCodecs、HTTP Range、低延迟 Seek、Scrub 预览研究与 GOP Flight 的关系](../assets/gop-flight/related-work.svg)
 

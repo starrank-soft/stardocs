@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
+  <title id="title">StarCut 零拷贝数据路径</title>
+  <desc id="desc">主线程只处理界面与控制。SAB 直接向视频和音频 Worker 发布状态，视频 Worker 直接从 Tauri 文件服务读取压缩字节并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 环形缓冲区直接向 AudioWorklet 交付 PCM，大对象通过 Transferable 转移所有权。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0a1e31"/></linearGradient>
+    <marker id="blueArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
+    <marker id="greenArrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#75e1ad"/></marker>
+    <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1440" height="810" fill="url(#bg)"/>
+  <text x="72" y="76" fill="#eef8ff" font-size="34" font-weight="800" font-family="system-ui, sans-serif">零拷贝不是一个 API，而是一条不绕路的数据拓扑</text>
+  <text x="72" y="118" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">主线程负责界面；媒体数据在生产者与消费者之间点对点移动。</text>
+
+  <g font-family="system-ui, sans-serif">
+    <rect x="70" y="188" width="248" height="402" rx="26" fill="#14273a" stroke="#38556e" stroke-width="2"/>
+    <text x="194" y="236" fill="#eef8ff" font-size="25" font-weight="800" text-anchor="middle">Main Thread</text>
+    <text x="194" y="268" fill="#9db8ca" font-size="16" text-anchor="middle">只保留界面与控制</text>
+    <rect x="102" y="310" width="184" height="60" rx="15" fill="#0d1f31"/>
+    <text x="194" y="347" fill="#bdeeff" font-size="17" text-anchor="middle">输入 · UI · 工程操作</text>
+    <rect x="102" y="398" width="184" height="60" rx="15" fill="#0d1f31"/>
+    <text x="194" y="435" fill="#bdeeff" font-size="17" text-anchor="middle">写入最新控制状态</text>
+    <rect x="102" y="500" width="184" height="50" rx="14" fill="#3c252e"/>
+    <text x="194" y="531" fill="#f2b5bf" font-size="16" font-weight="700" text-anchor="middle">不转运媒体与像素</text>
+
+    <rect x="390" y="174" width="272" height="122" rx="22" fill="#143a54" stroke="#69d8ff" stroke-width="2" filter="url(#glow)"/>
+    <text x="526" y="218" fill="#eef8ff" font-size="23" font-weight="800" text-anchor="middle">Control SAB</text>
+    <text x="526" y="250" fill="#a9d6e8" font-size="15" text-anchor="middle">Playhead · Seek · Flags · Viewport</text>
+    <text x="526" y="276" fill="#71d9ff" font-size="14" text-anchor="middle">Atomics publish / wait</text>
+    <path d="M318 428H352V236H380" fill="none" stroke="#69d8ff" stroke-width="3" marker-end="url(#blueArrow)"/>
+
+    <rect x="716" y="174" width="246" height="174" rx="24" fill="#123b55" stroke="#69d8ff" stroke-width="2"/>
+    <text x="839" y="218" fill="#eef8ff" font-size="23" font-weight="800" text-anchor="middle">Video Worker</text>
+    <text x="839" y="252" fill="#a9d6e8" font-size="15" text-anchor="middle">GOP Flight · WebCodecs</text>
+    <text x="839" y="280" fill="#a9d6e8" font-size="15" text-anchor="middle">FrameCache · Presenter</text>
+    <rect x="754" y="302" width="170" height="26" rx="9" fill="#0a2539"/>
+    <text x="839" y="320" fill="#75e1ad" font-size="13" font-weight="700" text-anchor="middle">主线程外完成解码与合成</text>
+    <path d="M662 236H706" stroke="#69d8ff" stroke-width="3" marker-end="url(#blueArrow)"/>
+
+    <rect x="1044" y="154" width="326" height="98" rx="21" fill="#132b40" stroke="#42647d"/>
+    <text x="1207" y="194" fill="#eef8ff" font-size="21" font-weight="800" text-anchor="middle">Tauri File Server</text>
+    <text x="1207" y="224" fill="#a9c4d5" font-size="15" text-anchor="middle">starcut:// · HTTP Range · 压缩 GOP</text>
+    <path d="M1044 222H978" stroke="#ffbd66" stroke-width="3" marker-end="url(#blueArrow)"/>
+    <text x="1010" y="207" fill="#ffcc86" font-size="13" text-anchor="middle">Worker 直取</text>
+
+    <rect x="1044" y="284" width="326" height="98" rx="21" fill="#143a35" stroke="#75e1ad" stroke-width="2" filter="url(#glow)"/>
+    <text x="1207" y="324" fill="#eafff4" font-size="21" font-weight="800" text-anchor="middle">OffscreenCanvas / GPU</text>
+    <text x="1207" y="354" fill="#a9d8c1" font-size="15" text-anchor="middle">VideoFrame 直接合成与呈现</text>
+    <path d="M962 318H1034" stroke="#75e1ad" stroke-width="3" marker-end="url(#greenArrow)"/>
+
+    <rect x="716" y="438" width="246" height="146" rx="24" fill="#24364d" stroke="#7da7ff" stroke-width="2"/>
+    <text x="839" y="480" fill="#eef8ff" font-size="23" font-weight="800" text-anchor="middle">Audio Worker</text>
+    <text x="839" y="514" fill="#b5c9e8" font-size="15" text-anchor="middle">Decode · Mix · PCM producer</text>
+    <rect x="754" y="538" width="170" height="26" rx="9" fill="#15263b"/>
+    <text x="839" y="556" fill="#a9c9ff" font-size="13" font-weight="700" text-anchor="middle">不经过主线程搬音频</text>
+    <path d="M526 296V510H706" fill="none" stroke="#69d8ff" stroke-width="3" marker-end="url(#blueArrow)"/>
+
+    <rect x="1044" y="438" width="326" height="146" rx="24" fill="#1f3048" stroke="#7da7ff" stroke-width="2"/>
+    <text x="1207" y="480" fill="#eef8ff" font-size="22" font-weight="800" text-anchor="middle">PCM Ring SAB</text>
+    <text x="1207" y="512" fill="#b5c9e8" font-size="15" text-anchor="middle">Audio Worker → AudioWorklet</text>
+    <text x="1207" y="544" fill="#a9c9ff" font-size="15" text-anchor="middle">共享环形缓冲 · Atomics 协调</text>
+    <path d="M962 510H1034" stroke="#7da7ff" stroke-width="3" marker-end="url(#blueArrow)"/>
+  </g>
+
+  <g transform="translate(180 650)" font-family="system-ui, sans-serif">
+    <rect width="1080" height="108" rx="22" fill="#10263a" stroke="#31516a"/>
+    <text x="32" y="35" fill="#8facbf" font-size="15">跨边界的三条规则</text>
+    <text x="32" y="73" fill="#71d9ff" font-size="19" font-weight="800">高频状态 → SAB</text>
+    <text x="310" y="73" fill="#75e1ad" font-size="19" font-weight="800">大对象 → Transferable</text>
+    <text x="665" y="73" fill="#ffcc86" font-size="19" font-weight="800">小命令 → Message</text>
+    <text x="32" y="96" fill="#a9c4d5" font-size="14">共享最新值，不排队</text>
+    <text x="310" y="96" fill="#a9c4d5" font-size="14">转移所有权，不 encode / decode</text>
+    <text x="665" y="96" fill="#a9c4d5" font-size="14">只传语义和元数据</text>
+  </g>
+</svg>

@@ -40,6 +40,22 @@ WASM 很适合补充浏览器缺少的 CPU 算法、格式解析和离线处理�
 
 StarCut 真正要验证的，是浏览器在合理架构下同样能够获得成熟桌面剪辑软件那种跟手的播放与 Scrub。方法并不含糊：跨边界只传压缩数据和控制信息，解码后的完整像素不离开 GPU 主链路；已经付出的 GOP 工作必须复用；有限的 GPU 只保留此刻最有价值的帧。不要指望用 Rust、WASM 或 Native 逃避架构问题。用更快的语言实现一条错误的数据流，得到的仍然是一条错误的数据流。
 
+### 零拷贝不是一个 API，而是一条不绕路的数据拓扑
+
+![StarCut 零拷贝数据路径：主线程只处理界面，控制状态通过 SAB 发布，视频 Worker 直接读取 Tauri Range 并在 OffscreenCanvas 合成，音频 Worker 通过 SAB 直达 AudioWorklet](../assets/gop-flight/zero-copy-data-paths.svg)
+
+*生产者直接连接消费者；主线程不充当媒体数据的中转站。*
+
+如果 Video Worker 取一段 GOP 还要先请求主线程，再由主线程调用 Tauri，最后把字节转回 Worker，那么压缩数据虽然比 RGBA 小，主线程仍然会成为所有解码路线共同经过的收费站。StarCut 的 Video Worker 直接通过 `fetch(starcut://...)` 向 Tauri 文件服务发起 Range 请求，Rust 返回压缩 GOP，主线程只负责告诉 Worker 素材地址和工程变化。
+
+播放头又是另一类数据。它更新频繁，Worker 真正需要的是“此刻最新的位置”，而不是按顺序处理主线程积压的每一条旧消息。StarCut 用一块共享控制内存发布 Playhead、Seek 序号、播放状态和时间线视口。主线程用 Atomics 提交新版本，Video Worker 与 Audio Worker 直接等待变化；没有每帧结构化序列化，没有消息队列，也不需要轮询。
+
+音频链路遵循同样的拓扑。Audio Worker 把混合后的 PCM 写进 SAB 环形缓冲区，AudioWorklet 从同一块内存直接消费；主线程不接收、不转发，也不复制音频块。Worker 之间如果需要交换连续数据，也应使用 SAB 或点对点 `MessagePort`，而不是默认经由主线程路由。
+
+数据确实需要跨线程时，协议按数据性质选择：高频共享状态进入 SAB；`OffscreenCanvas`、`ImageBitmap` 和 `ArrayBuffer` 这类大对象通过 Transferable 转移所有权；工程操作、任务结果等小而有语义的信息才使用普通消息。缩略图无需先编码成 PNG 或 WebP、到了另一端再解码，媒体索引也无需复制一份 backing store。发送方交出对象，接收方成为新的拥有者——这和 Rust 的 move 在思想上相似：所有权沿数据流前进，而不是两边各留一份。
+
+这套原则并不是“所有东西都要放进 SAB”。共享内存适合持续变化的共同状态，Transferable 适合单一拥有者的大对象，普通消息适合小命令。架构的高度不在于选中了哪个 API，而在于先认清数据是谁产生、谁消费、是否需要共享，然后为它安排一条没有多余节点的路径。
+
 ## 三、全 I 帧最轻松，但项目存不起第二份视频
 
 ![I、P、B 帧依赖、全 I 帧与长 GOP 的空间取舍，以及从播放到 Scrub 的解码难度阶梯](../assets/gop-flight/codec-difficulty-ladder.svg)

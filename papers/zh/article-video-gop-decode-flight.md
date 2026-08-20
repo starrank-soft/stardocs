@@ -120,27 +120,17 @@ GOP 没有一个适用于所有视频的固定上限，它由编码器配置、�
 
 这也是后续所有调度的物理边界：交互可以任意跳转，解码路线仍必须尊重压缩视频的依赖顺序。
 
-### MediaBunny 负责读懂媒体，调度仍然留在编辑器
+### MediaBunny 读懂媒体，编辑器负责调度
 
 ![MediaBunny 负责容器和编码兼容，窄范围 fork 补齐物理包索引，SCIX 与 GOP Flight 负责运行时调度](../assets/gop-flight/mediabunny-boundary.svg)
 
 *MediaBunny 解决“怎样读懂媒体”，GOP Flight 解决“此刻应该为项目解哪些帧”。*
 
-确定使用 WebCodecs 以后，Web 端一个很自然的选择是直接把媒体读取和解码都交给 [MediaBunny](https://mediabunny.dev/)。它的容器解析、编码适配和 `EncodedPacketSink` 已经处理了大量兼容性工作，能够按解码顺序遍历 packet，也可以把 packet 直接交给 WebCodecs。我们没有重写这一层，而是在项目中维护了一份窄范围的 MediaBunny fork。
+Web 端直接复用 [MediaBunny](https://mediabunny.dev/) 的容器解析、编码适配和 packet 能力，让压缩样本能够进入 WebCodecs；这一层没有必要重写。
 
-直接使用上游版本时，我们缺少的是面向调度的**完整 packet 索引**。界面给出一个目标时刻，运行时除了 PTS、时长和是否为关键包，还需要知道：
+GOP Flight 还需要上游没有完整提供的 packet 索引：准确的时间与解码顺序、关键帧信息，以及样本在源文件中的字节范围。项目中的窄范围 fork 在素材导入时补齐这些信息并生成 SCIX sidecar，实时运行时直接查索引、按 Range 读取 GOP。我们也希望这部分能力最终能够回到 MediaBunny 上游。
 
-- packet 在原始文件中的精确 `offset + length`，才能把同一 GOP 合并成 Range 读取；
-- 独立于 PTS 的 DTS 与完整解码顺序，才能正确处理 B 帧；
-- 解码配置与关键包信息，才能从真实随机访问点建立路线。
-
-其中最关键的是 packet 的源字节地址。没有这项元信息，运行时只能再次经过 demuxer 取 payload，无法提前把多个目标合成一个确定的 GOP 字节范围。DTS 同样不能靠 PTS 猜测；B 帧、开放 GOP 和 HEVC 的 CRA/RASL 都会让这种猜测失效。
-
-这份 fork 增加了 metadata-only 的完整 packet index，补齐 decode order、PTS、DTS、duration、key flag、encoded byte length 与 source byte range，并保留 `hvc1` / `hev1` 等 WebCodecs 配置差异。索引只在素材导入时生成，再投影成紧凑的 SCIX sidecar；实时运行时直接查询 SCIX，不让容器解析进入每一次 Play、Seek 或 Scrub 的热路径。对于无法提供连续源字节范围或准确 DTS 的格式，索引阶段会明确拒绝该条直读契约，而不会用猜测填空。
-
-这些能力很适合回馈 MediaBunny 上游，我们也希望后续版本能够原生提供。它们增强的是包级物理地址和时间信息，并不要求 MediaBunny 理解一款视频编辑器的整个运行现场。
-
-解码调度没有直接交给 MediaBunny，是因为这层问题超出了单个媒体文件。MediaBunny 不知道一个素材在项目中被几个 Clip 复用，不知道全局时间怎样映射到源时间，也不知道当前 FrameSet 还缺哪一层、时间线正在请求哪些缩略图、GPU 还剩多少预算。它提供很好的 packet 与解码能力；编辑器在上面组织跨来源、跨交互的需求、优先级、缓存和 Flight 车队。这个边界让两边都保持清楚。
+调度仍然属于编辑器。MediaBunny 能回答“这个文件里有哪些 packet”，却不知道项目中哪些 Clip 正在合成，也不知道播放、Scrub、缩略图和 GPU 预算此刻怎样竞争。编辑器据此决定现在解哪些帧，以及哪些需求可以共乘同一趟 Flight。
 
 <!-- RESEARCH: Track upstream MediaBunny support for exact source byte ranges, decode timestamps, complete metadata-only packet indexes, and HEVC random-access metadata; upstream the narrow fork where API and container guarantees align. -->
 

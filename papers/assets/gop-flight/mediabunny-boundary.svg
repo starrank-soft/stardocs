@@ -7,7 +7,7 @@
     <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1440" height="810" fill="url(#bg)"/>
-  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">MediaBunny 负责读懂媒体，编辑器负责安排媒体工作</text>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">MediaBunny 读懂媒体，编辑器负责调度</text>
   <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">我们复用它的兼容性，在包级索引和编辑器调度之间划出清楚边界。</text>
 
   <g font-family="system-ui, sans-serif">

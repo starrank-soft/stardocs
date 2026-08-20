@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
-  <title id="title">MediaBunny、StarCut fork、SCIX 与 GOP Flight 的职责边界</title>
-  <desc id="desc">MediaBunny 负责容器解析和编码兼容，StarCut fork 补齐精确字节范围与 DTS，导入时生成 SCIX，运行时由 GOP Flight 处理项目级调度。</desc>
+  <title id="title">MediaBunny、窄范围 fork、SCIX 与 GOP Flight 的职责边界</title>
+  <desc id="desc">MediaBunny 负责容器解析和编码兼容，窄范围 fork 补齐精确字节范围与 DTS，导入时生成 SCIX，运行时由 GOP Flight 处理项目级调度。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#69d8ff"/></marker>
     <filter id="glow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
   <rect width="1440" height="810" fill="url(#bg)"/>
-  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">MediaBunny 负责读懂媒体，StarCut 负责安排媒体工作</text>
+  <text x="72" y="78" fill="#eaf6ff" font-size="34" font-weight="700" font-family="system-ui, sans-serif">MediaBunny 负责读懂媒体，编辑器负责安排媒体工作</text>
   <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">我们复用它的兼容性，在包级索引和编辑器调度之间划出清楚边界。</text>
 
   <g font-family="system-ui, sans-serif">
@@ -23,7 +23,7 @@
 
     <path d="M430 406H490" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
     <rect x="498" y="182" width="418" height="448" rx="26" fill="#123b55" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
-    <text x="707" y="234" fill="#eaf9ff" font-size="26" font-weight="800" text-anchor="middle">StarCut 的窄范围 Fork</text>
+    <text x="707" y="234" fill="#eaf9ff" font-size="26" font-weight="800" text-anchor="middle">窄范围 MediaBunny Fork</text>
     <text x="707" y="268" fill="#9dcbe0" font-size="16" text-anchor="middle">补齐可直接调度的 packet index</text>
     <g text-anchor="middle">
       <rect x="544" y="310" width="150" height="72" rx="14" fill="#0c2234"/><text x="619" y="340" fill="#ffcc86" font-size="19" font-weight="700">offset + length</text><text x="619" y="365" fill="#8facbf" font-size="14">源字节地址</text>
@@ -35,7 +35,7 @@
 
     <path d="M916 406H976" stroke="#69d8ff" stroke-width="3" marker-end="url(#arrow)"/>
     <rect x="984" y="182" width="386" height="448" rx="26" fill="#0f2033" stroke="#31536d"/>
-    <text x="1177" y="234" fill="#eaf6ff" font-size="26" font-weight="800" text-anchor="middle">StarCut 运行时</text>
+    <text x="1177" y="234" fill="#eaf6ff" font-size="26" font-weight="800" text-anchor="middle">编辑器运行时</text>
     <text x="1177" y="268" fill="#8facbf" font-size="16" text-anchor="middle">项目级时序与资源调度</text>
     <g text-anchor="middle">
       <rect x="1030" y="310" width="294" height="70" rx="14" fill="#102b42"/><text x="1177" y="339" fill="#dff6ff" font-size="18">SCIX SourceIndex</text><text x="1177" y="364" fill="#8facbf" font-size="14">同步 time → sample → GOP</text>

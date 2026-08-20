@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1440" height="810" viewBox="0 0 1440 810" role="img" aria-labelledby="title desc">
-  <title id="title">StarCut 实时视频预览方案的收敛过程</title>
+  <title id="title">实时视频预览方案的收敛过程</title>
   <desc id="desc">从原生桌面和 Tauri FFmpeg 像素 IPC，经过原生 video 元素，最终收敛为文件 Range 服务加 Worker WebCodecs 和 GPU VideoFrame。</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#0b1d30"/></linearGradient>

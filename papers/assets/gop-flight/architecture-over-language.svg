@@ -12,7 +12,7 @@
   <text x="72" y="120" fill="#8facbf" font-size="20" font-family="system-ui, sans-serif">在视频链路里，硬件路径、内存边界和重复工作往往先于语言成为瓶颈。</text>
 
   <rect x="70" y="174" width="856" height="476" rx="28" fill="#123b55" stroke="#69d8ff" stroke-width="3" filter="url(#glow)"/>
-  <text x="108" y="222" fill="#eaf9ff" font-size="25" font-weight="800" font-family="system-ui, sans-serif">StarCut：TypeScript 是控制面</text>
+  <text x="108" y="222" fill="#eaf9ff" font-size="25" font-weight="800" font-family="system-ui, sans-serif">实时管线：TypeScript 是控制面</text>
   <text x="108" y="254" fill="#9dcbe0" font-size="16" font-family="system-ui, sans-serif">它安排工作，不亲自搬运和计算每个像素。</text>
   <g font-family="system-ui, sans-serif" text-anchor="middle">
     <rect x="112" y="302" width="200" height="92" rx="18" fill="#0c2234"/><text x="212" y="338" fill="#dff6ff" font-size="19" font-weight="700">Timeline Demand</text><text x="212" y="368" fill="#8facbf" font-size="14">Play · Seek · Scrub · Grid</text>

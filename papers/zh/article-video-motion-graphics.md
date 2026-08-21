@@ -6,7 +6,7 @@
 
 这一连串操作要求 AI 交付的不是一段已经封死的 MP4，也不是只能从头播放的网页动画。它需要保留文字、颜色和运动逻辑，能够在任意时刻准确停住，还要透明地叠在视频上，最终导出的每一帧与编辑器中的预览保持同一语义。
 
-我们没有绕开成熟方案。Remotion、HyperFrames、iframe、HTML-in-Canvas、服务端 Chromium 与派生视频，我们都沿着实际产品链路试过。它们分别解决了程序化动画、样式隔离或视频输出，却始终有一个问题没有自然消失：浏览器里的动画，怎样在任意时刻直接交给视频合成器一张 Bitmap？这段路线最后收敛为一条原则：**MG 是一个以时间为输入的视觉程序。编辑器问它某一时刻长什么样，它就直接给出那一帧。**
+我们没有绕开成熟方案。Remotion 和 HyperFrames 都实际试过，浏览器预览也能正常工作。问题出现在缩略图和最终导出：网页要变成视频帧，可靠方案仍然要在服务端运行 Chromium，逐帧 Capture，再交给 FFmpeg。为了视频中并不常见的粒子、WebGL 和 3D 效果，长期承担这套渲染服务的资源与复杂度，一期 ROI 并不成立。方案因此收敛为一条原则：**MG 是一个以时间为输入的 SVG 视觉程序。编辑器问它某一时刻长什么样，浏览器就直接给出那一帧。**
 
 ## 一、MG 不是另一段视频
 
@@ -24,25 +24,25 @@
 
 <!-- RESEARCH: Record source size, SVG node count, variable count, first-frame time and rendered-video size for the curated MG corpus. Do not present raw RGBA expansion as a codec compression benchmark. -->
 
-## 二、为什么没有停在 Remotion 和 HyperFrames
+## 二、为什么没有继续使用 Remotion 和 HyperFrames
 
-![MG 方案从 Remotion 与 HyperFrames、HTML-in-Canvas 和服务端渲染，逐步收敛为单一 SVG Component 运行时](../assets/motion-graphics/architecture-evolution.svg)
+![Remotion 与 HyperFrames 的像素输出需要服务端 Chromium，而一期主要是平面动画，方案最终收敛为浏览器内 SVG Component](../assets/motion-graphics/architecture-evolution.svg)
 
-*成熟的动画框架解决了怎样让网页按帧运动，我们还需要解决怎样让这一帧进入编辑器的像素管线。*
+*预览不是问题。真正的问题是：拿到一帧，是否必须启动服务端 Chromium。*
 
-我们并不是一开始就想设计自己的 MG 格式。Remotion 已经证明 React 组件可以由当前帧驱动，并提供浏览器 Player、Scrub 和完整的渲染体系；HyperFrames 则更直接地把 HTML 变成可逐帧寻址的视频。两者都比从零搭一套网页动画基础设施成熟，所以我们的第一选择也是沿着它们走。
+我们并不是一开始就想设计自己的 MG 格式。Remotion 已经证明 React 组件可以由当前帧驱动，HyperFrames 则把 HTML 与 GSAP 变成可逐帧寻址的视频。两套方案都成熟，模型也熟悉它们，所以我们一开始就在用和试。
 
-Remotion 很适合以 React 工程构建一支完整视频。我们当时试用的生产链路里，浏览器承担 Player 与预览，可靠成片仍然要进入 Chromium 服务端渲染；今天 Remotion 已经补充了浏览器渲染能力，但没有改变我们面对的集成边界。我们需要嵌入的不是另一支由 React 接管的视频，而是现有时间线中的一个 Clip：它要服从编辑器的时钟，与 WebCodecs 视频共同分层，还要在缩略图和导出请求到来时直接返回 `ImageBitmap`。Player 能在页面里显示某一帧，不等于这个 DOM 画面已经成为现有 Canvas 合成器可以消费的像素对象；引入完整的 React Composition，也会在已有工程模型旁边再建立一套组件、资源与渲染边界。
+浏览器里的 Player 可以播放和 Scrub，但“页面上看见一帧”和“把这一帧交给视频合成器”是两件事。时间线缩略图需要 Bitmap，最终导出也需要连续的像素帧。在我们当时实际接入的 Remotion 链路里，可靠输出需要服务端 Chromium；HyperFrames 的正式实现同样由 Headless Chrome 逐帧 Capture，再交给 FFmpeg。一次简单的标题动画，最终也会变成一项远程渲染任务。
 
-HyperFrames 与我们的目标更接近，我们也实际用过。它让普通 HTML 与 GSAP 按确定时间 Seek，浏览器预览自然，模型也很容易生成。真正卡住我们的不是动画能不能播放，而是像素怎样出来：HyperFrames 的可靠成片路径由 Headless Chrome 逐帧 Capture，再交给 FFmpeg；在我们的旧方案中，缩略图与最终视频也因此进入服务端 Task Worker。浏览器负责实时 HTML，服务端负责 PNG 或 MP4，同一段 MG 再次出现两条运行路径。
+这条链路当然能工作，但不便宜。服务端要维护 Chromium 运行环境、字体和 FFmpeg，渲染任务要排队，浏览器实例会占用明显的 CPU 与内存；并发一上来，就需要专门的 Worker、限流、重试和缓存。创作者只是改一个字或换一种颜色，也可能触发一次新的远程输出。
 
-HTML-in-Canvas 看起来像缺失的那座桥：如果浏览器能把已经排版完成的 DOM 直接画入 Canvas，HyperFrames 页面就能继续留在浏览器里。我们专门调研并测试过 `drawElementImage()`。问题是它仍依赖实验性 Chrome Flag，不能作为面向用户的浏览器基线；在高频取帧、多实例和复杂页面下，我们还遇到过不稳定与崩溃。`html2canvas` 也不是等价替代，它会用 JavaScript 重新解释 DOM 和 CSS，既损失浏览器原生渲染能力，也难以承担逐帧视频管线。
+如果视频里的 MG 经常需要复杂粒子、动态光照、WebGL 或 3D，这些成本也许值得。实际需求并不是这样。标题、Lower Third、字幕包装、产品标注、数据图表和简单转场占了主要部分，它们本质上都是平面动画。至少在一期，为少量高级特效保留任意 HTML 和完整 Chromium 渲染能力，换来的表达增量很小，承担的基础设施成本却很高。
 
-于是我们也走过服务端 Chromium 与预渲染视频：先把 MG 编译成 PNG 或 MP4，编辑器再按普通媒体处理。它能产出像素，却把一次改字、换色变成远程渲染任务；透明叠加需要额外的 Alpha 编码与解码链路，实时预览看到的是网页，最终合成使用的却是派生视频。字体、时钟、资源加载或运行时版本的任何差异，都可能让两边逐渐偏离。
+我们也调研并测试过 HTML-in-Canvas，希望绕过服务器，把已经排版完成的 DOM 直接画入 Canvas。但 `drawElementImage()` 仍依赖实验性 Chrome Flag，在高频取帧、多实例和复杂页面下还会不稳定甚至崩溃，不能成为产品主链路。`html2canvas` 会用 JavaScript 重新解释 DOM 和 CSS，也承担不了逐帧视频输出。
 
-SVG 改变了这条链路。它既可以作为活的 DOM 场景留在页面里，又是浏览器原生认识的图像格式。组件执行 `render(time)` 后，系统克隆当前 SVG、嵌入字体并序列化为 Blob，浏览器即可解码、画入 Canvas，再生成 `ImageBitmap`。整个过程留在客户端，不需要截取一张网页，也不需要启动另一台 Chromium。动画状态和像素结果第一次来自同一个对象。
+SVG 恰好覆盖了这批高频需求。它既可以作为活的 DOM 场景留在页面里，又是浏览器原生认识的图像格式。组件执行 `render(time)` 后，系统克隆当前 SVG、嵌入字体并序列化为 Blob，浏览器即可解码、画入 Canvas，再生成 `ImageBitmap`。预览、缩略图和导出都留在客户端，不需要启动服务端 Chromium。
 
-这才是方案收敛的决定性原因。我们保留 Web 最有价值的部分——可编程、矢量、模型熟悉——同时把画面边界收窄为一个 SVG：每个 MG 是一个自包含的 JavaScript Component，宿主提供动画能力、参数与准确时间，组件既不拥有自己的播放世界，也不需要第二套像素运行时。
+所以最终的选择不是“SVG 比 Remotion 或 HyperFrames 更强”，而是它对当前产品更划算：用 JavaScript 和 GSAP 保留可编程动画，用 SVG 承担主要的平面表达，再直接进入浏览器的 Bitmap 管线。少数粒子与 3D 场景以后可以单独扩展，没有必要让它们决定一期的主架构。
 
 ## 三、把时间从动画内部拿出来
 
@@ -172,7 +172,7 @@ AI 生成 MG 时，模型输出的是源代码。系统先静态检查模块、�
 
 Lottie 是成熟的 JSON 矢量动画格式，跨平台播放器和 After Effects 工作流是它最强的价值。它非常适合设计师制作、导出并交付一个可移植动画。2026 年的 OmniLottie 与 LottieGPT 已经进一步证明，模型可以原生生成高质量、可编辑的 Lottie；它们通过专用 Tokenizer 解决原始 JSON 过长、结构冗余和训练困难。
 
-Remotion 把 React 组件变成当前帧的函数，HyperFrames 把 HTML、确定性 Seek、Headless Chrome Capture 与 FFmpeg 串成完整链路。它们共同证明了 Web 技术和绝对时间可以可靠地描述视频，也直接影响了我们的方案。区别不在“能不能做动画”，而在交付边界：它们擅长组织并渲染一支视频，我们需要的是已有视频工程中一段可复用、可编辑，并能直接进入 `ImageBitmap` 合成路径的 MG 资源。
+Remotion 把 React 组件变成当前帧的函数，HyperFrames 把 HTML、确定性 Seek、Headless Chrome Capture 与 FFmpeg 串成完整链路。它们共同证明了 Web 技术和绝对时间可以可靠地描述视频，也直接影响了我们的方案。我们没有继续使用它们，主要不是表达能力问题，而是服务端 Chromium 的资源成本，与一期以平面动画为主的需求不匹配。
 
 Rive 把矢量动画、数据绑定和交互状态机做成完整的设计与跨平台运行时，尤其适合 App、游戏和交互界面。它的状态机通常按每帧 `delta time` 前进，而非把 NLE 的任意绝对时间作为唯一状态输入；二进制资源与专用编辑器也对应另一种创作方式。
 
@@ -181,8 +181,8 @@ Motion Canvas 同样证明了 TypeScript、矢量场景和实时编辑器可以�
 | 方案 | 最擅长的边界 | 对当前视频 MG 的主要取舍 |
 |---|---|---|
 | Lottie | 标准化矢量交换与跨平台播放 | 声明式、生态成熟；通用模型直接生成和程序化逻辑需要额外表示工作 |
-| Remotion | React 驱动的程序化整支视频 | 时间模型接近；完整 Composition 边界大于一个需要直接进入既有 Bitmap 管线的 MG Clip |
-| HyperFrames | HTML 驱动、可逐帧 Capture 的视频 | 模型友好且确定性强；浏览器 DOM 到 Bitmap 缺少稳定的生产级桥梁 |
+| Remotion | React 驱动的程序化整支视频 | 当时的可靠输出需要服务端 Chromium；用于一期平面 MG 成本偏高 |
+| HyperFrames | HTML 驱动、可逐帧 Capture 的视频 | 模型友好且确定性强；Headless Chrome 与 FFmpeg 渲染链较重 |
 | Rive | 交互动画与状态机 | 设计工具和跨端运行时完整；不是面向文本源与 NLE 随机访问建立的边界 |
 | 预渲染视频 | 通用播放与交付 | 像素管线简单；参数编辑、矢量缩放、透明叠加和快速修改受限 |
 | 可执行 SVG MG | AI 可读写、浏览器内随机访问和同源输出 | 表达直接；必须治理确定性、性能与可信代码边界 |

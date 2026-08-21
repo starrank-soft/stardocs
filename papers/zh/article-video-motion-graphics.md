@@ -4,9 +4,7 @@
 
 在视频编辑器里说一句“做一个产品发布标题”：文字从画面中央弹出，光带扫过，数字从 0 走到 100，最后干净退场。几秒钟后，这段 Motion Graphics（下文简称 MG）出现在时间线上。创作者把播放头拖到 1.7 秒查看中间状态，把英文标题换成中文，裁掉最后半秒，再把同一个样式复用到另一个镜头。
 
-这一连串操作要求 AI 交付的不是一段已经封死的 MP4，也不是只能从头播放的网页动画。它需要保留文字、颜色和运动逻辑，能够在任意时刻准确停住，还要透明地叠在视频上，最终导出的每一帧与编辑器中的预览保持同一语义。
-
-我们没有绕开成熟方案。Remotion 和 HyperFrames 都实际试过，浏览器预览也能正常工作。问题出现在缩略图和最终导出：网页要变成视频帧，可靠方案仍然要在服务端运行 Chromium，逐帧 Capture，再交给 FFmpeg。为了视频中并不常见的粒子、WebGL 和 3D 效果，长期承担这套渲染服务的资源与复杂度，一期 ROI 并不成立。方案因此收敛为一条原则：**MG 是一个以时间为输入的 SVG 视觉程序。编辑器问它某一时刻长什么样，浏览器就直接给出那一帧。**
+这一连串操作要求 AI 交付的不是一段封死的 MP4，也不是只能从头播放的网页动画。它既要保留文字、颜色和运动逻辑，又要在任意时刻给出准确像素。我们的方案因此收敛为一条原则：**MG 是一个以时间为输入的视觉程序。编辑器问它某一时刻长什么样，它就直接给出那一帧。**
 
 ## 一、MG 不是另一段视频
 
@@ -24,25 +22,21 @@
 
 <!-- RESEARCH: Record source size, SVG node count, variable count, first-frame time and rendered-video size for the curated MG corpus. Do not present raw RGBA expansion as a codec compression benchmark. -->
 
-## 二、为什么没有继续使用 Remotion 和 HyperFrames
+## 二、动画能在浏览器里播放，为什么还不够
 
-![Remotion 与 HyperFrames 的像素输出需要服务端 Chromium，而一期主要是平面动画，方案最终收敛为浏览器内 SVG Component](../assets/motion-graphics/architecture-evolution.svg)
+![网页动画能够播放和 Scrub，但视频编辑器还需要缩略图与导出像素；服务端 Chromium 成本较高，而一期主要是平面动画，最终选择浏览器内 SVG](../assets/motion-graphics/architecture-evolution.svg)
 
-*预览不是问题。真正的问题是：拿到一帧，是否必须启动服务端 Chromium。*
+*能播放，不等于能低成本地拿到视频帧。*
 
-我们并不是一开始就想设计自己的 MG 格式。Remotion 已经证明 React 组件可以由当前帧驱动，HyperFrames 则把 HTML 与 GSAP 变成可逐帧寻址的视频。两套方案都成熟，模型也熟悉它们，所以我们一开始就在用和试。
+我们先后使用和测试过 Remotion、HyperFrames。浏览器预览和 Scrub 都能工作，问题出在缩略图与导出：网页里的 DOM 必须先变成 Bitmap。
 
-浏览器里的 Player 可以播放和 Scrub，但“页面上看见一帧”和“把这一帧交给视频合成器”是两件事。时间线缩略图需要 Bitmap，最终导出也需要连续的像素帧。在我们当时实际接入的 Remotion 链路里，可靠输出需要服务端 Chromium；HyperFrames 的正式实现同样由 Headless Chrome 逐帧 Capture，再交给 FFmpeg。一次简单的标题动画，最终也会变成一项远程渲染任务。
+当时可靠的办法，是在服务端运行 Chromium 逐帧 Capture，再交给 FFmpeg。服务端浏览器占用大量 CPU 和内存，还要处理并发、排队与重试；改一个字，也可能重新渲染。
 
-这条链路当然能工作，但不便宜。服务端要维护 Chromium 运行环境、字体和 FFmpeg，渲染任务要排队，浏览器实例会占用明显的 CPU 与内存；并发一上来，就需要专门的 Worker、限流、重试和缓存。创作者只是改一个字或换一种颜色，也可能触发一次新的远程输出。
+如果视频 MG 经常需要粒子、动态光照、WebGL 或 3D，这笔成本或许值得。实际需求主要是标题、字幕包装、产品标注、图表和简单转场，绝大部分是平面动画。为了低频能力承担整套 Chromium 渲染服务，一期 ROI 太低。
 
-如果视频里的 MG 经常需要复杂粒子、动态光照、WebGL 或 3D，这些成本也许值得。实际需求并不是这样。标题、Lower Third、字幕包装、产品标注、数据图表和简单转场占了主要部分，它们本质上都是平面动画。至少在一期，为少量高级特效保留任意 HTML 和完整 Chromium 渲染能力，换来的表达增量很小，承担的基础设施成本却很高。
+我们也试过 HTML-in-Canvas，但 `drawElementImage()` 依赖实验性 Chrome Flag，高频取帧时不稳定甚至会崩溃，不能作为产品主链路。
 
-我们也调研并测试过 HTML-in-Canvas，希望绕过服务器，把已经排版完成的 DOM 直接画入 Canvas。但 `drawElementImage()` 仍依赖实验性 Chrome Flag，在高频取帧、多实例和复杂页面下还会不稳定甚至崩溃，不能成为产品主链路。`html2canvas` 会用 JavaScript 重新解释 DOM 和 CSS，也承担不了逐帧视频输出。
-
-SVG 恰好覆盖了这批高频需求。它既可以作为活的 DOM 场景留在页面里，又是浏览器原生认识的图像格式。组件执行 `render(time)` 后，系统克隆当前 SVG、嵌入字体并序列化为 Blob，浏览器即可解码、画入 Canvas，再生成 `ImageBitmap`。预览、缩略图和导出都留在客户端，不需要启动服务端 Chromium。
-
-所以最终的选择不是“SVG 比 Remotion 或 HyperFrames 更强”，而是它对当前产品更划算：用 JavaScript 和 GSAP 保留可编程动画，用 SVG 承担主要的平面表达，再直接进入浏览器的 Bitmap 管线。少数粒子与 3D 场景以后可以单独扩展，没有必要让它们决定一期的主架构。
+最终方案用 JavaScript 和 GSAP 描述运动，用 SVG 承担画面。SVG 既能在页面中实时显示，又能由浏览器直接转成 Bitmap；预览、缩略图和导出都不再依赖服务端 Chromium。少数粒子与 3D 场景以后单独扩展。
 
 ## 三、把时间从动画内部拿出来
 

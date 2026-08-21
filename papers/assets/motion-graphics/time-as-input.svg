@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
+  <title id="t">时间作为 MG 的唯一输入</title><desc id="d">播放、Seek、Scrub 和导出以不同顺序提供时间，MG 对相同时间始终返回相同状态。</desc>
+  <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+  <rect width="1600" height="900" fill="#0b1020"/>
+  <text x="90" y="105" font-family="system-ui,sans-serif" font-size="46" font-weight="800" fill="#fff">动画不拥有时钟，时间线拥有</text>
+  <g font-family="system-ui,sans-serif">
+    <g transform="translate(90 180)"><text font-size="23" font-weight="700" fill="#a5b4fc">时间请求可以乱序到达</text>
+      <g transform="translate(0 55)" font-size="25" font-weight="800" text-anchor="middle">
+        <circle cx="70" cy="70" r="56" fill="#211b3d" stroke="#7c3aed"/><text x="70" y="79" fill="#ddd6fe">0.0s</text>
+        <circle cx="70" cy="210" r="56" fill="#102934" stroke="#06b6d4"/><text x="70" y="219" fill="#a5f3fc">4.0s</text>
+        <circle cx="70" cy="350" r="56" fill="#10271f" stroke="#10b981"/><text x="70" y="359" fill="#a7f3d0">1.0s</text>
+        <circle cx="70" cy="490" r="56" fill="#2d2110" stroke="#f59e0b"/><text x="70" y="499" fill="#fde68a">3.0s</text>
+      </g>
+    </g>
+    <g transform="translate(480 270)">
+      <rect width="560" height="350" rx="34" fill="#131b2d" stroke="url(#g)" stroke-width="4"/>
+      <text x="280" y="72" text-anchor="middle" font-size="25" fill="#94a3b8">SOURCE + PROPS + TIME</text>
+      <text x="280" y="160" text-anchor="middle" font-family="ui-monospace,monospace" font-size="42" font-weight="800" fill="#67e8f9">render(t)</text>
+      <path d="M90 220H470" stroke="#334155" stroke-width="2"/>
+      <text x="280" y="270" text-anchor="middle" font-size="24" fill="#e2e8f0">直接重建目标状态</text>
+      <text x="280" y="312" text-anchor="middle" font-size="20" fill="#94a3b8">不读取墙钟 · 不累计上一帧 · 不自播</text>
+    </g>
+    <path d="M235 525C355 525 365 445 470 445" fill="none" stroke="#10b981" stroke-width="6"/><path d="M235 385C360 385 365 425 470 425M235 245C360 245 365 405 470 405M235 665C360 665 365 465 470 465" fill="none" stroke="#64748b" stroke-width="4"/>
+    <g transform="translate(1150 180)"><text font-size="23" font-weight="700" fill="#a5b4fc">相同时间得到相同状态</text>
+      <rect y="60" width="350" height="180" rx="22" fill="#151e32"/><circle cx="175" cy="150" r="45" fill="#10b981"/><path d="M45 280H305" stroke="#334155" stroke-width="8"/><circle cx="175" cy="280" r="13" fill="#a7f3d0"/><text x="175" y="334" text-anchor="middle" font-size="23" font-weight="800" fill="#a7f3d0">t = 1.0s</text>
+      <rect y="390" width="350" height="180" rx="22" fill="#151e32"/><circle cx="175" cy="480" r="45" fill="#10b981"/><path d="M45 610H305" stroke="#334155" stroke-width="8"/><circle cx="175" cy="610" r="13" fill="#a7f3d0"/><text x="175" y="664" text-anchor="middle" font-size="23" font-weight="800" fill="#a7f3d0">再次 t = 1.0s</text>
+    </g>
+  </g>
+  <g transform="translate(385 760)" font-family="system-ui,sans-serif" font-size="21" font-weight="700"><text fill="#c4b5fd">播放 = 连续提问</text><text x="250" fill="#67e8f9">Scrub = 乱序提问</text><text x="520" fill="#a7f3d0">缩略图 = 稀疏提问</text><text x="805" fill="#fde68a">导出 = 按帧提问</text></g>
+</svg>

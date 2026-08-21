@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
+  <title id="t">MG 运行时与创作品味</title><desc id="d">运行时提供确定性与可编辑性，Skill、评审和真实成片反馈提升视觉节奏与品味。</desc>
+  <defs><linearGradient id="bridge" x1="0" x2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#10b981"/></linearGradient></defs>
+  <rect width="1600" height="900" fill="#0b1020"/>
+  <text x="90" y="105" font-family="system-ui,sans-serif" font-size="46" font-weight="800" fill="#fff">确定性让动画可靠，创作经验让动画值得看</text>
+  <g font-family="system-ui,sans-serif">
+    <g transform="translate(100 205)"><rect width="560" height="500" rx="34" fill="#17142b" stroke="#7c3aed" stroke-width="3"/><text x="45" y="70" font-size="31" font-weight="800" fill="#c4b5fd">运行时解决</text><g transform="translate(45 125)" font-size="23" fill="#e2e8f0"><text y="0">✓ 任意时刻准确求值</text><text y="58">✓ 预览与导出共享语义</text><text y="116">✓ 文字、颜色与数字可编辑</text><text y="174">✓ 一份源复用到多个 Clip</text><text y="232">✓ 版本、字体与资源可验证</text></g><rect x="45" y="395" width="470" height="62" rx="18" fill="#211b3d"/><text x="280" y="435" text-anchor="middle" font-size="23" font-weight="750" fill="#ddd6fe">回答：这一帧能否可靠抵达？</text></g>
+    <g transform="translate(940 205)"><rect width="560" height="500" rx="34" fill="#10271f" stroke="#10b981" stroke-width="3"/><text x="45" y="70" font-size="31" font-weight="800" fill="#a7f3d0">创作系统继续学习</text><g transform="translate(45 125)" font-size="23" fill="#e2e8f0"><text y="0">• 信息层级与文字排版</text><text y="58">• 入场、停留、退场的节奏</text><text y="116">• 缓动、克制与品牌气质</text><text y="174">• 真实视频上的可读性</text><text y="232">• 成片反馈与人工返工</text></g><rect x="45" y="395" width="470" height="62" rx="18" fill="#123127"/><text x="280" y="435" text-anchor="middle" font-size="23" font-weight="750" fill="#a7f3d0">回答：这一帧是否值得出现？</text></g>
+    <path d="M680 455H920" stroke="url(#bridge)" stroke-width="12" stroke-linecap="round"/><path d="M892 430L928 455 892 480" fill="none" stroke="#10b981" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(700 300)"><rect width="200" height="105" rx="25" fill="#111827" stroke="#475569"/><text x="100" y="44" text-anchor="middle" font-size="22" font-weight="800" fill="#fff">Skill</text><text x="100" y="76" text-anchor="middle" font-size="17" fill="#94a3b8">经验结构化</text></g>
+    <g transform="translate(700 520)"><rect width="200" height="105" rx="25" fill="#111827" stroke="#475569"/><text x="100" y="44" text-anchor="middle" font-size="22" font-weight="800" fill="#fff">Evaluation</text><text x="100" y="76" text-anchor="middle" font-size="17" fill="#94a3b8">真实结果验证</text></g>
+  </g>
+  <text x="315" y="810" font-family="system-ui,sans-serif" font-size="25" font-weight="700" fill="#94a3b8">格式约束运动的物理规律，Skill 与反馈塑造运动的判断。</text>
+</svg>

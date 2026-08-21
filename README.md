@@ -14,6 +14,7 @@ Git so every meaningful revision has an explicit commit and a reviewable diff.
 - [REST-Edit protocol](./papers/zh/02-rest-edit.md)
 - [Edit-as-Code paper draft](./papers/zh/03-edit-as-code.md)
 - [Single-clock Motion Graphics](./papers/zh/04-single-clock-motion-graphics.md)
+- [Video Motion Graphics](./papers/zh/article-video-motion-graphics.md)
 - [Durable Two-Loop Agent](./papers/zh/05-durable-two-loop-agent.md)
 - [Video Agent Loop](./papers/zh/article-agent-loop.md)
 

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="t d">
+  <title id="t">视频像素与 MG 视觉程序</title><desc id="d">视频保存展开后的画面，MG 保存可以接受时间和参数的视觉逻辑。</desc>
+  <defs><linearGradient id="g" x1="0" x2="1"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+  <rect width="1600" height="900" fill="#f8fafc"/>
+  <text x="90" y="105" font-family="system-ui,sans-serif" font-size="46" font-weight="800" fill="#111827">同样是五秒动画，保存的不是同一种东西</text>
+  <g transform="translate(90 170)">
+    <rect width="670" height="610" rx="28" fill="#fff" stroke="#d7dee8" stroke-width="2"/>
+    <text x="42" y="65" font-family="system-ui,sans-serif" font-size="34" font-weight="750" fill="#111827">像素视频</text>
+    <text x="42" y="104" font-family="system-ui,sans-serif" font-size="21" fill="#64748b">保存已经展开并压缩的画面序列</text>
+    <g transform="translate(42 155)">
+      <rect width="170" height="110" rx="13" fill="#172033"/><circle cx="85" cy="55" r="25" fill="#8b5cf6"/>
+      <rect x="190" width="170" height="110" rx="13" fill="#172033"/><circle cx="280" cy="55" r="31" fill="#7c3aed"/>
+      <rect x="380" width="170" height="110" rx="13" fill="#172033"/><circle cx="475" cy="55" r="38" fill="#06b6d4"/>
+      <path d="M0 150H550" stroke="#cbd5e1" stroke-width="8" stroke-linecap="round"/><circle cx="400" cy="150" r="13" fill="#334155"/>
+    </g>
+    <g transform="translate(42 375)" font-family="system-ui,sans-serif">
+      <text font-size="26" font-weight="700" fill="#334155">展开后</text><text x="155" font-size="26" font-weight="800" fill="#7c3aed">150 帧</text>
+      <text y="50" font-size="22" fill="#64748b">文字、颜色与几何已经成为画面</text>
+      <text y="115" font-size="22" fill="#64748b">修改内容 → 回到源工程重新渲染</text>
+      <text y="167" font-size="22" fill="#64748b">缩放清晰度 → 受输出分辨率限制</text>
+    </g>
+  </g>
+  <g transform="translate(840 170)">
+    <rect width="670" height="610" rx="28" fill="#111827"/>
+    <text x="42" y="65" font-family="system-ui,sans-serif" font-size="34" font-weight="750" fill="#fff">MG 视觉程序</text>
+    <text x="42" y="104" font-family="system-ui,sans-serif" font-size="21" fill="#94a3b8">保存图形、语义参数与运动关系</text>
+    <g transform="translate(42 148)">
+      <rect width="260" height="190" rx="18" fill="#1e293b" stroke="#7c3aed"/>
+      <text x="25" y="45" font-family="ui-monospace,monospace" font-size="20" fill="#c4b5fd">title: string</text>
+      <text x="25" y="82" font-family="ui-monospace,monospace" font-size="20" fill="#67e8f9">accent: color</text>
+      <text x="25" y="119" font-family="ui-monospace,monospace" font-size="20" fill="#a7f3d0">value: number</text>
+      <text x="25" y="162" font-family="ui-monospace,monospace" font-size="20" fill="#f8fafc">render(time)</text>
+      <path d="M292 95H390" stroke="url(#g)" stroke-width="7"/><path d="M375 78L400 95 375 112" fill="none" stroke="#22d3ee" stroke-width="7"/>
+      <rect x="420" y="14" width="165" height="162" rx="18" fill="#172033"/>
+      <circle cx="503" cy="95" r="44" fill="none" stroke="#22d3ee" stroke-width="7"/><text x="503" y="103" text-anchor="middle" font-family="system-ui,sans-serif" font-size="20" font-weight="800" fill="#fff">t = ?</text>
+    </g>
+    <g transform="translate(42 400)" font-family="system-ui,sans-serif">
+      <text font-size="26" font-weight="700" fill="#e2e8f0">当前样本平均</text><text x="200" font-size="26" font-weight="800" fill="#67e8f9">3.6 KB</text>
+      <text y="50" font-size="22" fill="#94a3b8">文字、颜色与数字仍是可编辑语义</text>
+      <text y="115" font-size="22" fill="#94a3b8">修改内容 → 重新求值，无需生成视频</text>
+      <text y="167" font-size="22" fill="#94a3b8">SVG 几何 → 分辨率无关</text>
+    </g>
+  </g>
+</svg>

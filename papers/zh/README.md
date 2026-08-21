@@ -11,7 +11,7 @@
 | 01 | [班车式解码：统一时序需求与 GOP Flight 调度](./01-gop-shuttle.md) | [Video GOP Decode Flight：像调度高铁一样实现丝滑剪辑](./article-video-gop-decode-flight.md) | 多媒体系统与调度优化 |
 | 02 | [REST-Edit：面向 AI 的轻量级、流式、语义化精确编辑协议](./02-rest-edit.md) | 让 AI 像改代码一样精确剪视频 | 协议与 Agent 接口优化 |
 | 03 | [Edit-as-Code：让 AI 像 Coding Agent 一样完成视频剪辑](./03-edit-as-code.md) | [Edit Video as Code：将视频工程映射为 Coding Agent 可读写的虚拟文件视图](./article-edit-video-as-code.md)（面向技术同学） | Agent-Computer Interface 与创作系统 |
-| 04 | [单时钟可寻址 Motion Graphics](./04-single-clock-motion-graphics.md) | 让同一份 MG 同时服务实时预览、缩略图和最终导出 | 浏览器图形运行时 |
+| 04 | [单时钟可寻址 Motion Graphics](./04-single-clock-motion-graphics.md) | [Video Motion Graphics：把动画变成时间的函数](./article-video-motion-graphics.md) | 浏览器图形运行时 |
 | 05 | [双环 Agent：Inbox、WaitPort、Monitor 与 MCP Canvas](./05-durable-two-loop-agent.md) | [Video Agent Loop：StarCut 的硬核实践，DeepSeek Harness 能否满足视频场景？](./article-agent-loop.md) | Agent 运行时与系统设计 |
 
 ## 为什么是五份母稿

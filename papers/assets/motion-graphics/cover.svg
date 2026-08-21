@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Video Motion Graphics：把动画变成时间的函数</title>
+  <desc id="desc">时间线从任意时刻驱动一段可编辑 SVG 动画，预览、Scrub 与导出共享同一份视觉程序。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#090d1a"/><stop offset="0.55" stop-color="#17112d"/><stop offset="1" stop-color="#071a26"/></linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#8b5cf6"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="16" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <g opacity=".16" stroke="#a78bfa"><path d="M0 180H1600M0 360H1600M0 540H1600M0 720H1600"/><path d="M200 0V900M400 0V900M600 0V900M800 0V900M1000 0V900M1200 0V900M1400 0V900"/></g>
+  <text x="110" y="132" fill="#a5b4fc" font-family="system-ui,sans-serif" font-size="28" font-weight="700" letter-spacing="5">VIDEO MOTION GRAPHICS</text>
+  <text x="110" y="235" fill="#fff" font-family="system-ui,sans-serif" font-size="72" font-weight="800">把动画变成时间的函数</text>
+  <text x="112" y="292" fill="#aab3c5" font-family="system-ui,sans-serif" font-size="28">同一份可编辑视觉程序，服务预览、Scrub、缩略图与逐帧导出</text>
+  <g transform="translate(120 368)">
+    <rect width="380" height="260" rx="26" fill="#111827" stroke="#6d5bd0" stroke-width="2"/>
+    <text x="32" y="48" fill="#c4b5fd" font-family="ui-monospace,monospace" font-size="22">motion-title.mg</text>
+    <text x="32" y="98" fill="#94a3b8" font-family="ui-monospace,monospace" font-size="18">metadata · props · SVG</text>
+    <rect x="32" y="130" width="316" height="94" rx="16" fill="#171f31"/>
+    <text x="55" y="168" fill="#67e8f9" font-family="ui-monospace,monospace" font-size="22">render(time)</text>
+    <text x="55" y="202" fill="#f8fafc" font-family="ui-monospace,monospace" font-size="18">→ exact visual state</text>
+  </g>
+  <path d="M535 498H650" stroke="url(#beam)" stroke-width="8" stroke-linecap="round" filter="url(#glow)"/>
+  <path d="M632 478L662 498 632 518" fill="none" stroke="#67e8f9" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <g transform="translate(690 350)">
+    <rect width="760" height="330" rx="30" fill="#0d1525" stroke="#334155" stroke-width="2"/>
+    <rect x="34" y="32" width="692" height="220" rx="22" fill="#151c30"/>
+    <g transform="translate(380 142)">
+      <circle r="76" fill="none" stroke="#22d3ee" stroke-width="8" opacity=".85"/>
+      <circle r="44" fill="#7c3aed" opacity=".75"/>
+      <path d="M-160 0H160M0-92V92" stroke="#fff" stroke-width="3" opacity=".75"/>
+      <text x="0" y="10" text-anchor="middle" fill="#fff" font-family="system-ui,sans-serif" font-size="28" font-weight="800">1.70s</text>
+    </g>
+    <rect x="34" y="278" width="692" height="12" rx="6" fill="#293449"/>
+    <rect x="34" y="278" width="356" height="12" rx="6" fill="url(#beam)"/>
+    <path d="M390 260V310" stroke="#fff" stroke-width="5"/>
+    <circle cx="390" cy="284" r="10" fill="#fff"/>
+  </g>
+  <g transform="translate(280 755)" font-family="system-ui,sans-serif" font-size="22" font-weight="700">
+    <rect width="190" height="58" rx="29" fill="#211b3d" stroke="#7c3aed"/><text x="95" y="37" text-anchor="middle" fill="#ddd6fe">Live SVG</text>
+    <rect x="240" width="190" height="58" rx="29" fill="#102934" stroke="#06b6d4"/><text x="335" y="37" text-anchor="middle" fill="#a5f3fc">Random Seek</text>
+    <rect x="480" width="190" height="58" rx="29" fill="#10271f" stroke="#10b981"/><text x="575" y="37" text-anchor="middle" fill="#a7f3d0">Editable Props</text>
+    <rect x="720" width="190" height="58" rx="29" fill="#2d2110" stroke="#f59e0b"/><text x="815" y="37" text-anchor="middle" fill="#fde68a">Frame Export</text>
+  </g>
+</svg>

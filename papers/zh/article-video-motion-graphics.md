@@ -60,7 +60,7 @@ Frame = Render(Source, Props, Time)
 
 <!-- RESEARCH: Build a random-order determinism suite. For each MG, compare canonical SVG state and rasterized output across forward, reverse, shuffled, repeated and large-jump time queries. -->
 
-## 四、为什么是 JavaScript Component + SVG
+时间契约确定后，还需要一种浏览器和 AI 都能直接使用的源格式。
 
 ![一份 MG 源文件由静态元数据、可替换变量、SVG 场景和确定性时间函数组成](../assets/motion-graphics/mg-source-contract.svg)
 
@@ -98,7 +98,7 @@ SVG 则提供了适合 MG 的画面边界：文字、路径、渐变、遮罩、
 
 表达力越大，运行边界越需要明确。当前格式静态拒绝模块导入，创作契约也把网络、宿主文档、视频、Canvas、WebGL、`foreignObject` 和外部媒体排除在外；宿主只注入一份统一动画运行时。这里的 Shadow DOM 是组件封装，不是安全沙箱，网络与全局访问也不能只靠语法检查彻底封住。当前 `.mg` 属于可信项目代码，公开接收第三方可执行模块需要另一套隔离与配额设计。
 
-## 五、预览保持为矢量，需要像素时再栅格化
+同一个时间函数，还要同时服务实时预览与像素输出。
 
 ![同一 MG Component 在实时预览中保持为活的 SVG，需要缩略图和导出时才按准确时间转成 ImageBitmap](../assets/motion-graphics/live-svg-pixel-path.svg)
 
@@ -136,7 +136,7 @@ render(time)
 
 <!-- RESEARCH: Establish preview-vs-export image-difference thresholds under a fixed browser, font set, DPR and color space. Report semantic equality separately from pixel equality. -->
 
-## 六、一份源，可以有很多时间线实例
+## 四、一份源，如何进入创作过程
 
 ![稳定的 MG 资源保存源与变量模式，不同时间线 Clip 只保存各自参数和外部呈现](../assets/motion-graphics/artifact-and-instances.svg)
 
@@ -154,34 +154,7 @@ AI 生成 MG 时，模型输出的是源代码。系统先静态检查模块、�
 
 <!-- RESEARCH: Record model generation validity, automatic repair rate, manual edit distance, variable-schema quality and time-to-first-usable-MG across representative prompts. -->
 
-## 七、Lottie、Remotion、HyperFrames 都提供了重要参照
-
-![Lottie、Remotion、HyperFrames、Rive 与可执行 SVG MG 分别从交换格式、程序化视频、HTML 视频、交互状态机和编辑器内可寻址组件切入](../assets/motion-graphics/related-approaches.svg)
-
-*这里不是选出一个普遍赢家，而是确认哪一种边界适合视频编辑器中的可编辑 MG。*
-
-Lottie 是成熟的 JSON 矢量动画格式，跨平台播放器和 After Effects 工作流是它最强的价值。它非常适合设计师制作、导出并交付一个可移植动画。2026 年的 OmniLottie 与 LottieGPT 已经进一步证明，模型可以原生生成高质量、可编辑的 Lottie；它们通过专用 Tokenizer 解决原始 JSON 过长、结构冗余和训练困难。
-
-Remotion 把 React 组件变成当前帧的函数，HyperFrames 把 HTML、确定性 Seek、Headless Chrome Capture 与 FFmpeg 串成完整链路。它们共同证明了 Web 技术和绝对时间可以可靠地描述视频，也直接影响了我们的方案。我们没有继续使用它们，主要不是表达能力问题，而是服务端 Chromium 的资源成本，与一期以平面动画为主的需求不匹配。
-
-Rive 把矢量动画、数据绑定和交互状态机做成完整的设计与跨平台运行时，尤其适合 App、游戏和交互界面。它的状态机通常按每帧 `delta time` 前进，而非把 NLE 的任意绝对时间作为唯一状态输入；二进制资源与专用编辑器也对应另一种创作方式。
-
-Motion Canvas 同样证明了 TypeScript、矢量场景和实时编辑器可以支撑程序化动画，擅长讲解视频与旁白同步。它以 Generator 描述动画流，而我们需要把一个小型、可复用的视觉组件嵌入更大的非线性时间线，并经受乱序 Scrub 和逐帧抽取。
-
-| 方案 | 最擅长的边界 | 对当前视频 MG 的主要取舍 |
-|---|---|---|
-| Lottie | 标准化矢量交换与跨平台播放 | 声明式、生态成熟；通用模型直接生成和程序化逻辑需要额外表示工作 |
-| Remotion | React 驱动的程序化整支视频 | 当时的可靠输出需要服务端 Chromium；用于一期平面 MG 成本偏高 |
-| HyperFrames | HTML 驱动、可逐帧 Capture 的视频 | 模型友好且确定性强；Headless Chrome 与 FFmpeg 渲染链较重 |
-| Rive | 交互动画与状态机 | 设计工具和跨端运行时完整；不是面向文本源与 NLE 随机访问建立的边界 |
-| 预渲染视频 | 通用播放与交付 | 像素管线简单；参数编辑、矢量缩放、透明叠加和快速修改受限 |
-| 可执行 SVG MG | AI 可读写、浏览器内随机访问和同源输出 | 表达直接；必须治理确定性、性能与可信代码边界 |
-
-近期研究也在从不同方向接近相同问题。MG-Gen 将图片拆为 HTML 图层并生成动画脚本；Decomate 先把 SVG 重组为语义部件，再通过自然语言协同制作动画；Vector Prism 指出，VLM 要可靠动画化 SVG，必须先恢复视觉对象的语义层级。它们提醒我们：让图形“动起来”只是第一步，源表示中的语义结构决定了后续是否真的可编辑、可控制。
-
-<!-- RESEARCH: Build matched visual cases for Lottie Web, Remotion, HyperFrames and .mg. Compare only shared capabilities, and report authoring/generation representation separately from runtime performance. -->
-
-## 八、格式解决确定性，品味仍然来自创作经验
+工程接住源文件，不等于动画自然就会好看。
 
 ![MG 运行时保证可寻址与可编辑，创作 Skill、视觉评审与真实成片反馈决定动画是否好看](../assets/motion-graphics/runtime-and-taste.svg)
 
@@ -212,10 +185,5 @@ MG 因此不再是编辑器外部制作、渲染完成后导入的一段素材�
 3. Lottie Animation Community, [Lottie Animation Format](https://lottie.github.io/lottie-spec/dev/specs/format/).
 4. Remotion, [The fundamentals](https://www.remotion.dev/docs/the-fundamentals) and [`useCurrentFrame()`](https://www.remotion.dev/docs/use-current-frame).
 5. HyperFrames, [Introduction](https://hyperframes.heygen.com/introduction) and [HTML-in-Canvas](https://hyperframes.heygen.com/guides/html-in-canvas).
-6. Rive, [State Machine Playback](https://rive.app/docs/runtimes/state-machines).
-7. Motion Canvas, [Introduction](https://motioncanvas.io/docs/) and [Animation flow](https://motioncanvas.io/docs/flow/).
-8. Y. Yang et al., [OmniLottie: Generating Vector Animations via Parameterized Lottie Tokens](https://arxiv.org/abs/2603.02138), CVPR 2026.
-9. J. Chen et al., [LottieGPT: Tokenizing Vector Animation for Autoregressive Generation](https://arxiv.org/abs/2604.11792), CVPR 2026.
-10. T. Shirakawa et al., [MG-Gen: Single Image to Motion Graphics Generation](https://openaccess.thecvf.com/content/ICCV2025W/GDUG/html/Shirakawa_MG-Gen_Single_Image_to_Motion_Graphics_Generation_ICCVW_2025_paper.html), ICCV Workshops 2025.
-11. J. Park et al., [Decomate: Leveraging Generative Models for Co-Creative SVG Animation](https://arxiv.org/abs/2511.06297), 2025.
-12. J. Yun and J. Choo, [Vector Prism: Animating Vector Graphics by Stratifying Semantic Structure](https://openaccess.thecvf.com/content/CVPR2026/html/Yun_Vector_Prism_Animating_Vector_Graphics_by_Stratifying_Semantic_Structure_CVPR_2026_paper.html), CVPR 2026.
+6. Y. Yang et al., [OmniLottie: Generating Vector Animations via Parameterized Lottie Tokens](https://arxiv.org/abs/2603.02138), CVPR 2026.
+7. J. Chen et al., [LottieGPT: Tokenizing Vector Animation for Autoregressive Generation](https://arxiv.org/abs/2604.11792), CVPR 2026.

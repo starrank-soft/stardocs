@@ -6,7 +6,7 @@
 
 这一连串操作要求 AI 交付的不是一段已经封死的 MP4，也不是只能从头播放的网页动画。它需要保留文字、颜色和运动逻辑，能够在任意时刻准确停住，还要透明地叠在视频上，最终导出的每一帧与编辑器中的预览保持同一语义。
 
-我们最初从 HTML、CSS 和 JavaScript 出发，也尝试过 iframe、页面截图、服务端 Chromium 与派生视频。它们分别解决了动画表达、样式隔离或视频输出，却让同一段 MG 在预览、抽帧和导出时进入了不同运行时。这段路线最后收敛为一条原则：**MG 是一个以时间为输入的视觉程序。编辑器问它某一时刻长什么样，它就直接给出那一帧。**
+我们没有绕开成熟方案。Remotion、HyperFrames、iframe、HTML-in-Canvas、服务端 Chromium 与派生视频，我们都沿着实际产品链路试过。它们分别解决了程序化动画、样式隔离或视频输出，却始终有一个问题没有自然消失：浏览器里的动画，怎样在任意时刻直接交给视频合成器一张 Bitmap？这段路线最后收敛为一条原则：**MG 是一个以时间为输入的视觉程序。编辑器问它某一时刻长什么样，它就直接给出那一帧。**
 
 ## 一、MG 不是另一段视频
 
@@ -24,21 +24,25 @@
 
 <!-- RESEARCH: Record source size, SVG node count, variable count, first-frame time and rendered-video size for the curated MG corpus. Do not present raw RGBA expansion as a codec compression benchmark. -->
 
-## 二、从网页动画到一份可控的 MG
+## 二、为什么没有停在 Remotion 和 HyperFrames
 
-![MG 方案从 HTML 页面、iframe 与派生视频，逐步收敛为单一 SVG Component 运行时](../assets/motion-graphics/architecture-evolution.svg)
+![MG 方案从 Remotion 与 HyperFrames、HTML-in-Canvas 和服务端渲染，逐步收敛为单一 SVG Component 运行时](../assets/motion-graphics/architecture-evolution.svg)
 
-*表达能力一直都在，真正需要收敛的是时钟、运行时和像素路径。*
+*成熟的动画框架解决了怎样让网页按帧运动，我们还需要解决怎样让这一帧进入编辑器的像素管线。*
 
-最自然的第一版是 HTML。模型熟悉 HTML、CSS 和 JavaScript，浏览器也擅长排版、渐变、滤镜与动画；把一份动画页面放进 iframe，还能隔离它的样式和 DOM。实时播放很快就能跑起来。
+我们并不是一开始就想设计自己的 MG 格式。Remotion 已经证明 React 组件可以由当前帧驱动，并提供浏览器 Player、Scrub 和完整的渲染体系；HyperFrames 则更直接地把 HTML 变成可逐帧寻址的视频。两者都比从零搭一套网页动画基础设施成熟，所以我们的第一选择也是沿着它们走。
 
-问题出现在视频编辑的其他动作里。网页动画通常拥有自己的 `requestAnimationFrame` 和墙上时间，用户把播放头从 4 秒拖回 1 秒时，页面并不天然知道怎样回到准确状态。时间线缩略图需要一张静态画面，导出需要连续、精确的像素帧；iframe 中看得见的 DOM 又不能稳定地直接画进 Canvas。于是系统开始增加截图、隐藏页面、浏览器能力检测，以及服务端 Chromium 与 FFmpeg。
+Remotion 很适合以 React 工程构建一支完整视频。我们当时试用的生产链路里，浏览器承担 Player 与预览，可靠成片仍然要进入 Chromium 服务端渲染；今天 Remotion 已经补充了浏览器渲染能力，但没有改变我们面对的集成边界。我们需要嵌入的不是另一支由 React 接管的视频，而是现有时间线中的一个 Clip：它要服从编辑器的时钟，与 WebCodecs 视频共同分层，还要在缩略图和导出请求到来时直接返回 `ImageBitmap`。Player 能在页面里显示某一帧，不等于这个 DOM 画面已经成为现有 Canvas 合成器可以消费的像素对象；引入完整的 React Composition，也会在已有工程模型旁边再建立一套组件、资源与渲染边界。
 
-预渲染视频曾经看起来最省事：先把 MG 编译成 MP4，编辑器只按普通视频处理。但透明叠加需要合适的 Alpha 编码与解码链路，文字或颜色的修改还要重新渲染；更重要的是，实时预览看到的是网页，最终合成使用的却是派生视频。字体、时钟、资源加载或运行时版本的任何差异，都可能让两边逐渐偏离。
+HyperFrames 与我们的目标更接近，我们也实际用过。它让普通 HTML 与 GSAP 按确定时间 Seek，浏览器预览自然，模型也很容易生成。真正卡住我们的不是动画能不能播放，而是像素怎样出来：HyperFrames 的可靠成片路径由 Headless Chrome 逐帧 Capture，再交给 FFmpeg；在我们的旧方案中，缩略图与最终视频也因此进入服务端 Task Worker。浏览器负责实时 HTML，服务端负责 PNG 或 MP4，同一段 MG 再次出现两条运行路径。
 
-这段探索最后暴露出的不是某个 API 缺失，而是系统被拆成了几套真相：网页负责预览，截图负责封面，服务端页面负责逐帧输出，视频文件负责最终合成。每一条路径都能工作，合在一起却很难回答“1.7 秒究竟应该是哪一帧”。
+HTML-in-Canvas 看起来像缺失的那座桥：如果浏览器能把已经排版完成的 DOM 直接画入 Canvas，HyperFrames 页面就能继续留在浏览器里。我们专门调研并测试过 `drawElementImage()`。问题是它仍依赖实验性 Chrome Flag，不能作为面向用户的浏览器基线；在高频取帧、多实例和复杂页面下，我们还遇到过不稳定与崩溃。`html2canvas` 也不是等价替代，它会用 JavaScript 重新解释 DOM 和 CSS，既损失浏览器原生渲染能力，也难以承担逐帧视频管线。
 
-最终方案保留 Web 最有价值的部分——可编程、矢量、模型熟悉——同时缩小表达边界：每个 MG 是一个自包含的 JavaScript Component，内部只维护一个 SVG 场景；宿主提供动画能力、参数与准确时间，组件不再拥有自己的播放世界。
+于是我们也走过服务端 Chromium 与预渲染视频：先把 MG 编译成 PNG 或 MP4，编辑器再按普通媒体处理。它能产出像素，却把一次改字、换色变成远程渲染任务；透明叠加需要额外的 Alpha 编码与解码链路，实时预览看到的是网页，最终合成使用的却是派生视频。字体、时钟、资源加载或运行时版本的任何差异，都可能让两边逐渐偏离。
+
+SVG 改变了这条链路。它既可以作为活的 DOM 场景留在页面里，又是浏览器原生认识的图像格式。组件执行 `render(time)` 后，系统克隆当前 SVG、嵌入字体并序列化为 Blob，浏览器即可解码、画入 Canvas，再生成 `ImageBitmap`。整个过程留在客户端，不需要截取一张网页，也不需要启动另一台 Chromium。动画状态和像素结果第一次来自同一个对象。
+
+这才是方案收敛的决定性原因。我们保留 Web 最有价值的部分——可编程、矢量、模型熟悉——同时把画面边界收窄为一个 SVG：每个 MG 是一个自包含的 JavaScript Component，宿主提供动画能力、参数与准确时间，组件既不拥有自己的播放世界，也不需要第二套像素运行时。
 
 ## 三、把时间从动画内部拿出来
 
@@ -160,15 +164,15 @@ AI 生成 MG 时，模型输出的是源代码。系统先静态检查模块、�
 
 <!-- RESEARCH: Record model generation validity, automatic repair rate, manual edit distance, variable-schema quality and time-to-first-usable-MG across representative prompts. -->
 
-## 七、Lottie、Remotion、Rive 都提供了重要参照
+## 七、Lottie、Remotion、HyperFrames 都提供了重要参照
 
-![Lottie、Remotion、Rive 与可执行 SVG MG 分别从交换格式、程序化视频、交互状态机和编辑器内可寻址组件切入](../assets/motion-graphics/related-approaches.svg)
+![Lottie、Remotion、HyperFrames、Rive 与可执行 SVG MG 分别从交换格式、程序化视频、HTML 视频、交互状态机和编辑器内可寻址组件切入](../assets/motion-graphics/related-approaches.svg)
 
 *这里不是选出一个普遍赢家，而是确认哪一种边界适合视频编辑器中的可编辑 MG。*
 
 Lottie 是成熟的 JSON 矢量动画格式，跨平台播放器和 After Effects 工作流是它最强的价值。它非常适合设计师制作、导出并交付一个可移植动画。2026 年的 OmniLottie 与 LottieGPT 已经进一步证明，模型可以原生生成高质量、可编辑的 Lottie；它们通过专用 Tokenizer 解决原始 JSON 过长、结构冗余和训练困难。
 
-Remotion 与我们的核心时间观最接近。它明确把视频理解为随当前帧变化的 React 组件，`useCurrentFrame()` 为组合提供时间输入，并拥有完整的浏览器与服务端渲染体系。它非常适合用代码构建整支视频。我们面对的边界更窄：把一段 MG 作为普通 Clip 嵌入已有编辑器，让它与 WebCodecs 视频、时间线实例参数和浏览器实时表面共同工作，而不要求每个资源成为一项 React 工程或服务端渲染任务。
+Remotion 把 React 组件变成当前帧的函数，HyperFrames 把 HTML、确定性 Seek、Headless Chrome Capture 与 FFmpeg 串成完整链路。它们共同证明了 Web 技术和绝对时间可以可靠地描述视频，也直接影响了我们的方案。区别不在“能不能做动画”，而在交付边界：它们擅长组织并渲染一支视频，我们需要的是已有视频工程中一段可复用、可编辑，并能直接进入 `ImageBitmap` 合成路径的 MG 资源。
 
 Rive 把矢量动画、数据绑定和交互状态机做成完整的设计与跨平台运行时，尤其适合 App、游戏和交互界面。它的状态机通常按每帧 `delta time` 前进，而非把 NLE 的任意绝对时间作为唯一状态输入；二进制资源与专用编辑器也对应另一种创作方式。
 
@@ -177,14 +181,15 @@ Motion Canvas 同样证明了 TypeScript、矢量场景和实时编辑器可以�
 | 方案 | 最擅长的边界 | 对当前视频 MG 的主要取舍 |
 |---|---|---|
 | Lottie | 标准化矢量交换与跨平台播放 | 声明式、生态成熟；通用模型直接生成和程序化逻辑需要额外表示工作 |
-| Remotion | React 驱动的程序化整支视频 | 时间模型接近；工程、依赖与渲染边界大于一个嵌入式 MG Clip |
+| Remotion | React 驱动的程序化整支视频 | 时间模型接近；完整 Composition 边界大于一个需要直接进入既有 Bitmap 管线的 MG Clip |
+| HyperFrames | HTML 驱动、可逐帧 Capture 的视频 | 模型友好且确定性强；浏览器 DOM 到 Bitmap 缺少稳定的生产级桥梁 |
 | Rive | 交互动画与状态机 | 设计工具和跨端运行时完整；不是面向文本源与 NLE 随机访问建立的边界 |
 | 预渲染视频 | 通用播放与交付 | 像素管线简单；参数编辑、矢量缩放、透明叠加和快速修改受限 |
 | 可执行 SVG MG | AI 可读写、浏览器内随机访问和同源输出 | 表达直接；必须治理确定性、性能与可信代码边界 |
 
 近期研究也在从不同方向接近相同问题。MG-Gen 将图片拆为 HTML 图层并生成动画脚本；Decomate 先把 SVG 重组为语义部件，再通过自然语言协同制作动画；Vector Prism 指出，VLM 要可靠动画化 SVG，必须先恢复视觉对象的语义层级。它们提醒我们：让图形“动起来”只是第一步，源表示中的语义结构决定了后续是否真的可编辑、可控制。
 
-<!-- RESEARCH: Build matched visual cases for Lottie Web, Remotion and .mg. Compare only shared capabilities, and report authoring/generation representation separately from runtime performance. -->
+<!-- RESEARCH: Build matched visual cases for Lottie Web, Remotion, HyperFrames and .mg. Compare only shared capabilities, and report authoring/generation representation separately from runtime performance. -->
 
 ## 八、格式解决确定性，品味仍然来自创作经验
 
@@ -216,10 +221,11 @@ MG 因此不再是编辑器外部制作、渲染完成后导入的一段素材�
 2. W3C, [Scalable Vector Graphics (SVG) 2](https://www.w3.org/TR/SVG2/).
 3. Lottie Animation Community, [Lottie Animation Format](https://lottie.github.io/lottie-spec/dev/specs/format/).
 4. Remotion, [The fundamentals](https://www.remotion.dev/docs/the-fundamentals) and [`useCurrentFrame()`](https://www.remotion.dev/docs/use-current-frame).
-5. Rive, [State Machine Playback](https://rive.app/docs/runtimes/state-machines).
-6. Motion Canvas, [Introduction](https://motioncanvas.io/docs/) and [Animation flow](https://motioncanvas.io/docs/flow/).
-7. Y. Yang et al., [OmniLottie: Generating Vector Animations via Parameterized Lottie Tokens](https://arxiv.org/abs/2603.02138), CVPR 2026.
-8. J. Chen et al., [LottieGPT: Tokenizing Vector Animation for Autoregressive Generation](https://arxiv.org/abs/2604.11792), CVPR 2026.
-9. T. Shirakawa et al., [MG-Gen: Single Image to Motion Graphics Generation](https://openaccess.thecvf.com/content/ICCV2025W/GDUG/html/Shirakawa_MG-Gen_Single_Image_to_Motion_Graphics_Generation_ICCVW_2025_paper.html), ICCV Workshops 2025.
-10. J. Park et al., [Decomate: Leveraging Generative Models for Co-Creative SVG Animation](https://arxiv.org/abs/2511.06297), 2025.
-11. J. Yun and J. Choo, [Vector Prism: Animating Vector Graphics by Stratifying Semantic Structure](https://openaccess.thecvf.com/content/CVPR2026/html/Yun_Vector_Prism_Animating_Vector_Graphics_by_Stratifying_Semantic_Structure_CVPR_2026_paper.html), CVPR 2026.
+5. HyperFrames, [Introduction](https://hyperframes.heygen.com/introduction) and [HTML-in-Canvas](https://hyperframes.heygen.com/guides/html-in-canvas).
+6. Rive, [State Machine Playback](https://rive.app/docs/runtimes/state-machines).
+7. Motion Canvas, [Introduction](https://motioncanvas.io/docs/) and [Animation flow](https://motioncanvas.io/docs/flow/).
+8. Y. Yang et al., [OmniLottie: Generating Vector Animations via Parameterized Lottie Tokens](https://arxiv.org/abs/2603.02138), CVPR 2026.
+9. J. Chen et al., [LottieGPT: Tokenizing Vector Animation for Autoregressive Generation](https://arxiv.org/abs/2604.11792), CVPR 2026.
+10. T. Shirakawa et al., [MG-Gen: Single Image to Motion Graphics Generation](https://openaccess.thecvf.com/content/ICCV2025W/GDUG/html/Shirakawa_MG-Gen_Single_Image_to_Motion_Graphics_Generation_ICCVW_2025_paper.html), ICCV Workshops 2025.
+11. J. Park et al., [Decomate: Leveraging Generative Models for Co-Creative SVG Animation](https://arxiv.org/abs/2511.06297), 2025.
+12. J. Yun and J. Choo, [Vector Prism: Animating Vector Graphics by Stratifying Semantic Structure](https://openaccess.thecvf.com/content/CVPR2026/html/Yun_Vector_Prism_Animating_Vector_Graphics_by_Stratifying_Semantic_Structure_CVPR_2026_paper.html), CVPR 2026.
